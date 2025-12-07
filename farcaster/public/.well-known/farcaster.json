@@ -1,0 +1,16 @@
+{
+  "accountAssociation": {
+    "header": "TODO_SIGN_WITH_YOUR_CUSTODY_ADDRESS",
+    "payload": "TODO",
+    "signature": "TODO"
+  },
+  "frame": {
+    "version": "1",
+    "name": "Relic Safari",
+    "iconUrl": "https://relic-safari.social/image.jpg",
+    "homeUrl": "https://relic-safari.social",
+    "splashImageUrl": "https://relic-safari.social/image.jpg",
+    "splashBackgroundColor": "#1a1714",
+    "webhookUrl": "https://relic-safari.social/api/webhook"
+  }
+}

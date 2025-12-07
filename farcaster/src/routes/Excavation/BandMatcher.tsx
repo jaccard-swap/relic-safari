@@ -1,0 +1,22 @@
+interface BandMatcherProps {
+  bands: { index: number; matches: boolean }[]
+}
+
+export function BandMatcher({ bands }: BandMatcherProps) {
+  return (
+    <div className="flex items-center justify-center gap-0.5">
+      {bands.map((b) => (
+        <div
+          key={b.index}
+          className={`w-4 h-2 rounded-sm transition-colors ${
+            b.matches 
+              ? 'bg-gradient-to-r from-emerald-500 to-cyan-500' 
+              : 'bg-stone-700'
+          }`}
+          title={`Band ${b.index + 1}: ${b.matches ? 'Match' : 'No match'}`}
+        />
+      ))}
+    </div>
+  )
+}
+

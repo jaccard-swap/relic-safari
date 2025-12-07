@@ -1,0 +1,36 @@
+{
+  "name": "@shared/database",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:push": "drizzle-kit push --force",
+    "db:seed": "tsx --env-file=.env src/seed-runner.ts",
+    "db:seed:dev": "tsx src/seed-runner.ts",
+    "db:setup": "npm run build && npm run db:push && npm run db:seed:dev"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.3",
+    "drizzle-orm": "^0.44.7",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.9.2",
+    "@types/pg": "^8.15.6",
+    "drizzle-kit": "^0.31.6",
+    "esbuild": "^0.24.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  }
+}

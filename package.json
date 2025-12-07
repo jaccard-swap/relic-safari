@@ -1,0 +1,12 @@
+{
+  "name": "jaccard-swap",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "api",
+    "farcaster",
+    "hardhat",
+    "shared/*"
+  ]
+}
+

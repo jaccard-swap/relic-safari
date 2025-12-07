@@ -1,0 +1,150 @@
+# ============================================
+# Jaccard Swap Monorepo - Root .gitignore
+# ============================================
+/AH-p2p/
+/courtyard-solidity-dev-main/
+/smr/
+/hermes-chan/
+/hardhat/generated/
+# ============================================
+# Global / Root Level
+# ============================================
+.env
+.env.local
+.env.*.local
+
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor Directories
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+
+# ============================================
+# API Service
+# ============================================
+# Logs
+api/logs/
+api/*.log
+api/npm-debug.log*
+api/pids
+api/*.pid
+api/*.seed
+
+# Runtime data
+api/lib-cov/
+api/coverage/
+api/.nyc_output/
+api/.grunt/
+api/build/Release/
+
+# Dependencies
+api/node_modules/
+api/jspm_packages/
+
+# Build output
+api/dist/
+api/.npm/
+
+# Optional REPL history
+api/.node_repl_history
+
+# 0x profiling
+api/profile-*
+
+# Clinic profiling
+api/profile*
+api/*clinic*
+api/*flamegraph*
+
+# Generated code
+api/examples/typescript-server.js
+api/test/types/index.js
+
+# ============================================
+# Web Service
+# ============================================
+# Dependencies
+web/node_modules/
+
+# React Router
+web/.react-router/
+web/build/
+
+# ============================================
+# Hardhat Service
+# ============================================
+# Dependencies
+hardhat/node_modules/
+
+# Compilation output
+hardhat/dist/
+hardhat/bundle/
+
+# Hardhat Build Artifacts
+hardhat/artifacts/
+hardhat/cache/
+
+# Typechain output
+hardhat/types/
+
+# Coverage reports
+hardhat/coverage/
+
+# ============================================
+# Shared / Database Service
+# ============================================
+# Dependencies
+shared/database/node_modules/
+
+# Build output
+shared/database/dist/
+
+# Drizzle
+shared/database/drizzle/
+
+# ============================================
+# Docker
+# ============================================
+# Docker volumes (if using local volumes)
+postgres_data/
+redis_data/
+
+# ============================================
+# Common Patterns (applied to all)
+# ============================================
+# Node modules (catch-all)
+**/node_modules/
+
+# Build outputs
+**/dist/
+**/build/
+**/.next/
+**/out/
+
+# Logs
+**/*.log
+**/logs/
+
+# Coverage
+**/coverage/
+**/.nyc_output/
+
+# Environment files
+**/.env.local
+**/.env.*.local
+
+# Lock files (optional - some teams prefer to commit these)
+# **/package-lock.json
+# **/yarn.lock
+# **/pnpm-lock.yaml

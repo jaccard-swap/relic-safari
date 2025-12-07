@@ -1,0 +1,796 @@
+{
+  "address": "0xb7f8bc63bbcad18155201308c8f3540b07f84f5e",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "ECDSAInvalidSignature",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "length",
+          "type": "uint256"
+        }
+      ],
+      "name": "ECDSAInvalidSignatureLength",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "s",
+          "type": "bytes32"
+        }
+      ],
+      "name": "ECDSAInvalidSignatureS",
+      "type": "error"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "nft",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "nftId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "auctioneer",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "winner",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint8",
+          "name": "similarityMatches",
+          "type": "uint8"
+        }
+      ],
+      "name": "AuctionSettled",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "AUCTION_TYPEHASH",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "BID_TYPEHASH",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ERC20_PERMIT_TYPEHASH",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "JACCARD_PERMIT_TYPEHASH",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes4",
+              "name": "salt",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "nft",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "reservePrice",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "owner",
+                  "type": "address"
+                },
+                {
+                  "internalType": "address",
+                  "name": "spender",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "tokenId",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "amount",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "deadline",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes4",
+                  "name": "salt",
+                  "type": "bytes4"
+                }
+              ],
+              "internalType": "struct JaccardERC1155Permit",
+              "name": "nftPermit",
+              "type": "tuple"
+            },
+            {
+              "internalType": "bytes",
+              "name": "nftPermitSignature",
+              "type": "bytes"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "bytes4",
+                  "name": "salt",
+                  "type": "bytes4"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "deadline",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes32[5]",
+                  "name": "targetMinHash",
+                  "type": "bytes32[5]"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "minMatches",
+                  "type": "uint8"
+                },
+                {
+                  "components": [
+                    {
+                      "internalType": "address",
+                      "name": "owner",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "address",
+                      "name": "spender",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "value",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "deadline",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "uint8",
+                      "name": "v",
+                      "type": "uint8"
+                    },
+                    {
+                      "internalType": "bytes32",
+                      "name": "r",
+                      "type": "bytes32"
+                    },
+                    {
+                      "internalType": "bytes32",
+                      "name": "s",
+                      "type": "bytes32"
+                    }
+                  ],
+                  "internalType": "struct ERC20PermitData",
+                  "name": "permit",
+                  "type": "tuple"
+                }
+              ],
+              "internalType": "struct Bid[]",
+              "name": "bids",
+              "type": "tuple[]"
+            },
+            {
+              "internalType": "bytes[]",
+              "name": "bidSignatures",
+              "type": "bytes[]"
+            }
+          ],
+          "internalType": "struct Auction",
+          "name": "auction",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bytes",
+          "name": "auctionSignature",
+          "type": "bytes"
+        }
+      ],
+      "name": "consumeAuction",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32[5]",
+          "name": "targetMinHash",
+          "type": "bytes32[5]"
+        },
+        {
+          "internalType": "bytes32[5]",
+          "name": "nftMinHash",
+          "type": "bytes32[5]"
+        }
+      ],
+      "name": "countMatches",
+      "outputs": [
+        {
+          "internalType": "uint8",
+          "name": "matches",
+          "type": "uint8"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes4",
+              "name": "salt",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "address",
+              "name": "nft",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "token",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "reservePrice",
+              "type": "uint256"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "owner",
+                  "type": "address"
+                },
+                {
+                  "internalType": "address",
+                  "name": "spender",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "tokenId",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "amount",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "deadline",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes4",
+                  "name": "salt",
+                  "type": "bytes4"
+                }
+              ],
+              "internalType": "struct JaccardERC1155Permit",
+              "name": "nftPermit",
+              "type": "tuple"
+            },
+            {
+              "internalType": "bytes",
+              "name": "nftPermitSignature",
+              "type": "bytes"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "bytes4",
+                  "name": "salt",
+                  "type": "bytes4"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "deadline",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "bytes32[5]",
+                  "name": "targetMinHash",
+                  "type": "bytes32[5]"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "minMatches",
+                  "type": "uint8"
+                },
+                {
+                  "components": [
+                    {
+                      "internalType": "address",
+                      "name": "owner",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "address",
+                      "name": "spender",
+                      "type": "address"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "value",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "uint256",
+                      "name": "deadline",
+                      "type": "uint256"
+                    },
+                    {
+                      "internalType": "uint8",
+                      "name": "v",
+                      "type": "uint8"
+                    },
+                    {
+                      "internalType": "bytes32",
+                      "name": "r",
+                      "type": "bytes32"
+                    },
+                    {
+                      "internalType": "bytes32",
+                      "name": "s",
+                      "type": "bytes32"
+                    }
+                  ],
+                  "internalType": "struct ERC20PermitData",
+                  "name": "permit",
+                  "type": "tuple"
+                }
+              ],
+              "internalType": "struct Bid[]",
+              "name": "bids",
+              "type": "tuple[]"
+            },
+            {
+              "internalType": "bytes[]",
+              "name": "bidSignatures",
+              "type": "bytes[]"
+            }
+          ],
+          "internalType": "struct Auction",
+          "name": "auction",
+          "type": "tuple"
+        }
+      ],
+      "name": "hashAuction",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes4",
+              "name": "salt",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32[5]",
+              "name": "targetMinHash",
+              "type": "bytes32[5]"
+            },
+            {
+              "internalType": "uint8",
+              "name": "minMatches",
+              "type": "uint8"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "owner",
+                  "type": "address"
+                },
+                {
+                  "internalType": "address",
+                  "name": "spender",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "value",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "deadline",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "v",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "r",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "s",
+                  "type": "bytes32"
+                }
+              ],
+              "internalType": "struct ERC20PermitData",
+              "name": "permit",
+              "type": "tuple"
+            }
+          ],
+          "internalType": "struct Bid",
+          "name": "bid",
+          "type": "tuple"
+        }
+      ],
+      "name": "hashBid",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "owner",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "spender",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "value",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint8",
+              "name": "v",
+              "type": "uint8"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "r",
+              "type": "bytes32"
+            },
+            {
+              "internalType": "bytes32",
+              "name": "s",
+              "type": "bytes32"
+            }
+          ],
+          "internalType": "struct ERC20PermitData",
+          "name": "permit",
+          "type": "tuple"
+        }
+      ],
+      "name": "hashERC20Permit",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "address",
+              "name": "owner",
+              "type": "address"
+            },
+            {
+              "internalType": "address",
+              "name": "spender",
+              "type": "address"
+            },
+            {
+              "internalType": "uint256",
+              "name": "tokenId",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "amount",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes4",
+              "name": "salt",
+              "type": "bytes4"
+            }
+          ],
+          "internalType": "struct JaccardERC1155Permit",
+          "name": "permit",
+          "type": "tuple"
+        }
+      ],
+      "name": "hashJaccardPermit",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "auctionHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "usedAuctions",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "bidHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "usedBids",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "components": [
+            {
+              "internalType": "bytes4",
+              "name": "salt",
+              "type": "bytes4"
+            },
+            {
+              "internalType": "uint256",
+              "name": "deadline",
+              "type": "uint256"
+            },
+            {
+              "internalType": "bytes32[5]",
+              "name": "targetMinHash",
+              "type": "bytes32[5]"
+            },
+            {
+              "internalType": "uint8",
+              "name": "minMatches",
+              "type": "uint8"
+            },
+            {
+              "components": [
+                {
+                  "internalType": "address",
+                  "name": "owner",
+                  "type": "address"
+                },
+                {
+                  "internalType": "address",
+                  "name": "spender",
+                  "type": "address"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "value",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint256",
+                  "name": "deadline",
+                  "type": "uint256"
+                },
+                {
+                  "internalType": "uint8",
+                  "name": "v",
+                  "type": "uint8"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "r",
+                  "type": "bytes32"
+                },
+                {
+                  "internalType": "bytes32",
+                  "name": "s",
+                  "type": "bytes32"
+                }
+              ],
+              "internalType": "struct ERC20PermitData",
+              "name": "permit",
+              "type": "tuple"
+            }
+          ],
+          "internalType": "struct Bid",
+          "name": "bid",
+          "type": "tuple"
+        },
+        {
+          "internalType": "bytes",
+          "name": "signature",
+          "type": "bytes"
+        }
+      ],
+      "name": "verifyBid",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ]
+}

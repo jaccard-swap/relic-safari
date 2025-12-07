@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="theme-color" content="#000000" />
+    <meta
+      name="description"
+      content="Relic Safari - Excavate, Trade, and Upgrade Artifacts with onchain Jaccard Similarity"
+    />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap"
+    />
+    <title>Relic Safari</title>
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="Relic Safari" />
+    <meta property="og:description" content="Excavate, Trade, and Upgrade Artifacts with onchain Jaccard Similarity" />
+    <meta property="og:image" content="https://relic-safari.social/embed.png" />
+    <meta property="og:url" content="https://relic-safari.social" />
+    
+    <!-- Farcaster Mini App Embed -->
+    <!-- TODO: Replace relic-safari.social with production URL -->
+    <meta name="fc:miniapp" content='{"version":"1","imageUrl":"https://relic-safari.social/embed.png","button":{"title":"🏺 Hunt Relics","action":{"type":"launch_miniapp","url":"https://relic-safari.social","name":"Relic Safari","splashImageUrl":"https://relic-safari.social/image.jpg","splashBackgroundColor":"#1a1714"}}}' />
+    <!-- Backward compatibility -->
+    <meta name="fc:frame" content='{"version":"1","imageUrl":"https://relic-safari.social/embed.png","button":{"title":"🏺 Hunt Relics","action":{"type":"launch_frame","url":"https://relic-safari.social","name":"Relic Safari","splashImageUrl":"https://relic-safari.social/image.jpg","splashBackgroundColor":"#1a1714"}}}' />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
