@@ -1,0 +1,29 @@
+{
+  "name": "hardhat",
+  "version": "1.0.0",
+  "type": "module",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ignition": "^3.0.3",
+    "@nomicfoundation/hardhat-toolbox-viem": "^5.0.0",
+    "@nomicfoundation/hardhat-verify": "^3.0.7",
+    "@rocketh/deploy": "^0.15.2",
+    "@rocketh/diamond": "^0.15.4",
+    "@rocketh/doc": "^0.15.13",
+    "@rocketh/export": "^0.15.13",
+    "@rocketh/proxy": "^0.15.10",
+    "@rocketh/read-execute": "^0.15.2",
+    "@rocketh/verifier": "^0.15.16",
+    "@types/node": "^22.18.13",
+    "forge-std": "github:foundry-rs/forge-std#v1.9.4",
+    "hardhat": "^3.0.10",
+    "hardhat-deploy": "^2.0.0-next.53",
+    "rocketh": "^0.15.13",
+    "typescript": "~5.8.0",
+    "viem": "^2.38.5"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
+    "dotenv": "^17.2.3",
+    "lsh": "^0.0.0"
+  }
+}
