@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { authFetch } from '../lib/auth'
 
 export interface BandMatch {
   index: number
@@ -57,9 +58,7 @@ export function usePolymeraseSimulation(targetNftId: string | null, consumedNftI
       setError(null)
       
       try {
-        const res = await fetch(`/api/faucet/polymerase/simulate?targetNftId=${targetNftId}&consumedNftId=${consumedNftId}`, {
-          credentials: 'include',
-        })
+        const res = await authFetch(`/api/faucet/polymerase/simulate?targetNftId=${targetNftId}&consumedNftId=${consumedNftId}`)
         const data = await res.json()
         
         if (!res.ok) {

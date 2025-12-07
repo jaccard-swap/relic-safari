@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useConnection } from 'wagmi'
 import { WS_MSG as MSG } from '@shared/constants'
 import type { Auction } from './useActiveAuctions'
+import { authFetch } from '../lib/auth'
 
 export interface ChatMessage {
   id: string
@@ -52,9 +53,7 @@ export function useAuctionRoom(auctionId: string | undefined) {
     if (!auctionId) return
 
     try {
-      const response = await fetch(`/api/auction/${auctionId}`, {
-        credentials: 'include',
-      })
+      const response = await authFetch(`/api/auction/${auctionId}`)
       if (!response.ok) throw new Error('Failed to fetch auction')
       
       const data = await response.json()
@@ -302,10 +301,9 @@ export function useAuctionRoom(auctionId: string | undefined) {
     try {
       console.log('📤 Posting bid:', { auctionId, bidder: address, amount: bid.amount })
       
-      const response = await fetch(`/api/auction/${auctionId}/bid`, {
+      const response = await authFetch(`/api/auction/${auctionId}/bid`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           bidder: address,
           amount: bid.amount,

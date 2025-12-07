@@ -3,6 +3,7 @@ import { useConnection, useSignTypedData, useReadContract } from 'wagmi'
 import { parseEther } from 'viem'
 import { useStaticData } from './useStaticData'
 import { BidTypes, ERC20PermitTypes, EIP712_DOMAINS } from '@shared/constants'
+import { authFetch } from '../lib/auth'
 
 interface StandingBidParams {
   amount: string // in ether
@@ -116,10 +117,9 @@ export function useStandingBid() {
       })
 
       // Submit to API
-      const response = await fetch('/api/bids', {
+      const response = await authFetch('/api/bids', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           bidder: address,
           chainId,

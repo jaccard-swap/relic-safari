@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useConnection, useChainId } from 'wagmi'
+import { authFetch } from '../lib/auth'
 
 export interface PolymerizationRecord {
   id: string
@@ -32,9 +33,7 @@ export function usePolymerizationHistory(limit = 5) {
     setError(null)
 
     try {
-      const res = await fetch(`/api/faucet/polymerase/history?address=${address}&chainId=${chainId}&limit=${limit}`, {
-        credentials: 'include',
-      })
+      const res = await authFetch(`/api/faucet/polymerase/history?address=${address}&chainId=${chainId}&limit=${limit}`)
       const data = await res.json()
 
       if (!res.ok) {

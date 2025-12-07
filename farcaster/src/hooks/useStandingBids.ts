@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useConnection } from 'wagmi'
+import { authFetch } from '../lib/auth'
 
 export interface StandingBid {
   id: string
@@ -39,9 +40,7 @@ export function useStandingBids() {
         params.set('chainId', String(chainId))
       }
 
-      const response = await fetch(`/api/bids?${params}`, {
-        credentials: 'include',
-      })
+      const response = await authFetch(`/api/bids?${params}`)
       const data = await response.json()
 
       if (!response.ok) {

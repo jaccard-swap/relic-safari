@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import type { Nft } from '../stores/nftStore'
+import { authFetch } from '../lib/auth'
 
 export function useGetNft(nftId: string | undefined) {
   const [nft, setNft] = useState<Nft | null>(null)
@@ -16,9 +17,7 @@ export function useGetNft(nftId: string | undefined) {
     setError(null)
 
     try {
-      const response = await fetch(`/api/nft/${nftId}`, {
-        credentials: 'include',
-      })
+      const response = await authFetch(`/api/nft/${nftId}`)
       
       if (!response.ok) {
         throw new Error('Failed to fetch NFT')

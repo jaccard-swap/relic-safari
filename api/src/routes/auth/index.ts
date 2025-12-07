@@ -6,6 +6,7 @@ import {
   generateSiweNonce
 } from 'viem/siwe'
 import { sepolia } from 'viem/chains'
+import jwt from 'jsonwebtoken'
 
 interface LoginBody {
   message: string
@@ -13,6 +14,12 @@ interface LoginBody {
   nonce: string
   type: 'user' | 'admin'
 }
+
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET is required in production')
+}
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
+const JWT_EXPIRY = '7d'
 
 const publicClient = createPublicClient({
   chain: sepolia,
@@ -28,39 +35,22 @@ const auth: FastifyPluginAsync = async (fastify): Promise<void> => {
     return nonce
   })
 
-  // Check SIWE session from signed cookie
-  fastify.get('/session', async function (request, reply) {
-    const raw = ((request as any).cookies)?.siwe as string | undefined
-
-    if (!raw) {
-      fastify.log.debug('Session check: no cookie found')
+  // Check SIWE session from JWT
+  fastify.get('/session', async function (request) {
+    if (!request.session) {
+      fastify.log.debug('Session check: no valid token')
       return { authenticated: false }
     }
 
-    try {
-      const session = JSON.parse(raw) as { address: string; type: LoginBody['type'] }
-      if (!session.address) {
-        fastify.log.warn('Session check: cookie found but no address')
-        return { authenticated: false }
-      }
-      fastify.log.info({ address: session.address, type: session.type }, 'Session check: authenticated')
-      return {
-        authenticated: true,
-        address: session.address,
-        type: session.type
-      }
-    } catch (error) {
-      // Malformed cookie – clear it to be safe
-      fastify.log.warn({ error }, 'Session check: malformed cookie, clearing')
-      ;(reply as any).clearCookie('siwe', {
-        path: '/',
-        domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN_NAME : 'localhost'
-      })
-      return { authenticated: false }
+    fastify.log.info({ address: request.session.address, type: request.session.type }, 'Session check: authenticated')
+    return {
+      authenticated: true,
+      address: request.session.address,
+      type: request.session.type
     }
   })
 
-  // Verify SIWE message and set cookie
+  // Verify SIWE message and return JWT
   fastify.post('/login', async function (request, reply) {
     const body = request.body as LoginBody
 
@@ -89,24 +79,15 @@ const auth: FastifyPluginAsync = async (fastify): Promise<void> => {
         return { success: false }
       }
 
-      fastify.log.info({ address, type: body.type }, 'Login: SIWE verification successful, setting session cookie')
+      fastify.log.info({ address, type: body.type }, 'Login: SIWE verification successful, issuing JWT')
 
-      ;(reply as any).setCookie(
-        'siwe',
-        JSON.stringify({
-          address,
-          type: body.type
-        }),
-        {
-          path: '/',
-          httpOnly: true,
-          sameSite: 'lax',
-          secure: process.env.NODE_ENV === 'production',
-          domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN_NAME : 'localhost'
-        }
+      const token = jwt.sign(
+        { address, type: body.type },
+        JWT_SECRET,
+        { expiresIn: JWT_EXPIRY }
       )
 
-      return { success: true, address, type: body.type }
+      return { success: true, address, type: body.type, token }
     } catch (error) {
       fastify.log.error({ error }, 'Login: SIWE verification error')
       reply.code(401)
@@ -114,13 +95,9 @@ const auth: FastifyPluginAsync = async (fastify): Promise<void> => {
     }
   })
 
-  // Clear session
-  fastify.delete('/session', async function (request, reply) {
-    fastify.log.info('Session: clearing SIWE cookie')
-    ;(reply as any).clearCookie('siwe', {
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? process.env.DOMAIN_NAME : 'localhost'
-    })
+  // Clear session (JWT is stateless - client just discards token)
+  fastify.delete('/session', async function () {
+    fastify.log.info('Session: logout requested')
     return { authenticated: false }
   })
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { authFetch } from '../lib/auth'
 
 export function useCheckStandingBids(auctionId: string | undefined, connected: boolean) {
   const [matchedCount, setMatchedCount] = useState<number | null>(null)
@@ -12,9 +13,8 @@ export function useCheckStandingBids(auctionId: string | undefined, connected: b
     
     const check = async () => {
       try {
-        const response = await fetch(`/api/auction/${auctionId}/check-bids`, {
+        const response = await authFetch(`/api/auction/${auctionId}/check-bids`, {
           method: 'POST',
-          credentials: 'include',
         })
         
         if (cancelled) return

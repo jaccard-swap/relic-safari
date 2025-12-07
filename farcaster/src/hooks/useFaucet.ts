@@ -5,6 +5,7 @@ import {
   useConnection
 } from 'wagmi'
 import { useStaticData } from './useStaticData'
+import { authFetch } from '../lib/auth'
 
 export function useErc20Faucet(onSuccess?: () => void) {
   const { address } = useConnection()
@@ -77,10 +78,9 @@ export function useErc1155Faucet(onSuccess?: () => void) {
 
     try {
       // API waits for tx confirmation before returning
-      const response = await fetch('/api/faucet', {
+      const response = await authFetch('/api/faucet', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ recipient: address, chainId }),
       })
 

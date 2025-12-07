@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useConnection } from 'wagmi'
 import { WS_MSG as MSG } from '@shared/constants'
+import { authFetch } from '../lib/auth'
 
 export interface Auction {
   id: string
@@ -134,9 +135,7 @@ export function useActiveAuctions() {
       if (chainId) params.set('chainId', chainId.toString())
       params.set('status', 'active')
 
-      const response = await fetch(`/api/auction?${params}`, {
-        credentials: 'include',
-      })
+      const response = await authFetch(`/api/auction?${params}`)
       if (!response.ok) throw new Error('Failed to fetch auctions')
 
       const data = await response.json()

@@ -2,6 +2,7 @@
 import { useConnection, useConnect, useDisconnect, useSignMessage} from 'wagmi'
 import { createSiweMessage } from 'viem/siwe'
 import { useState, useCallback, useEffect } from 'react'
+import { setToken, clearToken } from '../lib/auth'
 
 interface UseSiweAuthOptions {
   onSuccess?: () => void
@@ -26,9 +27,7 @@ export function useSiweAuth(options?: UseSiweAuthOptions) {
     try {
       // Get nonce from backend
       console.log('[SIWE] Fetching nonce from backend')
-      const nonceResponse = await fetch('/api/auth/nonce', {
-        credentials: 'include',
-      })
+      const nonceResponse = await fetch('/api/auth/nonce')
       
       if (!nonceResponse.ok) {
         throw new Error(`Failed to fetch nonce: ${nonceResponse.status}`)
@@ -65,7 +64,6 @@ export function useSiweAuth(options?: UseSiweAuthOptions) {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
         body: JSON.stringify({
           message,
           signature,
@@ -82,6 +80,11 @@ export function useSiweAuth(options?: UseSiweAuthOptions) {
 
       const result = await loginResponse.json()
       console.log('[SIWE] Login successful:', result)
+      
+      // Store JWT token
+      if (result.token) {
+        setToken(result.token)
+      }
 
     } catch (error) {
       console.log('error', error)
@@ -101,17 +104,8 @@ export function useSiweAuth(options?: UseSiweAuthOptions) {
   const signOut = useCallback(async () => {
     console.log('[SIWE] Sign out initiated')
     try {
-      console.log('[SIWE] Clearing session on backend')
-      const response = await fetch('/api/auth/session', {
-        method: 'DELETE',
-        credentials: 'include',
-      })
-      
-      if (!response.ok) {
-        console.warn('[SIWE] Failed to clear session on backend:', response.status)
-      } else {
-        console.log('[SIWE] Session cleared successfully')
-      }
+      // Clear local token
+      clearToken()
       
       console.log('[SIWE] Disconnecting wallet')
       disconnect()

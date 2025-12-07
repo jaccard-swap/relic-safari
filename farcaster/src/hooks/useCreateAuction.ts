@@ -3,6 +3,7 @@ import { useConnection, useSignTypedData } from 'wagmi'
 import { parseEther, toHex } from 'viem'
 import { useStaticData } from './useStaticData'
 import { AuctionTypes, JaccardERC1155PermitTypes, EIP712_DOMAINS } from '@shared/constants'
+import { authFetch } from '../lib/auth'
 
 export interface AuctionFormData {
   title: string
@@ -102,10 +103,9 @@ export function useCreateAuction() {
       })
 
       // 3. Submit to API
-      const response = await fetch('/api/auction', {
+      const response = await authFetch('/api/auction', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           title: formData.title,
           description: formData.description,

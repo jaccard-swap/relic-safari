@@ -1,5 +1,6 @@
 import fp from 'fastify-plugin'
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
+import jwt from 'jsonwebtoken'
 
 export interface SiweSession {
   address: string
@@ -15,22 +16,28 @@ declare module 'fastify' {
   }
 }
 
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
+  throw new Error('JWT_SECRET is required in production')
+}
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-me'
+
 export default fp(async (fastify: FastifyInstance) => {
   // Decorate request with session (null by default)
   fastify.decorateRequest('session', null)
 
-  // Parse SIWE cookie on every request
+  // Parse JWT from Authorization header on every request
   fastify.addHook('onRequest', async (request) => {
-    const raw = (request as any).cookies?.siwe as string | undefined
-    if (!raw) return
+    const authHeader = request.headers.authorization
+    if (!authHeader?.startsWith('Bearer ')) return
 
+    const token = authHeader.slice(7)
     try {
-      const parsed = JSON.parse(raw) as SiweSession
-      if (parsed.address && /^0x[a-fA-F0-9]{40}$/.test(parsed.address)) {
-        request.session = parsed
+      const decoded = jwt.verify(token, JWT_SECRET) as SiweSession
+      if (decoded.address && /^0x[a-fA-F0-9]{40}$/.test(decoded.address)) {
+        request.session = decoded
       }
     } catch {
-      // Malformed cookie - ignore, session stays null
+      // Invalid token - ignore, session stays null
     }
   })
 

@@ -29,11 +29,13 @@
     "fastify": "^5.0.0",
     "fastify-cli": "^7.4.0",
     "fastify-plugin": "^5.0.0",
+    "jsonwebtoken": "^9.0.3",
     "pg": "^8.16.3",
     "viem": "^2.40.0",
     "ws": "^8.18.3"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.1.0",
     "@types/ws": "^8.18.1",
     "c8": "^10.1.2",
