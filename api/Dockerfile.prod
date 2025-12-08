@@ -1,0 +1,53 @@
+FROM node:25-alpine AS builder
+
+WORKDIR /app
+
+# Copy workspace root
+COPY package.json package-lock.json ./
+COPY api/package.json api/package-lock.json ./api/
+COPY shared/database/package.json shared/database/package-lock.json ./shared/database/
+COPY shared/constants/package.json ./shared/constants/
+
+# Install all deps (including dev for build)
+RUN npm install
+
+# Copy source
+COPY tsconfig.base.json ./
+COPY shared/database ./shared/database
+COPY shared/constants ./shared/constants
+COPY api ./api
+
+# Build shared packages
+WORKDIR /app/shared/database
+RUN npm run build
+
+WORKDIR /app/shared/constants
+RUN npm run build || true
+
+# Build API
+WORKDIR /app/api
+RUN npm run build:ts
+
+# --- Production image ---
+FROM node:25-alpine
+
+WORKDIR /app
+
+# Copy workspace structure for prod deps only
+COPY package.json package-lock.json ./
+COPY api/package.json api/package-lock.json ./api/
+COPY shared/database/package.json shared/database/package-lock.json ./shared/database/
+COPY shared/constants/package.json ./shared/constants/
+
+RUN npm install --omit=dev
+
+# Copy built artifacts
+COPY --from=builder /app/api/dist ./api/dist
+COPY --from=builder /app/shared/database/dist ./shared/database/dist
+COPY --from=builder /app/shared/constants/dist ./shared/constants/dist
+
+WORKDIR /app/api
+
+EXPOSE 3000
+
+CMD ["npx", "fastify", "start", "-l", "info", "-a", "0.0.0.0", "dist/app.js"]

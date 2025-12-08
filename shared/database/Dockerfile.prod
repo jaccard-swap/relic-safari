@@ -1,0 +1,17 @@
+FROM node:25-alpine
+
+WORKDIR /app/shared/database
+
+COPY shared/database/package.json shared/database/package-lock.json ./
+COPY shared/database/drizzle.config.ts ./
+COPY shared/database/tsconfig.json ./
+COPY tsconfig.base.json /app/
+
+RUN npm install
+
+COPY shared/database/src ./src
+
+# Build first, then run setup
+RUN npm run build
+
+CMD ["npm", "run", "db:setup"]

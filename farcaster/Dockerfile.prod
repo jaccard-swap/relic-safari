@@ -1,0 +1,27 @@
+FROM node:25-alpine
+
+WORKDIR /app
+
+# Copy workspace root
+COPY package.json package-lock.json ./
+COPY farcaster/package.json ./farcaster/
+COPY shared/database/package.json shared/database/package-lock.json ./shared/database/
+COPY shared/constants/package.json ./shared/constants/
+
+RUN npm install
+
+# Copy source
+COPY tsconfig.base.json ./
+COPY shared ./shared
+COPY farcaster ./farcaster
+
+# Build shared/constants first
+WORKDIR /app/shared/constants
+RUN npm run build
+
+# Build farcaster
+WORKDIR /app/farcaster
+RUN npm run build
+
+# Output is in /app/farcaster/dist - copy to mounted volume
+CMD ["cp", "-r", "dist/.", "/output"]
