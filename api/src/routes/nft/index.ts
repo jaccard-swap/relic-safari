@@ -129,17 +129,35 @@ const nftRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
       }
 
       // Verify on-chain that newOwner actually owns this NFT
+      // Poll until state change or timeout (handles RPC lag after tx confirmation)
       const publicClient = publicClients[chainId]
-      const balance = await publicClient.readContract({
-        address: artifact.address,
-        abi: artifact.abi as any,
-        functionName: 'balanceOf',
-        args: [body.newOwner as `0x${string}`, BigInt(nft.tokenId)],
-      } as any) as bigint
+      const pollIntervalMs = 1000
+      const timeoutMs = 30000 // 30 seconds max
+      const startTime = Date.now()
+      
+      let balance = 0n
+      let attempts = 0
+      while (Date.now() - startTime < timeoutMs) {
+        attempts++
+        balance = await publicClient.readContract({
+          address: artifact.address,
+          abi: artifact.abi as any,
+          functionName: 'balanceOf',
+          args: [body.newOwner as `0x${string}`, BigInt(nft.tokenId)],
+        } as any) as bigint
+        
+        if (balance >= 1n) {
+          fastify.log.info({ attempts, elapsed: Date.now() - startTime, nftId: body.nftId }, 'On-chain balance confirmed')
+          break
+        }
+        
+        await new Promise(r => setTimeout(r, pollIntervalMs))
+      }
 
       if (balance < 1n) {
+        fastify.log.warn({ nftId: body.nftId, newOwner: body.newOwner, tokenId: nft.tokenId, attempts }, 'New owner does not hold NFT after polling timeout')
         reply.code(400)
-        return { error: 'New owner does not hold this NFT on-chain' }
+        return { error: 'New owner does not hold this NFT on-chain (timeout)' }
       }
 
       // Update ownership in DB
