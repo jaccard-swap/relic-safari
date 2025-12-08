@@ -49,6 +49,15 @@ CREATE TABLE "chats" (
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "erc20_claims" (
+	"id" text PRIMARY KEY NOT NULL,
+	"recipient" text NOT NULL,
+	"chain_id" integer NOT NULL,
+	"amount" text NOT NULL,
+	"tx_hash" text NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "nfts" (
 	"id" text PRIMARY KEY NOT NULL,
 	"token_id" text NOT NULL,
@@ -136,6 +145,8 @@ CREATE INDEX "bids_bidder_idx" ON "bids" USING btree ("bidder");--> statement-br
 CREATE INDEX "bids_amount_idx" ON "bids" USING btree ("amount");--> statement-breakpoint
 CREATE INDEX "chats_auction_idx" ON "chats" USING btree ("auction_id");--> statement-breakpoint
 CREATE INDEX "chats_created_idx" ON "chats" USING btree ("created_at");--> statement-breakpoint
+CREATE INDEX "erc20_claims_recipient_idx" ON "erc20_claims" USING btree ("recipient");--> statement-breakpoint
+CREATE INDEX "erc20_claims_recipient_created_idx" ON "erc20_claims" USING btree ("recipient","created_at");--> statement-breakpoint
 CREATE INDEX "nfts_token_id_chain_idx" ON "nfts" USING btree ("token_id","chain_id");--> statement-breakpoint
 CREATE INDEX "nfts_recipient_idx" ON "nfts" USING btree ("recipient");--> statement-breakpoint
 CREATE INDEX "nfts_status_idx" ON "nfts" USING btree ("status");--> statement-breakpoint
