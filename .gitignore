@@ -23,3 +23,9 @@
 .env
 
 /generated
+
+/nginx
+
+docker-compose.prod.yaml
+
+Dockerfile.prod

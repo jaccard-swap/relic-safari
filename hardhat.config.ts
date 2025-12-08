@@ -35,11 +35,11 @@ const config: HardhatUserConfig = {
   tasks: [deployAuctionTask],
   plugins: [hardhatToolboxViemPlugin, hardhatVerify, HardhatDeploy],
   solidity: {
-    profiles: {
-      default: {
-        version: "0.8.30",
+    compilers: [
+      {
+        version: "0.8.10",
       },
-      production: {
+      {
         version: "0.8.30",
         settings: {
           optimizer: {
@@ -48,7 +48,7 @@ const config: HardhatUserConfig = {
           },
         },
       },
-    },
+    ],
   },
   chainDescriptors: {
     84532: {
@@ -58,6 +58,16 @@ const config: HardhatUserConfig = {
           name: "Base Sepolia Explorer",
           url: "https://sepolia.basescan.org",
           apiUrl: "https://api-sepolia.basescan.org/api",
+        },
+      },
+    },
+    8453: {
+      name: "Base",
+      blockExplorers: {
+        etherscan: {
+          name: "Etherscan",
+          url: "https://basescan.io",
+          apiUrl: "https://api.etherscan.io/v2/api",
         },
       },
     },
