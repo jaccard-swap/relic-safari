@@ -1,3 +1,13 @@
+CREATE TABLE "auction_events" (
+	"id" text PRIMARY KEY NOT NULL,
+	"auction_id" text NOT NULL,
+	"type" text NOT NULL,
+	"actor" text NOT NULL,
+	"summary" jsonb,
+	"ref_id" text,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "auctions" (
 	"id" text PRIMARY KEY NOT NULL,
 	"title" text NOT NULL,
@@ -129,6 +139,7 @@ CREATE TABLE "users" (
 	CONSTRAINT "users_email_unique" UNIQUE("email")
 );
 --> statement-breakpoint
+ALTER TABLE "auction_events" ADD CONSTRAINT "auction_events_auction_id_auctions_id_fk" FOREIGN KEY ("auction_id") REFERENCES "public"."auctions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "auctions" ADD CONSTRAINT "auctions_nft_id_nfts_id_fk" FOREIGN KEY ("nft_id") REFERENCES "public"."nfts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bids" ADD CONSTRAINT "bids_auction_id_auctions_id_fk" FOREIGN KEY ("auction_id") REFERENCES "public"."auctions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "chats" ADD CONSTRAINT "chats_auction_id_auctions_id_fk" FOREIGN KEY ("auction_id") REFERENCES "public"."auctions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -136,6 +147,8 @@ ALTER TABLE "polymerizations" ADD CONSTRAINT "polymerizations_target_nft_id_nfts
 ALTER TABLE "polymerizations" ADD CONSTRAINT "polymerizations_consumed_nft_id_nfts_id_fk" FOREIGN KEY ("consumed_nft_id") REFERENCES "public"."nfts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "sponsorship_requests" ADD CONSTRAINT "sponsorship_requests_nft_id_nfts_id_fk" FOREIGN KEY ("nft_id") REFERENCES "public"."nfts"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "standing_bids" ADD CONSTRAINT "standing_bids_matched_auction_id_auctions_id_fk" FOREIGN KEY ("matched_auction_id") REFERENCES "public"."auctions"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE INDEX "auction_events_auction_idx" ON "auction_events" USING btree ("auction_id");--> statement-breakpoint
+CREATE INDEX "auction_events_created_idx" ON "auction_events" USING btree ("created_at");--> statement-breakpoint
 CREATE INDEX "auctions_auctioneer_idx" ON "auctions" USING btree ("auctioneer");--> statement-breakpoint
 CREATE INDEX "auctions_status_idx" ON "auctions" USING btree ("status");--> statement-breakpoint
 CREATE INDEX "auctions_end_time_idx" ON "auctions" USING btree ("end_time");--> statement-breakpoint
