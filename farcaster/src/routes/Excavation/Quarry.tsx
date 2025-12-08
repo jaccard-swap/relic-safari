@@ -46,11 +46,11 @@ export function Quarry({ expanded, onToggle, onHelp }: QuarryProps) {
     }
   }, [digConfirmed])
 
-  // Show toast on rate limit error
+  // Show toast on any error
   useEffect(() => {
-    if (digError?.message?.includes('Rate limit')) {
+    if (digError) {
       setToast({ 
-        message: '⏳ Rate limit: 3 excavations per hour. Try again later!', 
+        message: digError.message || 'Excavation failed', 
         type: 'error' 
       })
     }
