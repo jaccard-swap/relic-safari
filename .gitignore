@@ -148,3 +148,10 @@ redis_data/
 # **/package-lock.json
 # **/yarn.lock
 # **/pnpm-lock.yaml
+
+
+/nginx
+
+docker-compose.prod.yaml
+
+Dockerfile.prod
