@@ -121,7 +121,7 @@ export function useConsumeAuction(onSuccess?: (result: ConsumeResult) => void) {
       return
     }
 
-    reset()
+    // Note: removed reset() - was causing issues with Farcaster wallet
     setError(null)
     setTxHash(undefined)
     setIsFetching(true)
@@ -277,7 +277,7 @@ export function useConsumeAuction(onSuccess?: (result: ConsumeResult) => void) {
       setIsFetching(false)
       throw err
     }
-  }, [address, staticData, signAuction, writeContractAsync, reset])
+  }, [address, staticData, signAuction, writeContractAsync])
 
   return {
     consumeAuction,
