@@ -152,6 +152,6 @@ redis_data/
 
 /nginx
 
-docker-compose.prod.yaml
+#/docker-compose.prod.yaml
 
-Dockerfile.prod
+#/t Dockerfile.prod
