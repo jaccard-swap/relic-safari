@@ -1,10 +1,12 @@
 import { useRef, useEffect } from 'react'
+import type { Chain } from 'viem'
 import { MessageItem } from './MessageItem'
 import type { ChatMessage } from '../../hooks/useAuctionRoom'
 
 interface ActivityFeedProps {
   messages: ChatMessage[]
   address?: string
+  chain?: Chain
   chatInput: string
   onChatInputChange: (value: string) => void
   onSendMessage: (e: React.FormEvent) => void
@@ -13,6 +15,7 @@ interface ActivityFeedProps {
 export function ActivityFeed({
   messages,
   address,
+  chain,
   chatInput,
   onChatInputChange,
   onSendMessage,
@@ -39,6 +42,7 @@ export function ActivityFeed({
               key={msg.id} 
               msg={msg} 
               isOwn={msg.user.toLowerCase() === address?.toLowerCase()}
+              chain={chain}
             />
           ))
         )}

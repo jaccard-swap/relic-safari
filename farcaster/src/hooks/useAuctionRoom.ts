@@ -10,6 +10,7 @@ export interface ChatMessage {
   message: string
   timestamp: number
   type: 'message' | 'bid' | 'settled'
+  txHash?: string
 }
 
 export interface SettledData {
@@ -209,6 +210,7 @@ export function useAuctionRoom(auctionId: string | undefined) {
                 message: `🎉 Auction settled! Winner: ${data.winner?.slice(0, 6)}...${data.winner?.slice(-4)}`,
                 timestamp: data.timestamp,
                 type: 'settled',
+                txHash: data.txHash,
               }
               setState(prev => ({
                 ...prev,

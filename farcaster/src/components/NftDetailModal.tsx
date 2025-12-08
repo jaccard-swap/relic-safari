@@ -1,5 +1,7 @@
+import { useChains } from 'wagmi'
 import type { Nft, NftMetadata } from '../stores/nftStore'
 import { InfoModal } from './InfoModal'
+import { getExplorerUrl } from '../utils/explorer'
 import { 
   FORM_EMOJI, 
   QUALITY_BADGE, 
@@ -13,50 +15,14 @@ import {
   getNameStyles 
 } from '../utils/artifactStyles'
 
-const BLOCK_EXPLORERS: Record<number, { name: string; url: string }> = {
-  84532: { name: 'Basescan', url: 'https://sepolia.basescan.org' },
-  11155111: { name: 'Etherscan', url: 'https://sepolia.etherscan.io' },
-  1: { name: 'Etherscan', url: 'https://etherscan.io' },
-  8453: { name: 'Basescan', url: 'https://basescan.org' },
-}
-
-function getExplorerUrl(chainId: number) {
-  return BLOCK_EXPLORERS[chainId] || { name: 'Explorer', url: '' }
-}
-
-function ExplorerLink({ chainId, type, value, display }: { 
-  chainId: number
-  type: 'address' | 'tx' | 'token'
-  value: string
-  display?: string 
-}) {
-  const explorer = getExplorerUrl(chainId)
-  if (!explorer.url) {
-    return <span className="font-mono text-stone-400">{display || value}</span>
-  }
-  
-  const href = type === 'token' 
-    ? `${explorer.url}/token/${value}`
-    : `${explorer.url}/${type}/${value}`
-  
-  return (
-    <a 
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="font-mono text-amber-400/80 hover:text-amber-300 hover:underline"
-    >
-      {display || `${value.slice(0, 6)}...${value.slice(-4)}`}
-    </a>
-  )
-}
-
 interface NftDetailModalProps {
   nft: Nft | null
   onClose: () => void
 }
 
 export function NftDetailModal({ nft, onClose }: NftDetailModalProps) {
+  const chains = useChains()
+  
   if (!nft) return null
   
   const metadata = nft.metadata as NftMetadata
@@ -68,7 +34,11 @@ export function NftDetailModal({ nft, onClose }: NftDetailModalProps) {
   const material = metadata.material as string
   const site = metadata.site as string
   const nameStyles = getNameStyles(rarity)
-  const explorer = getExplorerUrl(nft.chainId)
+  
+  const chain = chains.find(c => c.id === nft.chainId)
+  const nftUrl = getExplorerUrl(chain, nft.contractAddress, 'nft', nft.tokenId)
+  const contractUrl = getExplorerUrl(chain, nft.contractAddress, 'token')
+  const explorerName = chain?.blockExplorers?.default?.name || 'Explorer'
 
   return (
     <InfoModal 
@@ -128,26 +98,59 @@ export function NftDetailModal({ nft, onClose }: NftDetailModalProps) {
         <div className="text-stone-500 text-[10px] space-y-1">
           <div className="flex justify-between">
             <span>Token ID</span>
-            <span className="font-mono text-stone-400">
-              {nft.tokenId.length > 12 ? `${nft.tokenId.slice(0, 6)}...${nft.tokenId.slice(-4)}` : nft.tokenId}
-            </span>
+            {nftUrl ? (
+              <a
+                href={nftUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-amber-400/80 hover:text-amber-300 hover:underline"
+              >
+                {nft.tokenId.length > 12 ? `${nft.tokenId.slice(0, 6)}...${nft.tokenId.slice(-4)}` : nft.tokenId}
+              </a>
+            ) : (
+              <span className="font-mono text-stone-400">
+                {nft.tokenId.length > 12 ? `${nft.tokenId.slice(0, 6)}...${nft.tokenId.slice(-4)}` : nft.tokenId}
+              </span>
+            )}
           </div>
           <div className="flex justify-between">
             <span>Chain</span>
             <span className="text-stone-400">
-              {explorer.name} ({nft.chainId === 84532 ? 'Base Sepolia' : nft.chainId === 11155111 ? 'Sepolia' : `${nft.chainId}`})
+              {explorerName} ({nft.chainId === 84532 ? 'Base Sepolia' : nft.chainId === 11155111 ? 'Sepolia' : `${nft.chainId}`})
             </span>
           </div>
           <div className="flex justify-between">
             <span>Contract</span>
-            <ExplorerLink chainId={nft.chainId} type="token" value={nft.contractAddress} />
+            {contractUrl ? (
+              <a
+                href={contractUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-mono text-amber-400/80 hover:text-amber-300 hover:underline"
+              >
+                {nft.contractAddress.slice(0, 6)}...{nft.contractAddress.slice(-4)}
+              </a>
+            ) : (
+              <span className="font-mono text-stone-400">
+                {nft.contractAddress.slice(0, 6)}...{nft.contractAddress.slice(-4)}
+              </span>
+            )}
           </div>
         </div>
+        
+        {/* View on Explorer button */}
+        {nftUrl && (
+          <a
+            href={nftUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-3 block w-full py-1.5 bg-stone-700/50 hover:bg-stone-600/50 text-amber-200/80 text-[10px] font-medium rounded text-center transition-colors"
+          >
+            View on {explorerName} ↗
+          </a>
+        )}
       </div>
     </InfoModal>
   )
 }
-
-// Re-export for convenience
-export { ExplorerLink, getExplorerUrl, BLOCK_EXPLORERS }
 

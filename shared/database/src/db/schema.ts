@@ -162,6 +162,19 @@ export const bids = pgTable('bids', {
   index('bids_amount_idx').on(table.amount),
 ]);
 
+// ERC20 faucet claims (SCRIP token)
+export const erc20Claims = pgTable('erc20_claims', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  recipient: text('recipient').notNull(),
+  chainId: integer('chain_id').notNull(),
+  amount: text('amount').notNull(), // stored as string for precision
+  txHash: text('tx_hash').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('erc20_claims_recipient_idx').on(table.recipient),
+  index('erc20_claims_recipient_created_idx').on(table.recipient, table.createdAt),
+]);
+
 // Standing buy orders (not tied to any auction, match by MinHash similarity)
 export const standingBids = pgTable('standing_bids', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

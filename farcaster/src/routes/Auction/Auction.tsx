@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useParams } from '@tanstack/react-router'
-import { useConnection, useWriteContract, useReadContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useConnection, useWriteContract, useReadContract, useWaitForTransactionReceipt, useChains } from 'wagmi'
 import { formatEther, parseEther } from 'viem'
+import { authFetch } from '../../lib/auth'
 import { useAuctionRoom } from '../../hooks/useAuctionRoom'
 import { useAuctionSignature, splitSignature, type FullAuctionMessage, type BidMessage } from '../../hooks/useAuctionSignature'
 import { useGetNft } from '../../hooks/useGetNft'
@@ -29,6 +30,7 @@ import {
 export function Auction() {
   const { auctionId } = useParams({ from: '/auction/$auctionId' })
   const { address } = useConnection()
+  const chains = useChains()
   
   const {
     auction,
@@ -80,7 +82,7 @@ export function Auction() {
     if (isSettled && settleTxHash && auction && address) {
       const settleOnBackend = async () => {
         try {
-          const response = await fetch(`/api/auction/${auctionId}/settle`, {
+          const response = await authFetch(`/api/auction/${auctionId}/settle`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -96,7 +98,7 @@ export function Auction() {
             // Sync NFT ownership to new owner
             if (auction.nftId && settlementData?.winner) {
               try {
-                const syncResponse = await fetch('/api/nft/sync-ownership', {
+                const syncResponse = await authFetch('/api/nft/sync-ownership', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -419,6 +421,7 @@ export function Auction() {
           isAuctioneer={isAuctioneer}
           connected={connected}
           participantCount={participantCount}
+          chain={chains.find(c => c.id === auction?.chainId)}
           onShowArtifact={() => setShowArtifactModal(true)}
           onShowAuctionInfo={() => setShowAuctionInfoModal(true)}
         />
@@ -426,6 +429,7 @@ export function Auction() {
         <ActivityFeed
           messages={messages}
           address={address}
+          chain={chains.find(c => c.id === auction?.chainId)}
           chatInput={chatInput}
           onChatInputChange={setChatInput}
           onSendMessage={handleSendMessage}
@@ -454,6 +458,7 @@ export function Auction() {
         finalBid={settlementData?.winningBid ? `${settlementData.winningBid} tokens` : undefined}
         nftName={auction?.title}
         txHash={settleTxHash}
+        chain={chains.find(c => c.id === auction?.chainId)}
       />
 
       {/* Artifact Details Modal */}

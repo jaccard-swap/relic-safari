@@ -1,10 +1,11 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
-import { useConnection, useChainId } from 'wagmi'
+import { useConnection, useChainId, useChains } from 'wagmi'
 import { useStore } from '@tanstack/react-store'
 import { activeNfts, invalidateNfts } from '../../stores/nftStore'
 import { useFaucetBalances } from '../../hooks/useFaucetBalances'
 import { usePolymeraseSimulation } from '../../hooks/usePolymeraseSimulation'
 import { usePolymerizationHistory, type PolymerizationRecord } from '../../hooks/usePolymerizationHistory'
+import { authFetch } from '../../lib/auth'
 import { CollapsibleSection } from '../../components/CollapsibleSection'
 import { MiniNftCard } from './MiniNftCard'
 import { WorkbenchArtifact } from './WorkbenchArtifact'
@@ -31,6 +32,7 @@ export function Polymerase({ expanded, onToggle, onHelp, onReactionsHelp }: Poly
 
   const { address } = useConnection()
   const chainId = useChainId()
+  const chains = useChains()
   const { essenceBalance, refetchBalances } = useFaucetBalances()
   const { history: reactions, loading: reactionsLoading, refetch: refetchReactions } = usePolymerizationHistory()
 
@@ -103,7 +105,7 @@ export function Polymerase({ expanded, onToggle, onHelp, onReactionsHelp }: Poly
     oldEssenceRef.current = essenceBalance?.count ?? 0
     
     try {
-      const res = await fetch('/api/faucet/polymerase', {
+      const res = await authFetch('/api/faucet/polymerase', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -299,7 +301,8 @@ export function Polymerase({ expanded, onToggle, onHelp, onReactionsHelp }: Poly
 
       <ReactionDetailModal 
         reaction={detailReaction} 
-        onClose={() => setDetailReaction(null)} 
+        onClose={() => setDetailReaction(null)}
+        chain={chains.find(c => c.id === chainId)}
       />
 
       {toast && (

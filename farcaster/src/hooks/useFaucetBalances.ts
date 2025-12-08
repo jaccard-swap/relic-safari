@@ -4,7 +4,7 @@ import { useStaticData } from './useStaticData'
 
 export const useFaucetBalances = () => {
     const { address, isConnected } = useConnection()
-    const { staticData } = useStaticData()
+    const { staticData, chainId } = useStaticData()
 
     // Get ERC20 token balance (SCRIP)
     const { data: tokenData, refetch: refetchTokenData } = useReadContracts({
@@ -71,6 +71,7 @@ export const useFaucetBalances = () => {
         refetchTokenData,
         refetchEssenceData,
         refetchBalances,
-        isConnected
+        isConnected,
+        chainId
     }
 }

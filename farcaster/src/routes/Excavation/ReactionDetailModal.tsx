@@ -1,13 +1,18 @@
+import type { Chain } from 'viem'
 import type { PolymerizationRecord } from '../../hooks/usePolymerizationHistory'
 import { InfoModal } from '../../components/InfoModal'
+import { getExplorerUrl } from '../../utils/explorer'
 
 interface ReactionDetailModalProps {
   reaction: PolymerizationRecord | null
   onClose: () => void
+  chain?: Chain
 }
 
-export function ReactionDetailModal({ reaction, onClose }: ReactionDetailModalProps) {
+export function ReactionDetailModal({ reaction, onClose, chain }: ReactionDetailModalProps) {
   if (!reaction) return null
+  
+  const txUrl = reaction.txHash && chain ? getExplorerUrl(chain, reaction.txHash, 'transaction') : null
 
   const upgrades = Object.entries(reaction.upgradedTraits || {})
   const experience = Object.entries(reaction.experienceGained || {})
@@ -117,9 +122,20 @@ export function ReactionDetailModal({ reaction, onClose }: ReactionDetailModalPr
           {reaction.txHash && (
             <div className="flex justify-between">
               <span>Transaction</span>
-              <span className="font-mono text-stone-400">
-                {reaction.txHash.slice(0, 8)}...{reaction.txHash.slice(-6)}
-              </span>
+              {txUrl ? (
+                <a 
+                  href={txUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-amber-400/80 hover:text-amber-300 hover:underline"
+                >
+                  {reaction.txHash.slice(0, 8)}...{reaction.txHash.slice(-6)} ↗
+                </a>
+              ) : (
+                <span className="font-mono text-stone-400">
+                  {reaction.txHash.slice(0, 8)}...{reaction.txHash.slice(-6)}
+                </span>
+              )}
             </div>
           )}
         </div>

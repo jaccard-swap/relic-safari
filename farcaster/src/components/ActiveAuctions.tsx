@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
+import { useChains } from 'wagmi'
 import { useActiveAuctions, type Auction } from '../hooks/useActiveAuctions'
-import { formatEther } from 'viem'
+import { formatEther, type Chain } from 'viem'
+import { getExplorerUrl } from '../utils/explorer'
 
 function formatTimeLeft(endTime: string): string {
   const end = new Date(endTime).getTime()
@@ -29,12 +31,14 @@ interface AuctionCardProps {
   isExpanded: boolean
   onToggle: () => void
   onShowNftDetails?: (nftId: string) => void
+  chain?: Chain
 }
 
-function AuctionCard({ auction, isExpanded, onToggle, onShowNftDetails }: AuctionCardProps) {
+function AuctionCard({ auction, isExpanded, onToggle, onShowNftDetails, chain }: AuctionCardProps) {
   const timeLeft = formatTimeLeft(auction.endTime)
   const isEnded = timeLeft === 'Ended'
   const bidDisplay = formatEther(BigInt(auction.startingBid))
+  const auctioneerUrl = chain ? getExplorerUrl(chain, auction.auctioneer, 'address') : null
 
   return (
     <div className="rounded-lg overflow-hidden">
@@ -102,7 +106,19 @@ function AuctionCard({ auction, isExpanded, onToggle, onShowNftDetails }: Auctio
             <div className="text-[9px] text-stone-500 space-y-0.5">
               <div className="flex justify-between">
                 <span>Curator</span>
-                <span className="text-stone-300">{shortenAddress(auction.auctioneer)}</span>
+                {auctioneerUrl ? (
+                  <a 
+                    href={auctioneerUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-stone-300 hover:text-amber-300 hover:underline"
+                  >
+                    {shortenAddress(auction.auctioneer)}
+                  </a>
+                ) : (
+                  <span className="text-stone-300">{shortenAddress(auction.auctioneer)}</span>
+                )}
               </div>
               <div className="flex justify-between">
                 <span>Relic</span>
@@ -146,6 +162,7 @@ interface ActiveAuctionsProps {
 
 export function ActiveAuctions({ onShowNftDetails }: ActiveAuctionsProps) {
   const { auctions, loading, error, refetch } = useActiveAuctions()
+  const chains = useChains()
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   const toggleExpand = (id: string) => {
@@ -200,6 +217,7 @@ export function ActiveAuctions({ onShowNftDetails }: ActiveAuctionsProps) {
             isExpanded={expandedId === auction.id}
             onToggle={() => toggleExpand(auction.id)}
             onShowNftDetails={onShowNftDetails}
+            chain={chains.find(c => c.id === auction.chainId)}
           />
         ))}
       </div>

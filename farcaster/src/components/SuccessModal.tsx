@@ -1,3 +1,6 @@
+import type { Chain } from 'viem'
+import { getExplorerUrl } from '../utils/explorer'
+
 interface SuccessModalProps {
   isOpen: boolean
   onClose: () => void
@@ -7,6 +10,7 @@ interface SuccessModalProps {
   finalBid?: string
   nftName?: string
   txHash?: string
+  chain?: Chain
 }
 
 export const SuccessModal = ({
@@ -17,9 +21,13 @@ export const SuccessModal = ({
   winnerAddress,
   finalBid,
   nftName,
-  txHash
+  txHash,
+  chain
 }: SuccessModalProps) => {
   if (!isOpen) return null
+  
+  const txUrl = txHash && chain ? getExplorerUrl(chain, txHash, 'transaction') : null
+  const winnerUrl = winnerAddress && chain ? getExplorerUrl(chain, winnerAddress, 'address') : null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
@@ -63,9 +71,20 @@ export const SuccessModal = ({
               {winnerAddress && (
                 <div className="flex justify-between items-center text-[10px]">
                   <span className="text-stone-500">Winner:</span>
-                  <span className="text-amber-300 font-mono">
-                    {winnerAddress.slice(0, 6)}...{winnerAddress.slice(-4)}
-                  </span>
+                  {winnerUrl ? (
+                    <a 
+                      href={winnerUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-amber-300 font-mono hover:text-amber-200 hover:underline"
+                    >
+                      {winnerAddress.slice(0, 6)}...{winnerAddress.slice(-4)}
+                    </a>
+                  ) : (
+                    <span className="text-amber-300 font-mono">
+                      {winnerAddress.slice(0, 6)}...{winnerAddress.slice(-4)}
+                    </span>
+                  )}
                 </div>
               )}
               
@@ -79,10 +98,10 @@ export const SuccessModal = ({
           )}
 
           {/* Tx hash link */}
-          {txHash && (
+          {txUrl && (
             <div className="mb-3 text-center">
               <a
-                href={`https://sepolia.basescan.org/tx/${txHash}`}
+                href={txUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-[10px] text-stone-400 hover:text-amber-300 transition-colors"

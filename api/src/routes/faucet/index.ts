@@ -4,7 +4,7 @@ import { computeMinHash, TRAIT_POOLS, type TraitPool } from '@shared/constants'
 import { and, eq, gte, sql } from 'drizzle-orm'
 import type { SupportedChainId } from '../../plugins/web3'
 
-const { nfts, sponsorshipRequests, polymerizations } = dbSchema
+const { nfts, sponsorshipRequests, polymerizations, erc20Claims } = dbSchema
 
 function weightedRandom(pool: TraitPool): string {
   const totalWeight = pool.values.reduce((sum, item) => sum + item.weight, 0)
@@ -198,7 +198,103 @@ function computePolymerizationResult(
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 hour
 const RATE_LIMIT_MAX = 3 // max mints per window
 
+interface Erc20ClaimBody {
+  recipient: string
+  chainId: number
+  amount: string
+  txHash: string
+}
+
 const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
+
+  // ============================================================================
+  // GET /erc20/history - Get user's ERC20 faucet claim history
+  // ============================================================================
+  fastify.get('/erc20/history', async function (request, reply) {
+    const { address, chainId, limit = '10' } = request.query as { address?: string; chainId?: string; limit?: string }
+
+    if (!address) {
+      reply.code(400)
+      return { error: 'Missing address parameter' }
+    }
+
+    const recipient = address.toLowerCase()
+    const parsedLimit = Math.min(parseInt(limit) || 10, 50)
+
+    const history = await fastify.db
+      .select({
+        id: erc20Claims.id,
+        amount: erc20Claims.amount,
+        txHash: erc20Claims.txHash,
+        chainId: erc20Claims.chainId,
+        createdAt: erc20Claims.createdAt,
+      })
+      .from(erc20Claims)
+      .where(and(
+        eq(erc20Claims.recipient, recipient),
+        chainId ? eq(erc20Claims.chainId, parseInt(chainId)) : undefined
+      ))
+      .orderBy(sql`${erc20Claims.createdAt} DESC`)
+      .limit(parsedLimit)
+
+    return { 
+      history,
+      count: history.length,
+    }
+  })
+
+  // ============================================================================
+  // POST /erc20/record - Record an ERC20 faucet claim
+  // ============================================================================
+  fastify.post('/erc20/record', { preHandler: [fastify.requireAuth] }, async function (request, reply) {
+    const body = request.body as Erc20ClaimBody
+    const sessionAddress = request.session!.address.toLowerCase()
+    const recipient = body.recipient?.toLowerCase()
+
+    // Validate
+    if (!recipient || !/^0x[a-fA-F0-9]{40}$/.test(recipient)) {
+      reply.code(400)
+      return { error: 'Invalid recipient address' }
+    }
+
+    if (!body.txHash || !/^0x[a-fA-F0-9]{64}$/.test(body.txHash)) {
+      reply.code(400)
+      return { error: 'Invalid transaction hash' }
+    }
+
+    // Ensure authenticated user matches recipient
+    if (recipient !== sessionAddress) {
+      reply.code(403)
+      return { error: 'Recipient must match authenticated address' }
+    }
+
+    // Check for duplicate txHash
+    const existing = await fastify.db
+      .select({ id: erc20Claims.id })
+      .from(erc20Claims)
+      .where(eq(erc20Claims.txHash, body.txHash.toLowerCase()))
+      .limit(1)
+
+    if (existing.length > 0) {
+      // Already recorded, return success (idempotent)
+      return { success: true, duplicate: true }
+    }
+
+    // Record the claim
+    const [claim] = await fastify.db
+      .insert(erc20Claims)
+      .values({
+        recipient,
+        chainId: body.chainId,
+        amount: body.amount,
+        txHash: body.txHash.toLowerCase(),
+      })
+      .returning()
+
+    fastify.log.info({ recipient, chainId: body.chainId, txHash: body.txHash }, 'ERC20 claim recorded')
+
+    return { success: true, claim }
+  })
 
   // ============================================================================
   // GET /polymerase/history - Get user's polymerization history
