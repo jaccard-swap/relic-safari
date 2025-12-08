@@ -193,11 +193,11 @@ export const WS_MSG = {
   JOIN: 'join',
   ERROR: 'error',
   
-  // Auction room
-  CHAT: 'chat',
-  BID: 'bid',
-  AUCTION_UPDATE: 'auction_update',
-  SETTLED: 'settled',
+  // Auction room - input
+  CHAT: 'chat', // client sends chat message
+  
+  // Auction room - output
+  EVENT: 'event', // server broadcasts event from append-only log
   
   // Auction feed
   AUCTIONS_LIST: 'auctions_list',

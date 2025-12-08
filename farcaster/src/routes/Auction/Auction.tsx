@@ -35,7 +35,7 @@ export function Auction() {
   
   const {
     auction,
-    messages,
+    events,
     highBid,
     loading,
     error,
@@ -43,10 +43,18 @@ export function Auction() {
     participantCount,
     settled,
     postChatMessage,
+    refetch,
   } = useAuctionRoom(auctionId)
 
   // Check for matching standing bids once when connected
   const { matchedCount: standingBidsMatched, loading: checkingBids } = useCheckStandingBids(auctionId, connected)
+  
+  // Refetch auction data when standing bids are attached
+  useEffect(() => {
+    if (standingBidsMatched && standingBidsMatched > 0) {
+      refetch()
+    }
+  }, [standingBidsMatched, refetch])
 
   // Fetch NFT metadata if auction has nftId
   const { nft: nftData } = useGetNft(auction?.nftId)
@@ -201,7 +209,7 @@ export function Auction() {
         />
 
         <ActivityFeed
-          messages={messages}
+          events={events}
           address={address}
           chain={chains.find(c => c.id === auction?.chainId)}
           chatInput={chatInput}

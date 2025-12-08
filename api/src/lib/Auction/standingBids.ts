@@ -99,7 +99,7 @@ export async function attachStandingBids(
           s: string
         }
 
-        await placeBid(db, auctionId, {
+        const result = await placeBid(db, auctionId, {
           bidder: standingBid.bidder,
           amount: standingBid.amount,
           salt: standingBid.salt,
@@ -111,7 +111,12 @@ export async function attachStandingBids(
             ...erc20Permit,
             deadline: String(erc20Permit.deadline),
           },
-        })
+        }, { skipHighestCheck: true }) // Standing bids all attach at once
+
+        if (!result.success) {
+          log.warn({ standingBidId: standingBid.id, error: result.error }, 'Standing bid placement failed')
+          continue
+        }
 
         // Mark standing bid as matched
         await db

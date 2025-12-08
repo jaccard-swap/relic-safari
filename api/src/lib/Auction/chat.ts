@@ -1,6 +1,5 @@
-import { chats } from '@shared/database'
 import { MSG, type MessageHandlerContext } from './types'
-import { broadcastToRoom } from './rooms'
+import { appendEvent } from './db'
 
 export async function handleChat(ctx: MessageHandlerContext, message: string): Promise<void> {
   ctx.log.info({ auctionId: ctx.auctionId, hasMessage: !!message, clientAddress: ctx.clientInfo?.address }, '💬 CHAT received')
@@ -12,21 +11,9 @@ export async function handleChat(ctx: MessageHandlerContext, message: string): P
   }
 
   try {
-    const [chat] = await ctx.db.insert(chats).values({
-      auctionId: ctx.auctionId,
-      sender: ctx.clientInfo.address,
-      message,
-    }).returning()
-
-    ctx.log.info({ auctionId: ctx.auctionId, chatId: chat.id, sender: chat.sender }, '✅ Chat saved, broadcasting')
-    
-    broadcastToRoom(ctx.auctionId, {
-      type: MSG.CHAT,
-      id: chat.id,
-      user: chat.sender,
-      message: chat.message,
-      timestamp: chat.createdAt.getTime(),
-    })
+    // Append 'chat' event (broadcasts to room via appendEvent)
+    await appendEvent(ctx.db, ctx.auctionId, 'chat', ctx.clientInfo.address, { message })
+    ctx.log.info({ auctionId: ctx.auctionId, sender: ctx.clientInfo.address }, '✅ Chat event appended')
   } catch (err) {
     ctx.log.error({ err }, 'Failed to save chat')
   }

@@ -1,10 +1,52 @@
-import { auctions, bids, nfts, chats } from '@shared/database'
+import { auctions, bids, nfts, auctionEvents } from '@shared/database'
 import { eq, desc, and, gte } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { CreateAuctionBody, PlaceBidBody } from './types'
-import { broadcastBid } from './rooms'
+import { broadcastEvent } from './rooms'
 
 type DB = NodePgDatabase<any>
+
+// Event types for the append-only log
+export type AuctionEventType = 'created' | 'bid' | 'chat' | 'settled' | 'cancelled'
+
+export interface EventSummary {
+  amount?: string
+  message?: string
+  txHash?: string
+  winner?: string
+}
+
+// Append event to auction log (and broadcast via websocket)
+export async function appendEvent(
+  db: DB,
+  auctionId: string,
+  type: AuctionEventType,
+  actor: string,
+  summary?: EventSummary,
+  refId?: string
+) {
+  try {
+    const [event] = await db
+      .insert(auctionEvents)
+      .values({
+        auctionId,
+        type,
+        actor: actor.toLowerCase(),
+        summary: summary || {},
+        refId,
+      })
+      .returning()
+
+    // Broadcast to room
+    broadcastEvent(auctionId, event)
+
+    return event
+  } catch (err) {
+    // Log but don't fail - table might not exist yet
+    console.error('Failed to append event (table may not exist):', err)
+    return null
+  }
+}
 
 // Validation helpers
 export const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/i
@@ -38,6 +80,11 @@ export async function createAuction(db: DB, body: CreateAuctionBody) {
     })
     .returning()
 
+  // Append 'created' event
+  await appendEvent(db, auction.id, 'created', body.auctioneer, {
+    message: body.title,
+  })
+
   return auction
 }
 
@@ -55,17 +102,20 @@ export async function getAuctionWithDetails(db: DB, id: string) {
   const auction = await getAuction(db, id)
   if (!auction) return null
 
-  const auctionBids = await db
+  // Get events from append-only log (ordered by time)
+  const events = await db
+    .select()
+    .from(auctionEvents)
+    .where(eq(auctionEvents.auctionId, id))
+    .orderBy(auctionEvents.createdAt)
+
+  // Get highest bid for display
+  const [highestBid] = await db
     .select()
     .from(bids)
-    .where(eq(bids.auctionId, id))
+    .where(and(eq(bids.auctionId, id), eq(bids.status, 'active')))
     .orderBy(desc(bids.amount))
-
-  const auctionChats = await db
-    .select()
-    .from(chats)
-    .where(eq(chats.auctionId, id))
-    .orderBy(chats.createdAt)
+    .limit(1)
 
   let nft = null
   if (auction.nftId) {
@@ -77,7 +127,7 @@ export async function getAuctionWithDetails(db: DB, id: string) {
     nft = nftResult
   }
 
-  return { auction, bids: auctionBids, chats: auctionChats, nft }
+  return { auction, events, highestBid: highestBid?.amount, nft }
 }
 
 export interface ListAuctionsFilters {
@@ -128,7 +178,7 @@ export interface PlaceBidResult {
   error?: string
 }
 
-export async function placeBid(db: DB, auctionId: string, body: PlaceBidBody): Promise<PlaceBidResult> {
+export async function placeBid(db: DB, auctionId: string, body: PlaceBidBody, opts?: { skipHighestCheck?: boolean }): Promise<PlaceBidResult> {
   // Get auction
   const auction = await getAuction(db, auctionId)
   if (!auction) {
@@ -158,7 +208,8 @@ export async function placeBid(db: DB, auctionId: string, body: PlaceBidBody): P
     .orderBy(desc(bids.amount))
     .limit(1)
 
-  if (highestBid && bidAmount <= BigInt(highestBid.amount)) {
+  // Skip highest check for standing bids (they all attach at once)
+  if (!opts?.skipHighestCheck && highestBid && bidAmount <= BigInt(highestBid.amount)) {
     return { success: false, error: 'Bid must be higher than current highest bid' }
   }
 
@@ -189,8 +240,8 @@ export async function placeBid(db: DB, auctionId: string, body: PlaceBidBody): P
     })
     .returning()
 
-  // Broadcast to websocket room
-  broadcastBid(auctionId, { id: bid.id, bidder: bid.bidder, amount: bid.amount, timestamp: Date.now() })
+  // Append 'bid' event (broadcasts to room)
+  await appendEvent(db, auctionId, 'bid', body.bidder, { amount: body.amount }, bid.id)
 
   return { success: true, bid, previousHighest: highestBid?.amount }
 }
@@ -225,6 +276,9 @@ export async function cancelAuction(db: DB, auctionId: string, auctioneer: strin
     .update(auctions)
     .set({ status: 'cancelled', updatedAt: new Date() })
     .where(eq(auctions.id, auctionId))
+
+  // Append 'cancelled' event (broadcasts to room)
+  await appendEvent(db, auctionId, 'cancelled', auctioneer)
 
   return { success: true }
 }
@@ -330,6 +384,13 @@ export async function settleAuction(
     })
     .where(eq(auctions.id, auctionId))
     .returning()
+
+  // Append 'settled' event (broadcasts to room)
+  await appendEvent(db, auctionId, 'settled', auctioneer, {
+    txHash,
+    winner,
+    amount: winningBid,
+  })
 
   return { success: true, auction: updated }
 }

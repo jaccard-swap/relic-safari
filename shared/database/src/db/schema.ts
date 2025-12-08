@@ -122,7 +122,7 @@ export const auctions = pgTable('auctions', {
   index('auctions_chain_idx').on(table.chainId),
 ]);
 
-// Auction chat messages
+// Auction chat messages (legacy - kept for migration, use auctionEvents instead)
 export const chats = pgTable('chats', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   auctionId: text('auction_id').notNull().references(() => auctions.id),
@@ -132,6 +132,22 @@ export const chats = pgTable('chats', {
 }, (table) => [
   index('chats_auction_idx').on(table.auctionId),
   index('chats_created_idx').on(table.createdAt),
+]);
+
+// Auction events - append-only activity log
+export const auctionEvents = pgTable('auction_events', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  auctionId: text('auction_id').notNull().references(() => auctions.id),
+  type: text('type').notNull(), // 'created', 'bid', 'chat', 'settled', 'cancelled'
+  actor: text('actor').notNull(), // wallet address who triggered event
+  // Denormalized summary (no joins needed to display)
+  summary: jsonb('summary'), // { amount?, message?, txHash?, winner? }
+  // Optional reference to detailed record
+  refId: text('ref_id'), // bid.id if we need full EIP-712 data later
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('auction_events_auction_idx').on(table.auctionId),
+  index('auction_events_created_idx').on(table.createdAt),
 ]);
 
 // Auction bids (tied to specific auction)

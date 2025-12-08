@@ -1,10 +1,10 @@
 import { useRef, useEffect } from 'react'
 import type { Chain } from 'viem'
-import { MessageItem } from './MessageItem'
-import type { ChatMessage } from '../../hooks/useAuctionRoom'
+import { EventItem } from './EventItem'
+import type { AuctionEvent } from '../../hooks/useAuctionRoom'
 
 interface ActivityFeedProps {
-  messages: ChatMessage[]
+  events: AuctionEvent[]
   address?: string
   chain?: Chain
   chatInput: string
@@ -13,40 +13,40 @@ interface ActivityFeedProps {
 }
 
 export function ActivityFeed({
-  messages,
+  events,
   address,
   chain,
   chatInput,
   onChatInputChange,
   onSendMessage,
 }: ActivityFeedProps) {
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+  const eventsEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+    eventsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [events])
 
   return (
     <div className="bg-stone-800/50 border border-amber-900/30 rounded-lg overflow-hidden">
       <div className="px-2 py-1.5 border-b border-stone-700/50 flex items-center justify-between">
         <span className="text-[10px] font-medium text-stone-400">Activity</span>
-        <span className="text-[9px] text-stone-500">{messages.length}</span>
+        <span className="text-[9px] text-stone-500">{events.length}</span>
       </div>
       
       <div className="h-40 overflow-y-auto p-1.5 space-y-1 scrollbar-thin scrollbar-thumb-stone-700">
-        {messages.length === 0 ? (
+        {events.length === 0 ? (
           <div className="text-center text-stone-500 text-[10px] py-6">No activity yet</div>
         ) : (
-          messages.map((msg) => (
-            <MessageItem 
-              key={msg.id} 
-              msg={msg} 
-              isOwn={msg.user.toLowerCase() === address?.toLowerCase()}
+          events.map((evt) => (
+            <EventItem 
+              key={evt.id} 
+              event={evt} 
+              isOwn={evt.actor.toLowerCase() === address?.toLowerCase()}
               chain={chain}
             />
           ))
         )}
-        <div ref={messagesEndRef} />
+        <div ref={eventsEndRef} />
       </div>
 
       <form onSubmit={onSendMessage} className="p-1.5 border-t border-stone-700/50">

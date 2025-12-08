@@ -364,7 +364,10 @@ const auctionRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
     const { id } = request.params as { id: string }
     const { auctioneer } = request.query as { auctioneer: string }
 
+    fastify.log.info({ auctionId: id, auctioneer }, '🏆 CONSUME: Request received')
+
     if (!auctioneer || !isValidAddress(auctioneer)) {
+      fastify.log.warn({ auctioneer }, '🏆 CONSUME: Invalid auctioneer address')
       reply.code(400)
       return { error: 'Invalid auctioneer address' }
     }
@@ -372,12 +375,25 @@ const auctionRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
     try {
       const result = await getAuctionForConsume(fastify.db, id, auctioneer)
       
+      fastify.log.info({ 
+        auctionId: id, 
+        success: result.success, 
+        error: result.error,
+        auctionStatus: result.auction?.status,
+        bidCount: result.bids?.length,
+        hasBids: (result.bids?.length || 0) > 0,
+        firstBid: result.bids?.[0] ? {
+          bidder: result.bids[0].bidder,
+          amount: result.bids[0].amount,
+          hasSig: !!result.bids[0].signature,
+          hasPermit: !!result.bids[0].erc20Permit,
+        } : null,
+      }, '🏆 CONSUME: getAuctionForConsume result')
+
       if (!result.success) {
         reply.code(400)
         return { error: result.error }
       }
-
-      fastify.log.info({ auctionId: id, auctioneer, bidCount: result.bids?.length }, 'Auction consume data fetched')
       
       return {
         auction: result.auction,
@@ -385,7 +401,7 @@ const auctionRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
         nft: result.nft,
       }
     } catch (error) {
-      fastify.log.error({ error, id }, 'Failed to fetch auction consume data')
+      fastify.log.error({ error, id }, '🏆 CONSUME: Failed to fetch auction consume data')
       reply.code(500)
       return { error: 'Failed to fetch auction consume data' }
     }
@@ -397,12 +413,16 @@ const auctionRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
     const body = request.body as SettleAuctionBody
     const sessionAddress = request.session!.address.toLowerCase()
 
+    fastify.log.info({ auctionId: id, body, sessionAddress }, '🎯 SETTLE: Request received')
+
     if (!body.auctioneer || !body.txHash) {
+      fastify.log.warn({ body }, '🎯 SETTLE: Missing required fields')
       reply.code(400)
       return { error: 'Missing required fields: auctioneer, txHash' }
     }
 
     if (!isValidAddress(body.auctioneer)) {
+      fastify.log.warn({ auctioneer: body.auctioneer }, '🎯 SETTLE: Invalid auctioneer address')
       reply.code(400)
       return { error: 'Invalid auctioneer address' }
     }
@@ -414,6 +434,8 @@ const auctionRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
     }
 
     try {
+      fastify.log.info({ auctionId: id }, '🎯 SETTLE: Calling settleAuction...')
+      
       const result = await settleAuction(
         fastify.db,
         id,
@@ -423,22 +445,14 @@ const auctionRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
         body.winningBid
       )
       
+      fastify.log.info({ auctionId: id, success: result.success, error: result.error }, '🎯 SETTLE: settleAuction result')
+      
       if (!result.success) {
         reply.code(400)
         return { error: result.error }
       }
 
       fastify.log.info({ auctionId: id, txHash: body.txHash, winner: body.winner }, 'Auction settled')
-
-      // Broadcast settlement to all connected clients
-      broadcastToRoom(id, {
-        type: MSG.SETTLED,
-        auctionId: id,
-        txHash: body.txHash,
-        winner: body.winner,
-        winningBid: body.winningBid,
-        timestamp: Date.now(),
-      })
 
       return { success: true, auction: result.auction }
     } catch (error) {

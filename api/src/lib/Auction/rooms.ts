@@ -34,8 +34,18 @@ export function broadcastToRoom(auctionId: string, message: object, excludeSocke
   }
 }
 
-export function broadcastBid(auctionId: string, bid: { id: string; bidder: string; amount: string; timestamp: number }): void {
-  broadcastToRoom(auctionId, { type: MSG.BID, ...bid })
+// Broadcast an event from the append-only log
+export function broadcastEvent(auctionId: string, event: { id: string; type: string; actor: string; summary: any; createdAt: Date }): void {
+  broadcastToRoom(auctionId, { 
+    type: MSG.EVENT, 
+    event: {
+      id: event.id,
+      type: event.type,
+      actor: event.actor,
+      summary: event.summary,
+      timestamp: event.createdAt.getTime(),
+    }
+  })
 }
 
 // Feed management

@@ -127,13 +127,20 @@ export function useConsumeAuction(onSuccess?: (result: ConsumeResult) => void) {
     setIsFetching(true)
 
     try {
-      console.log('🏆 Consuming auction:', auction.id)
+      console.log('🏆 Consuming auction:', auction.id, 'auctioneer:', address)
 
       // 1. Fetch auction data from API
-      const response = await fetch(`/api/auction/${auction.id}/consume?auctioneer=${address}`)
+      const url = `/api/auction/${auction.id}/consume?auctioneer=${address}`
+      console.log('🏆 Fetching consume data from:', url)
+      
+      const response = await authFetch(url)
+      console.log('🏆 Consume response status:', response.status, response.statusText)
       
       if (!response.ok) {
-        const err = await response.json()
+        const errText = await response.text()
+        console.error('🏆 Consume error response:', errText)
+        let err
+        try { err = JSON.parse(errText) } catch { err = { error: errText } }
         throw new Error(err.error || 'Failed to fetch consume data')
       }
 
@@ -142,20 +149,39 @@ export function useConsumeAuction(onSuccess?: (result: ConsumeResult) => void) {
       const bidsList = data.bids || []
       
       console.log('📊 Auction data for settlement:', {
-        auction: auctionData,
-        bids: bidsList,
+        auctionId: auctionData?.id,
+        status: auctionData?.status,
+        hasNftPermit: !!auctionData?.nftPermit,
+        hasNftPermitSig: !!auctionData?.nftPermitSignature,
+        salt: auctionData?.salt,
         bidCount: bidsList.length,
+        bids: bidsList.map((b: any) => ({
+          bidder: b.bidder,
+          amount: b.amount,
+          hasSig: !!b.signature,
+          hasPermit: !!b.erc20Permit,
+          salt: b.salt,
+        })),
       })
 
       if (bidsList.length === 0) {
+        console.error('❌ No bids to settle')
         throw new Error('No bids to settle')
       }
 
       // 2. Validate auction has required NFT permit data
+      console.log('🔍 Validating auction data...', {
+        hasNftPermit: !!auctionData.nftPermit,
+        nftPermit: auctionData.nftPermit,
+        hasNftPermitSig: !!auctionData.nftPermitSignature,
+      })
+      
       if (!auctionData.nftPermit) {
+        console.error('❌ Auction missing NFT permit')
         throw new Error('Auction missing NFT permit - was the auction created with a signed permit?')
       }
       if (!auctionData.nftPermitSignature) {
+        console.error('❌ Auction missing NFT permit signature')
         throw new Error('Auction missing NFT permit signature')
       }
 
@@ -237,15 +263,30 @@ export function useConsumeAuction(onSuccess?: (result: ConsumeResult) => void) {
       console.log('✅ Auction signed:', auctionSig)
 
       // 7. Call the contract
-      console.log('📝 Calling consumeAuction on contract...')
-      const hash = await writeContractAsync({
-        address: staticData.jaccardSwapAddr as `0x${string}`,
-        abi: staticData.jaccardSwapAbi,
-        functionName: 'consumeAuction',
-        args: [fullAuction, auctionSig] as const,
+      console.log('📝 Calling consumeAuction on contract...', {
+        contractAddr: staticData.jaccardSwapAddr,
+        auctionSalt: fullAuction.salt,
+        bidCount: fullAuction.bids.length,
       })
-
-      console.log('✅ Transaction submitted:', hash)
+      
+      let hash: `0x${string}`
+      try {
+        hash = await writeContractAsync({
+          address: staticData.jaccardSwapAddr as `0x${string}`,
+          abi: staticData.jaccardSwapAbi,
+          functionName: 'consumeAuction',
+          args: [fullAuction, auctionSig] as const,
+        })
+        console.log('✅ Transaction submitted:', hash)
+      } catch (txErr: any) {
+        console.error('❌ Contract call failed:', txErr)
+        console.error('❌ Error details:', {
+          message: txErr?.message,
+          shortMessage: txErr?.shortMessage,
+          cause: txErr?.cause,
+        })
+        throw txErr
+      }
       
       // Store data for post-confirmation settlement
       const winningBidData = bidsList[0]

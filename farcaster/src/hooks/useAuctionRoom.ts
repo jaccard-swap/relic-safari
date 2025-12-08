@@ -4,13 +4,18 @@ import { WS_MSG as MSG } from '@shared/constants'
 import type { Auction } from './useActiveAuctions'
 import { authFetch } from '../lib/auth'
 
-export interface ChatMessage {
+// Unified event from append-only log
+export interface AuctionEvent {
   id: string
-  user: string
-  message: string
+  type: 'created' | 'bid' | 'chat' | 'settled' | 'cancelled'
+  actor: string
+  summary: {
+    amount?: string
+    message?: string
+    txHash?: string
+    winner?: string
+  }
   timestamp: number
-  type: 'message' | 'bid' | 'settled'
-  txHash?: string
 }
 
 export interface SettledData {
@@ -23,7 +28,7 @@ export interface SettledData {
 
 export interface AuctionRoomState {
   auction: Auction | null
-  messages: ChatMessage[]
+  events: AuctionEvent[]
   highBid: string
   loading: boolean
   error: string | null
@@ -40,7 +45,7 @@ export function useAuctionRoom(auctionId: string | undefined) {
 
   const [state, setState] = useState<AuctionRoomState>({
     auction: null,
-    messages: [],
+    events: [],
     highBid: '0',
     loading: true,
     error: null,
@@ -59,37 +64,20 @@ export function useAuctionRoom(auctionId: string | undefined) {
       
       const data = await response.json()
       
-      // Find highest bid
-      const highestBid = data.bids?.reduce((max: string, bid: any) => {
-        return BigInt(bid.amount) > BigInt(max) ? bid.amount : max
-      }, data.auction?.startingBid || '0')
-
-      // Convert bids to messages
-      const bidMessages: ChatMessage[] = (data.bids || []).map((bid: any) => ({
-        id: bid.id,
-        user: bid.bidder,
-        message: bid.amount,
-        timestamp: new Date(bid.createdAt).getTime(),
-        type: 'bid' as const,
+      // Convert events from API
+      const events: AuctionEvent[] = (data.events || []).map((e: any) => ({
+        id: e.id,
+        type: e.type,
+        actor: e.actor,
+        summary: e.summary || {},
+        timestamp: new Date(e.createdAt).getTime(),
       }))
-
-      // Convert chats to messages
-      const chatMessages: ChatMessage[] = (data.chats || []).map((chat: any) => ({
-        id: chat.id,
-        user: chat.sender,
-        message: chat.message,
-        timestamp: new Date(chat.createdAt).getTime(),
-        type: 'message' as const,
-      }))
-
-      // Merge and sort all messages
-      const allMessages = [...bidMessages, ...chatMessages].sort((a, b) => a.timestamp - b.timestamp)
 
       setState(prev => ({
         ...prev,
         auction: data.auction,
-        messages: allMessages,
-        highBid: highestBid,
+        events,
+        highBid: data.highestBid || data.auction?.startingBid || '0',
         loading: false,
         error: null,
       }))
@@ -150,79 +138,46 @@ export function useAuctionRoom(auctionId: string | undefined) {
               }))
               break
 
-            case MSG.BID:
-              const bidMsg: ChatMessage = {
-                id: data.id || Date.now().toString(),
-                user: data.bidder,
-                message: data.amount,
-                timestamp: data.timestamp || Date.now(),
-                type: 'bid',
+            case MSG.EVENT:
+              const evt: AuctionEvent = {
+                id: data.event.id,
+                type: data.event.type,
+                actor: data.event.actor,
+                summary: data.event.summary || {},
+                timestamp: data.event.timestamp,
               }
 
               setState(prev => {
-                const exists = prev.messages.some(m => m.id === bidMsg.id)
+                const exists = prev.events.some(e => e.id === evt.id)
                 if (exists) return prev
 
-                const newHighBid = BigInt(data.amount) > BigInt(prev.highBid) 
-                  ? data.amount 
-                  : prev.highBid
+                // Update highBid if this is a bid event
+                let newHighBid = prev.highBid
+                if (evt.type === 'bid' && evt.summary.amount) {
+                  if (BigInt(evt.summary.amount) > BigInt(prev.highBid)) {
+                    newHighBid = evt.summary.amount
+                  }
+                }
+
+                // Track settled state
+                let settled = prev.settled
+                if (evt.type === 'settled') {
+                  settled = {
+                    auctionId: auctionId!,
+                    txHash: evt.summary.txHash || '',
+                    winner: evt.summary.winner,
+                    winningBid: evt.summary.amount,
+                    timestamp: evt.timestamp,
+                  }
+                }
 
                 return {
                   ...prev,
-                  messages: [...prev.messages, bidMsg].sort((a, b) => a.timestamp - b.timestamp),
+                  events: [...prev.events, evt].sort((a, b) => a.timestamp - b.timestamp),
                   highBid: newHighBid,
+                  settled,
                 }
               })
-              break
-
-            case MSG.CHAT:
-              const chatMsg: ChatMessage = {
-                id: data.id || Date.now().toString(),
-                user: data.user,
-                message: data.message,
-                timestamp: data.timestamp || Date.now(),
-                type: 'message',
-              }
-
-              setState(prev => {
-                const exists = prev.messages.some(m => m.id === chatMsg.id)
-                if (exists) return prev
-
-                return {
-                  ...prev,
-                  messages: [...prev.messages, chatMsg].sort((a, b) => a.timestamp - b.timestamp),
-                }
-              })
-              break
-
-            case MSG.AUCTION_UPDATE:
-              setState(prev => ({
-                ...prev,
-                auction: data.auction ? { ...prev.auction, ...data.auction } : prev.auction,
-              }))
-              break
-
-            case MSG.SETTLED:
-              console.log('🎉 Auction settled!', data)
-              const settledMsg: ChatMessage = {
-                id: `settled-${data.timestamp}`,
-                user: 'system',
-                message: `🎉 Auction settled! Winner: ${data.winner?.slice(0, 6)}...${data.winner?.slice(-4)}`,
-                timestamp: data.timestamp,
-                type: 'settled',
-                txHash: data.txHash,
-              }
-              setState(prev => ({
-                ...prev,
-                messages: [...prev.messages, settledMsg],
-                settled: {
-                  auctionId: data.auctionId,
-                  txHash: data.txHash,
-                  winner: data.winner,
-                  winningBid: data.winningBid,
-                  timestamp: data.timestamp,
-                },
-              }))
               break
 
             case MSG.ERROR:
