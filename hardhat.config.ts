@@ -1,18 +1,18 @@
-import dotenv from "dotenv"
-dotenv.config({ path: "../.env" });
+//import dotenv from "dotenv"
+//dotenv.config({ path: "../.env" });
+import 'dotenv/config'
 import HardhatDeploy from 'hardhat-deploy';
-
 import { deployAuctionTask } from "./tasks/index.js";
-
 import type { HardhatUserConfig } from "hardhat/config";
 import hardhatVerify from "@nomicfoundation/hardhat-verify";
-
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
-import { configVariable } from "hardhat/config";
-
 
 if (!process.env.BASE_SEPOLIA_RPC_URL) {
   throw new Error("BASE_SEPOLIA_RPC_URL is not set");
+}
+
+if (!process.env.BASE_RPC_URL) {
+  throw new Error("BASE_RPC_URL is not set");
 }
 
 if (!process.env.SEPOLIA_RPC_URL) {
@@ -85,6 +85,14 @@ const config: HardhatUserConfig = {
       type: "http",
       chainType: "l1",
       url: process.env.SEPOLIA_RPC_URL,
+      accounts: {
+        mnemonic: process.env.MNEMONIC,
+      },
+    },
+    base: {
+      type: "http",
+      chainType: "l1",
+      url: process.env.BASE_RPC_URL,
       accounts: {
         mnemonic: process.env.MNEMONIC,
       },
