@@ -111,7 +111,7 @@ shared/database/node_modules/
 shared/database/dist/
 
 # Drizzle
-shared/database/drizzle/
+#shared/database/drizzle/
 
 # ============================================
 # Docker
