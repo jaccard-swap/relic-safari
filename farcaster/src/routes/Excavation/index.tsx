@@ -52,6 +52,7 @@ export function Excavation() {
       <InfoModal open={quarryModal} onClose={() => setQuarryModal(false)} title="Quarry" icon="⛏️">
         <p>Each excavation unearths a relic with <strong className="text-amber-300">1-8 random traits</strong> (Gaussian distribution).</p>
         <p>Traits: rarity, age, quality, material, form, site, inscription.</p>
+        <p className="text-amber-400/80 text-xs mt-2">⏳ Rate limit: <strong>3 excavations per hour</strong></p>
         <p className="text-stone-500 text-xs">Technical: ERC-1155 with on-chain MinHash.</p>
       </InfoModal>
 

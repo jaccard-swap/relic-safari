@@ -275,62 +275,6 @@ export function useAuctionRoom(auctionId: string | undefined) {
     }
   }, [auctionId, address])
 
-  // Post a bid (via REST, server broadcasts to WS)
-  interface BidData {
-    amount: string
-    salt: string
-    deadline: number
-    targetMinHash: [`0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`]
-    minMatches: number
-    erc20Permit: {
-      owner: string
-      spender: string
-      value: string
-      deadline: string
-      v: number
-      r: string
-      s: string
-    }
-    signature: string
-  }
-
-  const postBid = useCallback(async (bid: BidData) => {
-    if (!auctionId || !address) {
-      console.warn('postBid: missing auctionId or address')
-      return
-    }
-
-    try {
-      console.log('📤 Posting bid:', { auctionId, bidder: address, amount: bid.amount })
-      
-      const response = await authFetch(`/api/auction/${auctionId}/bid`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          bidder: address,
-          amount: bid.amount,
-          salt: bid.salt,
-          deadline: bid.deadline,
-          targetMinHash: bid.targetMinHash,
-          minMatches: bid.minMatches,
-          erc20Permit: bid.erc20Permit,
-          signature: bid.signature,
-        }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to place bid')
-      }
-
-      console.log('✅ Bid placed successfully')
-      return true
-    } catch (err) {
-      console.error('Failed to post bid:', err)
-      throw err
-    }
-  }, [auctionId, address])
-
   // Refetch auction data
   const refetch = useCallback(() => {
     fetchAuction()
@@ -369,7 +313,6 @@ export function useAuctionRoom(auctionId: string | undefined) {
   return {
     ...state,
     postChatMessage,
-    postBid,
     refetch,
   }
 }

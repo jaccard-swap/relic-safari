@@ -94,7 +94,10 @@ const nftRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
     const body = request.body as SyncOwnershipBody
     const { publicClients, jaccardNft } = fastify
 
+    fastify.log.info({ body }, 'sync-ownership request received')
+
     if (!body.nftId || !body.newOwner || !body.chainId) {
+      fastify.log.warn({ body }, 'sync-ownership missing required fields')
       reply.code(400)
       return { error: 'Missing required fields: nftId, newOwner, chainId' }
     }

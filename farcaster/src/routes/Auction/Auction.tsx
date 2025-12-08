@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams } from '@tanstack/react-router'
-import { useConnection, useWriteContract, useReadContract, useWaitForTransactionReceipt, useChains } from 'wagmi'
+import { useConnection, useChains } from 'wagmi'
 import { formatEther, parseEther } from 'viem'
-import { authFetch } from '../../lib/auth'
 import { useAuctionRoom } from '../../hooks/useAuctionRoom'
-import { useAuctionSignature, splitSignature, type FullAuctionMessage, type BidMessage } from '../../hooks/useAuctionSignature'
+import { useConsumeAuction } from '../../hooks/useConsumeAuction'
+import { useCreateBid } from '../../hooks/useCreateBid'
 import { useGetNft } from '../../hooks/useGetNft'
 import { useCheckStandingBids } from '../../hooks/useCheckStandingBids'
-import { formatTimeLeft, randomSalt } from './utils'
+import { invalidateNfts } from '../../stores/nftStore'
+import { formatTimeLeft } from './utils'
 import { AuctionHeader } from './AuctionHeader'
 import { ActivityFeed } from './ActivityFeed'
 import { ActionPanel } from './ActionPanel'
@@ -42,89 +43,46 @@ export function Auction() {
     participantCount,
     settled,
     postChatMessage,
-    postBid,
   } = useAuctionRoom(auctionId)
 
   // Check for matching standing bids once when connected
   const { matchedCount: standingBidsMatched, loading: checkingBids } = useCheckStandingBids(auctionId, connected)
 
-  const { signAuction, signErc20Permit, signBid, staticData } = useAuctionSignature()
-  const { writeContractAsync } = useWriteContract()
-  
   // Fetch NFT metadata if auction has nftId
   const { nft: nftData } = useGetNft(auction?.nftId)
   
-  // Get bidder's token nonce for ERC20 permit
-  const { data: bidderNonce } = useReadContract({
-    address: staticData?.mockErc20Addr as `0x${string}`,
-    abi: staticData?.mockErc20Abi,
-    functionName: 'nonces',
-    args: address ? [address] : undefined,
-    query: { enabled: !!address && !!staticData },
-  })
+  // Handle consume auction success - show modal and refresh NFTs
+  const handleConsumeSuccess = useCallback(() => {
+    setShowSuccessModal(true)
+    // Refresh NFT list - auctioneer loses the NFT
+    invalidateNfts()
+  }, [])
+  
+  const { 
+    consumeAuction, 
+    isPending: consuming,
+    txHash: settleTxHash,
+    settlementData,
+  } = useConsumeAuction(handleConsumeSuccess)
+  
+  // Handle bid success - clear input
+  const handleBidSuccess = useCallback(() => {
+    setBidAmount('')
+  }, [])
+  
+  const { 
+    createBid, 
+    isPending: bidding,
+  } = useCreateBid(handleBidSuccess)
 
   const [chatInput, setChatInput] = useState('')
   const [bidAmount, setBidAmount] = useState('')
-  const [bidding, setBidding] = useState(false)
-  const [consuming, setConsuming] = useState(false)
   const [timeLeft, setTimeLeft] = useState('')
-  const [settleTxHash, setSettleTxHash] = useState<`0x${string}` | undefined>()
   const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [settlementData, setSettlementData] = useState<{ winner?: string; winningBid?: string } | null>(null)
   const [showArtifactModal, setShowArtifactModal] = useState(false)
   const [showAuctionInfoModal, setShowAuctionInfoModal] = useState(false)
-
-  // Wait for settlement tx confirmation
-  const { isSuccess: isSettled } = useWaitForTransactionReceipt({ hash: settleTxHash })
-
-  // After tx confirmed, call settle API and show modal
-  useEffect(() => {
-    if (isSettled && settleTxHash && auction && address) {
-      const settleOnBackend = async () => {
-        try {
-          const response = await authFetch(`/api/auction/${auctionId}/settle`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              auctioneer: address,
-              txHash: settleTxHash,
-              winner: settlementData?.winner,
-              winningBid: settlementData?.winningBid,
-            }),
-          })
-          if (response.ok) {
-            console.log('✅ Auction settled on backend')
-            
-            // Sync NFT ownership to new owner
-            if (auction.nftId && settlementData?.winner) {
-              try {
-                const syncResponse = await authFetch('/api/nft/sync-ownership', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    nftId: auction.nftId,
-                    newOwner: settlementData.winner,
-                    chainId: auction.chainId,
-                  }),
-                })
-                if (syncResponse.ok) {
-                  console.log('✅ NFT ownership synced')
-                } else {
-                  console.warn('⚠️ Failed to sync NFT ownership')
-                }
-              } catch (syncErr) {
-                console.warn('⚠️ Failed to sync NFT ownership:', syncErr)
-              }
-            }
-          }
-        } catch (err) {
-          console.error('Failed to settle on backend:', err)
-        }
-        setShowSuccessModal(true)
-      }
-      settleOnBackend()
-    }
-  }, [isSettled, settleTxHash, auction, address, auctionId, settlementData])
+  // State for websocket-received settlement (for non-auctioneers)
+  const [wsSettlement, setWsSettlement] = useState<{ winner?: string; winningBid?: string; txHash?: `0x${string}` } | null>(null)
 
   // Check if current user is the auctioneer
   const isAuctioneer = auction?.auctioneer?.toLowerCase() === address?.toLowerCase()
@@ -133,17 +91,23 @@ export function Auction() {
   const [settledShown, setSettledShown] = useState(false)
   
   // Show modal when receiving SETTLED event via websocket (for non-auctioneers)
+  // Also refresh NFTs if current user is the winner
   useEffect(() => {
     if (settled && !settledShown && !isAuctioneer) {
-      setSettlementData({
+      setWsSettlement({
         winner: settled.winner,
         winningBid: settled.winningBid,
+        txHash: settled.txHash as `0x${string}`,
       })
-      setSettleTxHash(settled.txHash as `0x${string}`)
       setShowSuccessModal(true)
       setSettledShown(true)
+      
+      // If current user is the winner, refresh their NFT list
+      if (settled.winner?.toLowerCase() === address?.toLowerCase()) {
+        invalidateNfts()
+      }
     }
-  }, [settled, settledShown, isAuctioneer])
+  }, [settled, settledShown, isAuctioneer, address])
 
   // Update time remaining
   useEffect(() => {
@@ -165,227 +129,37 @@ export function Auction() {
 
   const handlePlaceBid = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!bidAmount || !address || !auction || !staticData) {
-      console.error('❌ Cannot place bid: missing required data')
+    if (!bidAmount || !address || !auction || !nftData?.minHash) return
+    
+    // Get NFT's minHash for similarity matching (exact match = 5/5)
+    if (nftData.minHash.length !== 5) {
+      console.error('❌ NFT minHash invalid')
       return
     }
-    if (bidderNonce === undefined) {
-      console.error('❌ Cannot place bid: token nonce not loaded')
-      return
-    }
-
+    
     try {
-      setBidding(true)
-      const amount = parseEther(bidAmount)
-      const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600) // 1 hour
-      const salt = randomSalt()
-      const jaccardSwapAddr = staticData.jaccardSwapAddr as `0x${string}`
-
-      console.log('🔐 Signing ERC20 permit...')
-      
-      // 1. Sign ERC20 permit (approve token transfer to auction contract)
-      const erc20PermitSig = await signErc20Permit({
-        owner: address as `0x${string}`,
-        spender: jaccardSwapAddr,
-        value: amount,
-        nonce: BigInt(bidderNonce as bigint),
-        deadline,
-      })
-      
-      const { v, r, s } = splitSignature(erc20PermitSig)
-      console.log('✅ ERC20 permit signed')
-
-      // 2. Sign the Bid (includes permit data)
-      // Get NFT's minHash for similarity matching (exact match = 5/5)
-      if (!nftData?.minHash || nftData.minHash.length !== 5) {
-        throw new Error('NFT minHash not available')
-      }
-      const targetMinHash = nftData.minHash as [`0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`]
-      
-      console.log('🔐 Signing bid...')
-      const bidMessage: BidMessage = {
-        salt,
-        deadline,
-        targetMinHash,
+      await createBid({
+        auctionId: auction.id,
+        amount: bidAmount,
+        targetMinHash: nftData.minHash as [`0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`],
         minMatches: 5, // Exact match for direct bidding
-        permit: {
-          owner: address as `0x${string}`,
-          spender: jaccardSwapAddr,
-          value: amount,
-          deadline,
-          v,
-          r,
-          s,
-        },
-      }
-      
-      const bidSig = await signBid(bidMessage)
-      console.log('✅ Bid signed')
-
-      // 3. Submit to API
-      console.log('📤 Submitting bid to API...')
-      await postBid({
-        amount: amount.toString(),
-        salt,
-        deadline: Number(deadline),
-        targetMinHash,
-        minMatches: 5,
-        erc20Permit: {
-          owner: address,
-          spender: jaccardSwapAddr,
-          value: amount.toString(),
-          deadline: deadline.toString(),
-          v,
-          r,
-          s,
-        },
-        signature: bidSig,
       })
-      
-      console.log('✅ Bid placed successfully')
-      setBidAmount('')
     } catch (err) {
-      console.error('❌ Failed to place bid:', err)
-    } finally {
-      setBidding(false)
+      // Error already logged in hook
     }
   }
 
   const handleConsumeAuction = async () => {
-    if (!auction || !address || !staticData) return
-
+    if (!auction || !address) return
+    
     try {
-      setConsuming(true)
-      console.log('🏆 Consuming auction:', auction.id)
-
-      // Fetch auction data for settlement from the consume endpoint
-      const response = await fetch(`/api/auction/${auction.id}/consume?auctioneer=${address}`)
-      
-      if (!response.ok) {
-        const err = await response.json()
-        throw new Error(err.error || 'Failed to fetch consume data')
-      }
-
-      const data = await response.json()
-      const auctionData = data.auction
-      const bidsList = data.bids || []
-      
-      console.log('📊 Auction data for settlement:', {
-        auction: auctionData,
-        bids: bidsList,
-        bidCount: bidsList.length,
+      await consumeAuction({
+        id: auction.id,
+        nftId: auction.nftId,
+        chainId: auction.chainId,
       })
-
-      if (bidsList.length === 0) {
-        throw new Error('No bids to settle')
-      }
-
-      // Validate auction has required NFT permit data
-      if (!auctionData.nftPermit) {
-        throw new Error('Auction missing NFT permit - was the auction created with a signed permit?')
-      }
-      if (!auctionData.nftPermitSignature) {
-        throw new Error('Auction missing NFT permit signature')
-      }
-
-      // Validate and build bids array - fail if any bid is missing required data
-      const bids: BidMessage[] = []
-      const bidSignatures: `0x${string}`[] = []
-
-      for (let i = 0; i < bidsList.length; i++) {
-        const bid = bidsList[i]
-        
-        // Validate required fields
-        if (!bid.salt) throw new Error(`Bid ${i} missing salt`)
-        if (!bid.deadline) throw new Error(`Bid ${i} missing deadline`)
-        if (!bid.targetMinHash || bid.targetMinHash.length !== 5) throw new Error(`Bid ${i} missing targetMinHash`)
-        if (bid.minMatches === undefined) throw new Error(`Bid ${i} missing minMatches`)
-        if (!bid.bidder) throw new Error(`Bid ${i} missing bidder address`)
-        if (!bid.amount) throw new Error(`Bid ${i} missing amount`)
-        if (!bid.signature) throw new Error(`Bid ${i} missing signature`)
-        
-        // Validate ERC20 permit
-        if (!bid.erc20Permit) throw new Error(`Bid ${i} missing ERC20 permit`)
-        if (bid.erc20Permit.v === undefined) throw new Error(`Bid ${i} ERC20 permit missing v`)
-        if (!bid.erc20Permit.r) throw new Error(`Bid ${i} ERC20 permit missing r`)
-        if (!bid.erc20Permit.s) throw new Error(`Bid ${i} ERC20 permit missing s`)
-
-        bids.push({
-          salt: bid.salt as `0x${string}`,
-          deadline: BigInt(Math.floor(new Date(bid.deadline).getTime() / 1000)),
-          targetMinHash: bid.targetMinHash as [`0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`],
-          minMatches: bid.minMatches,
-          permit: {
-            owner: bid.bidder as `0x${string}`,
-            spender: staticData.jaccardSwapAddr as `0x${string}`,
-            value: BigInt(bid.amount),
-            deadline: BigInt(Math.floor(new Date(bid.deadline).getTime() / 1000)),
-            v: bid.erc20Permit.v,
-            r: bid.erc20Permit.r as `0x${string}`,
-            s: bid.erc20Permit.s as `0x${string}`,
-          },
-        })
-
-        bidSignatures.push(bid.signature as `0x${string}`)
-      }
-
-      // Build the NFT permit from stored data (already validated above)
-      const nftPermit = {
-        owner: auctionData.nftPermit.owner as `0x${string}`,
-        spender: staticData.jaccardSwapAddr as `0x${string}`,
-        tokenId: BigInt(auctionData.nftPermit.tokenId),
-        amount: BigInt(auctionData.nftPermit.amount),
-        deadline: BigInt(auctionData.nftPermit.deadline),
-        salt: auctionData.nftPermit.salt as `0x${string}`,
-      }
-
-      // Build the full auction struct for signing
-      const fullAuction: FullAuctionMessage = {
-        salt: auctionData.salt as `0x${string}`,
-        deadline: BigInt(Math.floor(new Date(auctionData.endTime).getTime() / 1000)),
-        nft: auctionData.nftContract as `0x${string}`,
-        token: auctionData.tokenContract as `0x${string}`,
-        reservePrice: BigInt(auctionData.startingBid),
-        nftPermit,
-        nftPermitSignature: auctionData.nftPermitSignature as `0x${string}`,
-        bids,
-        bidSignatures,
-      }
-
-      // Final validation - no placeholders allowed
-      if (!fullAuction.salt || fullAuction.salt.length < 10) {
-        throw new Error('Auction missing salt')
-      }
-
-      console.log('🔗 Full auction struct:', fullAuction)
-
-      // Sign the auction
-      console.log('✍️ Signing auction...')
-      const auctionSig = await signAuction(fullAuction)
-      console.log('✅ Auction signed:', auctionSig)
-
-      // Call the contract
-      console.log('📝 Calling consumeAuction on contract...')
-      const hash = await writeContractAsync({
-        address: staticData.jaccardSwapAddr as `0x${string}`,
-        abi: staticData.jaccardSwapAbi,
-        functionName: 'consumeAuction',
-        args: [fullAuction, auctionSig] as const,
-      })
-
-      console.log('✅ Transaction submitted:', hash)
-      
-      // Store tx hash to wait for confirmation
-      const winningBidData = bidsList[0]
-      setSettlementData({
-        winner: winningBidData?.bidder,
-        winningBid: winningBidData?.amount ? formatEther(BigInt(winningBidData.amount)) : undefined,
-      })
-      setSettleTxHash(hash)
     } catch (err) {
-      console.error('❌ Failed to consume auction:', err)
-    } finally {
-      setConsuming(false)
+      // Error already logged in hook
     }
   }
 
@@ -454,10 +228,10 @@ export function Auction() {
         onClose={() => setShowSuccessModal(false)}
         title="🎉 Auction Settled!"
         message="The auction has been successfully completed on-chain."
-        winnerAddress={settlementData?.winner}
-        finalBid={settlementData?.winningBid ? `${settlementData.winningBid} tokens` : undefined}
+        winnerAddress={settlementData?.winner || wsSettlement?.winner}
+        finalBid={(settlementData?.winningBid || wsSettlement?.winningBid) ? `${settlementData?.winningBid || wsSettlement?.winningBid} tokens` : undefined}
         nftName={auction?.title}
-        txHash={settleTxHash}
+        txHash={settleTxHash || wsSettlement?.txHash}
         chain={chains.find(c => c.id === auction?.chainId)}
       />
 
