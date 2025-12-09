@@ -81,9 +81,9 @@ export const SuccessModal = ({
                       {winnerAddress.slice(0, 6)}...{winnerAddress.slice(-4)}
                     </a>
                   ) : (
-                    <span className="text-amber-300 font-mono">
-                      {winnerAddress.slice(0, 6)}...{winnerAddress.slice(-4)}
-                    </span>
+                  <span className="text-amber-300 font-mono">
+                    {winnerAddress.slice(0, 6)}...{winnerAddress.slice(-4)}
+                  </span>
                   )}
                 </div>
               )}

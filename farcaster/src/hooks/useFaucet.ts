@@ -2,14 +2,18 @@ import * as React from 'react'
 import { 
   useWaitForTransactionReceipt,
   useWriteContract,
+  useWatchContractEvent,
   useConnection
 } from 'wagmi'
+import { zeroAddress } from 'viem'
 import { useStaticData } from './useStaticData'
 import { authFetch } from '../lib/auth'
 
 export function useErc20Faucet(onSuccess?: () => void) {
   const { address } = useConnection()
   const { staticData } = useStaticData()
+  const [mintedAmount, setMintedAmount] = React.useState<string | null>(null)
+  const [awaitingMint, setAwaitingMint] = React.useState(false)
   
   const { 
     data: hash, 
@@ -22,20 +26,42 @@ export function useErc20Faucet(onSuccess?: () => void) {
   const { isLoading: isConfirming, isSuccess: isConfirmed, error: receiptError } =
     useWaitForTransactionReceipt({ hash })
 
-  // Call onSuccess when confirmed
+  // Watch for Transfer events (mint = from zero to user)
+  useWatchContractEvent({
+    address: staticData?.scripAddr as `0x${string}`,
+    abi: staticData?.scripAbi,
+    eventName: 'Transfer',
+    args: {
+      from: zeroAddress,
+      to: address,
+    },
+    enabled: awaitingMint && !!staticData && !!address,
+    onLogs(logs) {
+      const log = logs[0]
+      if (log?.args?.value) {
+        setMintedAmount(log.args.value.toString())
+        setAwaitingMint(false)
+        onSuccess?.()
+      }
+    },
+  })
+
+  // Stop waiting when confirmed (fallback if event missed)
   React.useEffect(() => {
-    if (isConfirmed && onSuccess) {
-      onSuccess()
+    if (isConfirmed) {
+      setAwaitingMint(false)
     }
-  }, [isConfirmed, onSuccess])
+  }, [isConfirmed])
 
   const claimFaucetErc20 = React.useCallback(() => {
     if (!address || !staticData) return
-    reset() // Clear previous state
+    reset()
+    setMintedAmount(null)
+    setAwaitingMint(true)
     
     writeContract({
-      address: staticData.mockErc20Addr as `0x${string}`,
-      abi: staticData.mockErc20Abi,
+      address: staticData.scripAddr as `0x${string}`,
+      abi: staticData.scripAbi,
       functionName: 'faucet',
       args: [],
     })
@@ -44,6 +70,7 @@ export function useErc20Faucet(onSuccess?: () => void) {
   return {
     claimFaucetErc20,
     hash,
+    mintedAmount,
     isPending,
     isConfirming,
     isConfirmed,

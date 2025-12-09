@@ -1,7 +1,8 @@
 import { FastifyPluginAsync } from 'fastify'
 import * as dbSchema from '@shared/database'
-import { computeMinHash, TRAIT_POOLS, type TraitPool } from '@shared/constants'
+import { computeMinHash, countMinHashMatches, TRAIT_POOLS, type TraitPool } from '@shared/constants'
 import { and, eq, gte, sql } from 'drizzle-orm'
+import { parseEther } from 'viem'
 import type { SupportedChainId } from '../../plugins/web3'
 
 const { nfts, sponsorshipRequests, polymerizations, erc20Claims } = dbSchema
@@ -85,31 +86,6 @@ interface SimulatePolymeraseQuery {
   consumedNftId: string
 }
 
-// Compare two MinHash signatures, return band-by-band match results
-function compareMinHashes(a: string[], b: string[]): { 
-  bands: { index: number; aHash: string; bHash: string; matches: boolean }[]
-  matchCount: number
-  eligible: boolean
-  estimatedJaccard: number
-} {
-  const bands = []
-  let matchCount = 0
-  
-  for (let i = 0; i < 5; i++) {
-    const aHash = a[i] || '0x0'
-    const bHash = b[i] || '0x0'
-    const matches = aHash.toLowerCase() === bHash.toLowerCase()
-    if (matches) matchCount++
-    bands.push({ index: i, aHash, bHash, matches })
-  }
-  
-  // Jaccard estimate: matchCount / totalBands
-  const estimatedJaccard = matchCount / 5
-  const eligible = matchCount >= 2 // 2/5 threshold
-  
-  return { bands, matchCount, eligible, estimatedJaccard }
-}
-
 // Get next upgrade level for a trait (returns null if maxed)
 function getNextUpgradeLevel(traitKey: string, currentValue: string): { value: string; cost: number } | null {
   const pool = TRAIT_POOLS[traitKey]
@@ -125,6 +101,8 @@ function getNextUpgradeLevel(traitKey: string, currentValue: string): { value: s
 // Get essence value of a trait at its current level
 // Non-upgradeable traits have a base value of 5
 const BASE_ESSENCE_VALUE = 5
+// Minimum essence yield for any polymerization (consuming an NFT should always yield something)
+const MIN_POLYMERIZATION_ESSENCE = 15
 
 function getTraitEssenceValue(traitKey: string, value: string): number {
   const pool = TRAIT_POOLS[traitKey]
@@ -192,11 +170,22 @@ function computePolymerizationResult(
   ) as Record<string, string>
   newMetadata.name = generateArtifactName(traits)
 
-  return { newMetadata, upgradedTraits, essenceYield }
+  // Ensure minimum essence yield (consuming an NFT should always yield something)
+  const finalEssenceYield = Math.max(essenceYield, MIN_POLYMERIZATION_ESSENCE)
+
+  return { newMetadata, upgradedTraits, essenceYield: finalEssenceYield }
 }
 
-const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000 // 1 hour
-const RATE_LIMIT_MAX = 3 // max mints per window
+// Validate required env vars at load time
+if (!process.env.RATE_LIMIT_WINDOW_MS) {
+  throw new Error('RATE_LIMIT_WINDOW_MS env var required')
+}
+if (!process.env.RATE_LIMIT_MAX) {
+  throw new Error('RATE_LIMIT_MAX env var required')
+}
+
+const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS)
+const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX)
 
 interface Erc20ClaimBody {
   recipient: string
@@ -375,10 +364,67 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
       return { error: 'One or both artifacts not found' }
     }
 
-    // Compare MinHashes
-    const targetMinHash = targetNft.minHash as string[] || []
-    const consumedMinHash = consumedNft.minHash as string[] || []
-    const comparison = compareMinHashes(targetMinHash, consumedMinHash)
+    // Fetch on-chain minHashes (source of truth)
+    const { publicClients, jaccardNft } = fastify
+    const chainId = targetNft.chainId as SupportedChainId
+    const artifact = jaccardNft[chainId]
+    const publicClient = publicClients[chainId]
+
+    if (!artifact || !publicClient) {
+      reply.code(400)
+      return { error: `Unsupported chain: ${chainId}` }
+    }
+
+    const targetMinHashOnChain = await publicClient.readContract({
+      address: artifact.address,
+      abi: artifact.abi as any,
+      functionName: 'getMinHashByTokenId',
+      args: [BigInt(targetNft.tokenId)],
+    } as any) as `0x${string}`[]
+
+    const consumedMinHashOnChain = await publicClient.readContract({
+      address: artifact.address,
+      abi: artifact.abi as any,
+      functionName: 'getMinHashByTokenId',
+      args: [BigInt(consumedNft.tokenId)],
+    } as any) as `0x${string}`[]
+
+    // Validate on-chain minHashes
+    if (!targetMinHashOnChain || !consumedMinHashOnChain || 
+        targetMinHashOnChain.length !== 5 || consumedMinHashOnChain.length !== 5) {
+      reply.code(400)
+      return { error: 'Invalid on-chain minHash data' }
+    }
+
+    // Sync DB if on-chain minHash differs (on-chain is source of truth)
+    const targetDbHash = targetNft.minHash as string[] || []
+    const consumedDbHash = consumedNft.minHash as string[] || []
+    
+    const targetMismatch = targetMinHashOnChain.some((h, i) => h.toLowerCase() !== (targetDbHash[i] || '').toLowerCase())
+    const consumedMismatch = consumedMinHashOnChain.some((h, i) => h.toLowerCase() !== (consumedDbHash[i] || '').toLowerCase())
+    
+    if (targetMismatch) {
+      fastify.log.warn({ nftId: targetNft.id, tokenId: targetNft.tokenId }, 'Syncing stale minHash from chain')
+      await fastify.db.update(nfts).set({ minHash: [...targetMinHashOnChain] } as any).where(eq(nfts.id, targetNft.id))
+    }
+    if (consumedMismatch) {
+      fastify.log.warn({ nftId: consumedNft.id, tokenId: consumedNft.tokenId }, 'Syncing stale minHash from chain')
+      await fastify.db.update(nfts).set({ minHash: [...consumedMinHashOnChain] } as any).where(eq(nfts.id, consumedNft.id))
+    }
+
+    // Use on-chain minHashes for comparison (source of truth)
+    const matchCount = countMinHashMatches(targetMinHashOnChain, consumedMinHashOnChain)
+    const eligible = matchCount >= 2
+    
+    // Build band-by-band comparison for UI (using on-chain values)
+    const bands = []
+    for (let i = 0; i < 5; i++) {
+      const aHash = targetMinHashOnChain[i]
+      const bHash = consumedMinHashOnChain[i]
+      const matches = aHash.toLowerCase() === bHash.toLowerCase()
+      bands.push({ index: i, aHash, bHash, matches })
+    }
+    const estimatedJaccard = matchCount / 5
 
     // Compute what polymerization would produce
     const targetMeta = targetNft.metadata as Record<string, any>
@@ -423,12 +469,12 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
     }
 
     return {
-      eligible: comparison.eligible,
+      eligible,
       minHash: {
-        bands: comparison.bands,
-        matchCount: comparison.matchCount,
+        bands,
+        matchCount,
         threshold: 2,
-        estimatedJaccard: comparison.estimatedJaccard
+        estimatedJaccard
       },
       traitBreakdown,
       result: {
@@ -535,6 +581,21 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
       return { error: 'Owner does not have both artifacts' }
     }
 
+    // Verify minHash compatibility (contract requires 2/5 matches)
+    const targetMinHash = targetNft.minHash as string[]
+    const consumedMinHash = consumedNft.minHash as string[]
+    
+    if (!targetMinHash || !consumedMinHash || targetMinHash.length !== 5 || consumedMinHash.length !== 5) {
+      reply.code(400)
+      return { error: 'Invalid minHash data for one or both artifacts' }
+    }
+
+    const matches = countMinHashMatches(targetMinHash, consumedMinHash)
+    if (matches < 2) {
+      reply.code(400)
+      return { error: `Insufficient similarity: ${matches}/5 matches (need 2/5)` }
+    }
+
     // Compute polymerization result
     const targetMeta = targetNft.metadata as Record<string, any>
     const consumedMeta = consumedNft.metadata as Record<string, any>
@@ -577,7 +638,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
           owner as `0x${string}`,
           1n,
           newMinHash,
-          BigInt(essenceYield),
+          parseEther(essenceYield.toString()),
         ],
       } as any)
 

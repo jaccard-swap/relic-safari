@@ -6,8 +6,10 @@ export interface StaticData {
   jaccardSwapAbi: any[]
   jaccardErc1155Addr: string
   jaccardErc1155Abi: any[]
-  mockErc20Addr: string
-  mockErc20Abi: any[]
+  scripAddr: string
+  scripAbi: any[]
+  essenceAddr: string
+  essenceAbi: any[]
 }
 
 export const useStaticData = () => {
@@ -27,18 +29,21 @@ export const useStaticData = () => {
       setError(null)
       
       try {
-        const [swap, token, nft] = await Promise.all([
+        const [swap, scrip, nft, essence] = await Promise.all([
           import(`../assets/${chainId}/JaccardSwap.json`),
-          import(`../assets/${chainId}/MockERC20.json`),
+          import(`../assets/${chainId}/Scrip.json`),
           import(`../assets/${chainId}/JaccardERC1155.json`),
+          import(`../assets/${chainId}/Essence.json`),
         ])
         setStaticData({
           jaccardSwapAddr: swap.address,
           jaccardSwapAbi: swap.abi,
-          mockErc20Addr: token.address,
-          mockErc20Abi: token.abi,
+          scripAddr: scrip.address,
+          scripAbi: scrip.abi,
           jaccardErc1155Addr: nft.address,
           jaccardErc1155Abi: nft.abi,
+          essenceAddr: essence.address,
+          essenceAbi: essence.abi,
         })
       } catch (err) {
         const errorMessage = `Failed to load static data for chain ${chainId}`

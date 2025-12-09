@@ -1,5 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import { nfts } from '@shared/database'
+import { computeMinHash } from '@shared/constants'
 import { eq, desc, and, or, isNull, ne } from 'drizzle-orm'
 import type { SupportedChainId } from '../../plugins/web3'
 
@@ -64,7 +65,7 @@ const nftRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
     }
   })
 
-  // Get single NFT by id
+  // Get single NFT by id (internal UUID)
   fastify.get('/:id', async function (request, reply) {
     const { id } = request.params as { id: string }
 
@@ -85,6 +86,54 @@ const nftRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
       fastify.log.error({ error, id }, 'Failed to fetch NFT')
       reply.code(500)
       return { error: 'Failed to fetch NFT' }
+    }
+  })
+
+  // ERC-1155 metadata JSON endpoint - matches contract URI pattern
+  // Contract: https://relic-safari.social/api/nft/{id}.json
+  fastify.get('/:tokenId.json', async function (request, reply) {
+    const { tokenId } = request.params as { tokenId: string }
+
+    try {
+      const [nft] = await fastify.db
+        .select()
+        .from(nfts)
+        .where(eq(nfts.tokenId, tokenId))
+        .limit(1)
+
+      if (!nft) {
+        reply.code(404)
+        return { error: 'NFT not found' }
+      }
+
+      const metadata = nft.metadata as Record<string, any>
+      
+      // Reserved fields per OpenSea/ERC-721 metadata standard
+      const reserved = ['name', 'description', 'image', 'external_url', 'animation_url', 'background_color']
+      
+      // Build attributes from non-reserved fields
+      const attributes = Object.entries(metadata)
+        .filter(([key]) => !reserved.includes(key))
+        .map(([trait_type, value]) => ({ trait_type, value }))
+
+      reply.header('Content-Type', 'application/json')
+      reply.header('Cache-Control', 'public, max-age=3600')
+
+      // OpenSea metadata standard
+      // https://docs.opensea.io/docs/metadata-standards
+      return {
+        name: metadata.name,
+        description: metadata.description,
+        image: metadata.image,
+        external_url: `https://relic-safari.social/nft/${tokenId}`,
+        animation_url: metadata.animation_url,
+        background_color: metadata.background_color,
+        attributes,
+      }
+    } catch (error) {
+      fastify.log.error({ error, tokenId }, 'Failed to fetch NFT metadata')
+      reply.code(500)
+      return { error: 'Failed to fetch NFT metadata' }
     }
   })
 
@@ -208,27 +257,8 @@ const nftRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
         return { error: 'Missing required fields: owner, chainId, metadata, tokenId' }
       }
 
-      // Compute minHash from metadata (same as faucet)
-      const { keccak256, toHex } = await import('viem')
-      const MINHASH_SEEDS = ['seed0', 'seed1', 'seed2', 'seed3', 'seed4']
-      
-      const features: string[] = []
-      for (const [key, value] of Object.entries(body.metadata)) {
-        if (key === 'name' || key === 'image' || key === 'description') continue
-        features.push(`${key}:${value}`)
-      }
-      
-      const hashedFeatures = features.map(f => keccak256(toHex(f)))
-      const minHash: `0x${string}`[] = []
-      
-      for (let i = 0; i < 5; i++) {
-        let min = ('0x' + 'f'.repeat(64)) as `0x${string}`
-        for (const fh of hashedFeatures) {
-          const h = keccak256(toHex(fh + MINHASH_SEEDS[i]))
-          if (BigInt(h) < BigInt(min)) min = h
-        }
-        minHash.push(min)
-      }
+      // Compute minHash from metadata using shared function
+      const minHash = computeMinHash(body.metadata as Record<string, string | number>)
 
       try {
         const [nft] = await fastify.db

@@ -78,7 +78,7 @@ export function AuctionHeader({
                   {shortenAddress(auction.auctioneer)}
                 </a>
               ) : (
-                <span className="text-stone-400 font-mono">{shortenAddress(auction.auctioneer)}</span>
+              <span className="text-stone-400 font-mono">{shortenAddress(auction.auctioneer)}</span>
               )}
               {isAuctioneer && <span className="px-1 bg-amber-700/50 text-amber-200 rounded">you</span>}
             </div>

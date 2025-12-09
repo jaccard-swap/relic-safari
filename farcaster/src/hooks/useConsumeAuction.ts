@@ -216,7 +216,7 @@ export function useConsumeAuction(onSuccess?: (result: ConsumeResult) => void) {
             owner: bid.bidder as `0x${string}`,
             spender: staticData.jaccardSwapAddr as `0x${string}`,
             value: BigInt(bid.amount),
-            deadline: BigInt(Math.floor(new Date(bid.deadline).getTime() / 1000)),
+            deadline: BigInt(bid.erc20Permit.deadline), // Use permit's own deadline
             v: bid.erc20Permit.v,
             r: bid.erc20Permit.r as `0x${string}`,
             s: bid.erc20Permit.s as `0x${string}`,

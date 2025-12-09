@@ -105,10 +105,10 @@ function NftCard({ nft, isExpanded, onToggle, onAuction, onShowDetails }: NftCar
               <button onClick={handleAuction} className="flex-1 py-1 bg-amber-700/80 hover:bg-amber-600 text-white text-[9px] font-medium rounded transition-colors">
                 🏛️ Auction
               </button>
-              <button className="flex-1 py-1 bg-stone-600/80 hover:bg-stone-500 text-white text-[9px] font-medium rounded transition-colors">
+              <button disabled className="flex-1 py-1 bg-stone-600/30 text-stone-500 text-[9px] font-medium rounded cursor-not-allowed">
                 ⚗️ Fuse
               </button>
-              <button className="flex-1 py-1 bg-stone-700/80 hover:bg-stone-600 text-white text-[9px] font-medium rounded transition-colors">
+              <button disabled className="flex-1 py-1 bg-stone-700/30 text-stone-500 text-[9px] font-medium rounded cursor-not-allowed">
                 ↗ Gift
               </button>
             </div>

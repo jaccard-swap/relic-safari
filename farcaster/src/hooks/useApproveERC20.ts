@@ -26,7 +26,7 @@ export function useApproveERC20(tokenContract?: `0x${string}`, onApprovalConfirm
   // Read current allowance
   const { data: allowance, refetch: refetchAllowance } = useReadContract({
     address: tokenContract,
-    abi: staticData?.mockErc20Abi,
+    abi: staticData?.scripAbi,
     functionName: 'allowance',
     args: address && tokenContract && staticData ? [address, staticData.jaccardSwapAddr as `0x${string}`] : undefined,
     query: {
@@ -47,7 +47,7 @@ export function useApproveERC20(tokenContract?: `0x${string}`, onApprovalConfirm
 
     writeContract({
       address: contractAddress,
-      abi: staticData.mockErc20Abi,
+      abi: staticData.scripAbi,
       functionName: 'approve',
       args: [staticData.jaccardSwapAddr as `0x${string}`, maxUint256],
     })

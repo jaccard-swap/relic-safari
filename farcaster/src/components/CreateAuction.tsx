@@ -29,8 +29,8 @@ export function CreateAuction({
       description: 'Ancient relic from the ruins',
       nftContract: prefill?.nftContract || staticData?.jaccardErc1155Addr || '',
       nftTokenId: prefill?.nftTokenId || '',
-      tokenContract: staticData?.mockErc20Addr || '',
-      startingBid: '100',
+      tokenContract: staticData?.scripAddr || '',
+      startingBid: '5.236',
       durationHours: 24
     },
     onSubmit: async ({ value }) => {
@@ -76,8 +76,8 @@ export function CreateAuction({
       if (!prefill?.nftContract && staticData.jaccardErc1155Addr) {
         form.setFieldValue('nftContract', staticData.jaccardErc1155Addr)
       }
-      if (staticData.mockErc20Addr) {
-        form.setFieldValue('tokenContract', staticData.mockErc20Addr)
+      if (staticData.scripAddr) {
+        form.setFieldValue('tokenContract', staticData.scripAddr)
       }
     }
   }, [staticData, prefill])

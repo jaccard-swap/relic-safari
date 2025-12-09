@@ -19,8 +19,8 @@ export function useStandingBid() {
   
   // Read nonce from token contract for ERC20 permit
   const { data: tokenNonce } = useReadContract({
-    address: staticData?.mockErc20Addr as `0x${string}`,
-    abi: staticData?.mockErc20Abi,
+    address: staticData?.scripAddr as `0x${string}`,
+    abi: staticData?.scripAbi,
     functionName: 'nonces',
     args: address ? [address] : undefined,
     query: { enabled: !!staticData && !!address },
@@ -46,7 +46,7 @@ export function useStandingBid() {
     setSuccess(false)
 
     try {
-      const { jaccardSwapAddr, mockErc20Addr } = staticData
+      const { jaccardSwapAddr, scripAddr } = staticData
       const amount = parseEther(params.amount)
       
       // Generate random salt
@@ -57,12 +57,12 @@ export function useStandingBid() {
       // Deadline: 7 days from now
       const deadline = BigInt(Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60)
 
-      // First, sign the ERC20 permit (must match MockERC20 contract's EIP-712 domain)
+      // First, sign the ERC20 permit (must match Scrip contract's EIP-712 domain)
       const permitDomain = {
-        name: EIP712_DOMAINS.MOCK_ERC20,
+        name: EIP712_DOMAINS.SCRIP,
         version: '1',
         chainId,
-        verifyingContract: mockErc20Addr as `0x${string}`,
+        verifyingContract: scripAddr as `0x${string}`,
       }
 
       const permitMessage = {

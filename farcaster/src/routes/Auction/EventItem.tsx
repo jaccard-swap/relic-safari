@@ -42,7 +42,7 @@ export function EventItem({ event, isOwn, chain }: EventItemProps) {
         return (
           <span className="text-green-300">
             🎉 Settled to {shortenAddress(summary.winner || '')}
-            {summary.amount && ` for ${formatEther(BigInt(summary.amount))} SCRIP`}
+            {summary.amount && ` for ${summary.amount} SCRIP`}
           </span>
         )
       case 'cancelled':

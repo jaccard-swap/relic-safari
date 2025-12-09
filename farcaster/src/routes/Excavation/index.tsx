@@ -44,8 +44,9 @@ export function Excavation() {
 
       {/* Help Modals */}
       <InfoModal open={stipendModal} onClose={() => setStipendModal(false)} title="Explorer's Stipend" icon="💰">
-        <p>The Archaeological Society provides daily funding. <strong className="text-amber-300">SCRIP</strong> is used to bid in the Bazaar.</p>
-        <p>Each claim grants <strong className="text-amber-300">10,000 SCRIP</strong>.</p>
+        <p>The Archaeological Society provides funding. <strong className="text-amber-300">SCRIP</strong> is used to bid in the Bazaar.</p>
+        <p><strong className="text-amber-300">φ² (~5.24)</strong> SCRIP on first claim, then <strong className="text-amber-300">φ (~1.62)</strong> for next 3.</p>
+        <p>Resets every <strong className="text-amber-300">12 hours</strong>. Max ~10 SCRIP per window.</p>
         <p className="text-stone-500 text-xs">Technical: ERC-20 with permit support.</p>
       </InfoModal>
 

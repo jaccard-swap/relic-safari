@@ -28,8 +28,8 @@ export function useCreateBid(onSuccess?: () => void) {
 
   // Get bidder's token nonce for ERC20 permit
   const { data: bidderNonce, refetch: refetchNonce } = useReadContract({
-    address: staticData?.mockErc20Addr as `0x${string}`,
-    abi: staticData?.mockErc20Abi,
+    address: staticData?.scripAddr as `0x${string}`,
+    abi: staticData?.scripAbi,
     functionName: 'nonces',
     args: address ? [address] : undefined,
     query: { enabled: !!address && !!staticData },

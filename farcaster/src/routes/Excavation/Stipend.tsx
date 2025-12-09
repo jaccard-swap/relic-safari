@@ -30,35 +30,70 @@ export function Stipend({ expanded, onToggle, onHelp }: StipendProps) {
   const toastShown = useRef(false)
   const chains = useChains()
 
-  const { tokenBalance, refetchBalances, isConnected } = useFaucetBalances()
+  const { tokenBalance, refetchTokenData, isConnected } = useFaucetBalances()
   const { history, recordClaim } = useFaucetHistory()
-
-  const handleSuccess = useCallback(() => {
-    refetchBalances()
-  }, [refetchBalances])
+  const prevBalanceRef = useRef<bigint | null>(null)
 
   const {
     claimFaucetErc20,
     hash: claimHash,
+    mintedAmount,
     isPending: claimPending,
     isConfirming: claimConfirming,
     isConfirmed: claimConfirmed,
     error: claimError
-  } = useErc20Faucet(handleSuccess)
+  } = useErc20Faucet()
 
-  // Show toast and record claim on success
+  // Store balance before claiming
+  const handleClaim = useCallback(() => {
+    prevBalanceRef.current = tokenBalance?.value ?? null
+    console.log('📸 Stored pre-claim balance:', prevBalanceRef.current?.toString())
+    claimFaucetErc20()
+  }, [tokenBalance?.value, claimFaucetErc20])
+
+  // Poll until balance changes (slower to avoid rate limits)
+  const pollForBalanceUpdate = useCallback(() => {
+    let attempts = 0
+    const poll = async () => {
+      const { data } = await refetchTokenData()
+      attempts++
+      console.log(`🔄 Poll ${attempts}: prev=${prevBalanceRef.current}, new=${data}`)
+      if (data !== undefined && prevBalanceRef.current !== null && data !== prevBalanceRef.current) {
+        console.log('✅ Balance updated!')
+        return
+      }
+      if (attempts < 10) setTimeout(poll, 5000) // 5s intervals, max 10 attempts
+    }
+    poll()
+  }, [refetchTokenData])
+
+  // Show toast, record claim, and poll for balance on success
   useEffect(() => {
-    if (claimConfirmed && claimHash && !toastShown.current) {
+    if (claimConfirmed && claimHash && mintedAmount && !toastShown.current) {
       toastShown.current = true
-      setToast({ message: 'Stipend claimed! +10,000 SCRIP', type: 'success' })
+      const formatted = (Number(mintedAmount) / 1e18).toFixed(2)
+      setToast({ message: `Claimed ${formatted} SCRIP!`, type: 'success' })
       
-      // Record to API (amount in wei: 10000 * 10^18)
-      recordClaim(claimHash, '10000000000000000000000')
+      // Record actual minted amount to API
+      recordClaim(claimHash, mintedAmount)
+      
+      // Start polling for balance update
+      pollForBalanceUpdate()
     }
     if (!claimConfirmed) {
       toastShown.current = false
     }
-  }, [claimConfirmed, claimHash, recordClaim])
+  }, [claimConfirmed, claimHash, mintedAmount, recordClaim, pollForBalanceUpdate])
+
+  // Show error toast
+  useEffect(() => {
+    if (claimError) {
+      const msg = claimError.message?.includes('Rate limited') 
+        ? 'Rate limited: wait 12 hours'
+        : claimError.message || 'Claim failed'
+      setToast({ message: msg, type: 'error' })
+    }
+  }, [claimError])
 
   return (
     <>
@@ -70,13 +105,13 @@ export function Stipend({ expanded, onToggle, onHelp }: StipendProps) {
         onHelp={onHelp}
         summary={
           <>
-            <span className="text-amber-200 font-mono text-sm">{tokenBalance?.formatted?.toFixed(0) ?? '0'}</span>
+            <span className="text-amber-200 font-mono text-sm">{tokenBalance?.formatted?.toFixed(2) ?? '0.00'}</span>
             <span className="text-stone-500 text-[9px]">SCRIP</span>
           </>
         }
         action={
           <button
-            onClick={claimFaucetErc20}
+            onClick={handleClaim}
             disabled={!isConnected || claimPending || claimConfirming}
             className="relative w-14 py-1.5 bg-gradient-to-r from-amber-600 to-yellow-700 hover:from-amber-500 hover:to-yellow-600 text-white text-xs font-medium rounded transition-all disabled:opacity-50 text-center"
           >
@@ -85,6 +120,11 @@ export function Stipend({ expanded, onToggle, onHelp }: StipendProps) {
           </button>
         }
       >
+        <div className="text-[9px] text-stone-500 mt-2 px-1.5 py-1.5 bg-stone-800/50 rounded border border-stone-700/50 space-y-0.5">
+          <div><span className="text-amber-400">1st claim:</span> ~5.24 SCRIP (φ²)</div>
+          <div><span className="text-amber-400">Next 3:</span> ~1.62 SCRIP each (φ)</div>
+          <div><span className="text-stone-600">Resets every 12 hours</span></div>
+        </div>
         <div className="text-[9px] text-stone-500 mt-2 mb-1">Recent Claims</div>
         <div className="space-y-0.5">
           {history.length === 0 ? (

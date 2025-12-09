@@ -274,6 +274,6 @@ export const ERC20PermitTypes = {
 export const EIP712_DOMAINS = {
   JACCARD_SWAP: 'JaccardDiamond',
   JACCARD_ERC1155: 'JaccardDiamond',
-  MOCK_ERC20: 'MockERC20',
+  SCRIP: 'Scrip',
 } as const
 

@@ -87,12 +87,12 @@ export const useAuctionSignature = () => {
     verifyingContract: staticData?.jaccardErc1155Addr as `0x${string}`,
   }
 
-  // Domain for ERC20 token (MockERC20)
+  // Domain for ERC20 token (Scrip)
   const tokenDomain = {
-    name: EIP712_DOMAINS.MOCK_ERC20,
+    name: EIP712_DOMAINS.SCRIP,
     version: '1',
     chainId,
-    verifyingContract: staticData?.mockErc20Addr as `0x${string}`,
+    verifyingContract: staticData?.scripAddr as `0x${string}`,
   }
 
   // Sign NFT permit (JaccardERC1155Permit)

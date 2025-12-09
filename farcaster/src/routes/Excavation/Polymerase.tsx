@@ -301,7 +301,7 @@ export function Polymerase({ expanded, onToggle, onHelp, onReactionsHelp }: Poly
 
       <ReactionDetailModal 
         reaction={detailReaction} 
-        onClose={() => setDetailReaction(null)}
+        onClose={() => setDetailReaction(null)} 
         chain={chains.find(c => c.id === chainId)}
       />
 
