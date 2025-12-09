@@ -33,7 +33,7 @@ export function Polymerase({ expanded, onToggle, onHelp, onReactionsHelp }: Poly
   const { address } = useConnection()
   const chainId = useChainId()
   const chains = useChains()
-  const { essenceBalance, refetchBalances } = useFaucetBalances()
+  const { essenceBalance, refetchEssenceData } = useFaucetBalances()
   const { history: reactions, loading: reactionsLoading, refetch: refetchReactions } = usePolymerizationHistory()
 
   const targetNftId = selectedNfts[0] || null
@@ -68,32 +68,27 @@ export function Polymerase({ expanded, onToggle, onHelp, onReactionsHelp }: Poly
     }
   }
 
-  // Track expected essence for polling
-  const [expectedEssenceYield, setExpectedEssenceYield] = useState<number | null>(null)
-  const oldEssenceRef = useRef<number>(0)
+  // Track for polling
+  const [polling, setPolling] = useState(false)
+  const prevEssenceRef = useRef<bigint | null>(null)
   
   // Poll for essence balance change after fusion
-  useEffect(() => {
-    if (expectedEssenceYield === null) return
-    
+  const pollForEssenceUpdate = useCallback(() => {
+    prevEssenceRef.current = essenceBalance?.value ?? null
     let attempts = 0
-    const maxAttempts = 10
-    
-    const poll = () => {
+    const poll = async () => {
+      const { data } = await refetchEssenceData()
       attempts++
-      refetchBalances()
-      
-      const currentEssence = essenceBalance?.count ?? 0
-      if (currentEssence !== oldEssenceRef.current || attempts >= maxAttempts) {
-        setExpectedEssenceYield(null)
+      if (data !== undefined && prevEssenceRef.current !== null && data !== prevEssenceRef.current) {
+        setPolling(false)
         return
       }
-      
-      setTimeout(poll, 500)
+      if (attempts < 10) setTimeout(poll, 5000)
+      else setPolling(false)
     }
-    
-    setTimeout(poll, 500)
-  }, [expectedEssenceYield, essenceBalance?.count, refetchBalances])
+    setPolling(true)
+    poll()
+  }, [refetchEssenceData, essenceBalance?.value])
 
   const handleFuse = useCallback(async () => {
     if (!targetNft || !consumedNft || !address || simulation?.eligible !== true) return
@@ -101,8 +96,6 @@ export function Polymerase({ expanded, onToggle, onHelp, onReactionsHelp }: Poly
     setFusePending(true)
     setFuseError(null)
     setFuseSuccess(false)
-    
-    oldEssenceRef.current = essenceBalance?.count ?? 0
     
     try {
       const res = await authFetch('/api/faucet/polymerase', {
@@ -129,7 +122,7 @@ export function Polymerase({ expanded, onToggle, onHelp, onReactionsHelp }: Poly
       const essenceMsg = data.essenceYield > 0 ? ` +${data.essenceYield} ✨` : ''
       setToast({ message: `Fusion complete!${essenceMsg}`, type: 'success' })
       
-      setExpectedEssenceYield(data.essenceYield ?? 1)
+      pollForEssenceUpdate()
       
       setTimeout(() => {
         clearSelection()
@@ -141,7 +134,7 @@ export function Polymerase({ expanded, onToggle, onHelp, onReactionsHelp }: Poly
     } finally {
       setFusePending(false)
     }
-  }, [targetNft, consumedNft, address, chainId, simulation?.eligible, essenceBalance?.count, refetchReactions])
+  }, [targetNft, consumedNft, address, chainId, simulation?.eligible, refetchReactions, pollForEssenceUpdate])
 
   const canFuse = selectedNfts.length === 2 && simulation?.eligible === true && !fusePending
 

@@ -24,14 +24,19 @@ export const useFaucetBalances = () => {
         query: { enabled: isConnected && !!address && !!staticData?.essenceAddr }
     })
 
+    const scripFormatted = scripRaw !== undefined ? parseFloat(formatEther(scripRaw)) : 0
+    const essenceFormatted = essenceRaw !== undefined ? parseFloat(formatEther(essenceRaw)) : 0
+
     const tokenBalance = scripRaw !== undefined ? {
         value: scripRaw,
-        formatted: parseFloat(formatEther(scripRaw))
+        formatted: scripFormatted,
+        count: Math.floor(scripFormatted)
     } : null
 
     const essenceBalance = essenceRaw !== undefined ? {
         value: essenceRaw,
-        formatted: parseFloat(formatEther(essenceRaw))
+        formatted: essenceFormatted,
+        count: Math.floor(essenceFormatted)
     } : null
 
     const refetchBalances = () => {
