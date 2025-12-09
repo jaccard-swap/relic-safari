@@ -34,11 +34,17 @@ export const useFaucetBalances = () => {
         formatted: parseFloat(formatEther(essenceRaw))
     } : null
 
+    const refetchBalances = () => {
+        refetchTokenData()
+        refetchEssenceData()
+    }
+
     return {
         tokenBalance,
         essenceBalance,
         refetchTokenData,
         refetchEssenceData,
+        refetchBalances,
         isConnected,
         chainId
     }
