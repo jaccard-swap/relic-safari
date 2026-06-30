@@ -28,10 +28,10 @@ import * as artifacts from './generated/artifacts/index.js';
 export {artifacts};
 // ------------------------------------------------------------------------------------------------
 // we create the rocketh function we need by passing the extensions
-import {setup} from 'rocketh';
-const {deployScript, loadAndExecuteDeployments} = setup<typeof extensions, typeof config.accounts, typeof config.data>(
-    extensions,
-);
+import {setupDeployScripts} from 'rocketh';
+const {deployScript} = setupDeployScripts<typeof extensions, typeof config.accounts, typeof config.data>(extensions);
+import {setupEnvironmentFromFiles} from '@rocketh/node';
+const {loadAndExecuteDeploymentsFromFiles: loadAndExecuteDeployments} = setupEnvironmentFromFiles<typeof extensions, typeof config.accounts, typeof config.data>(extensions);
 // ------------------------------------------------------------------------------------------------
 // we do the same for hardhat-deploy
 import {setupHardhatDeploy} from 'hardhat-deploy/helpers';

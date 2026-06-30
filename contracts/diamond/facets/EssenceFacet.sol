@@ -5,16 +5,24 @@ import { LibDiamond } from "../libraries/LibDiamond.sol";
 import { LibAppStorage, AppStorage } from "../libraries/LibAppStorage.sol";
 import { LibEIP712 } from "../libraries/LibEIP712.sol";
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { ERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
+import { IERC20Permit } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
+import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 /// @title EssenceFacet
 /// @notice ERC20 token for Essence - extracted from polymerization
 /// @dev DEX-compatible ERC20 with EIP-2612 permit
-contract EssenceFacet is ERC20, ERC20Permit {
+contract EssenceFacet is ERC20, IERC20Permit {
+
+    bytes32 private constant PERMIT_TYPEHASH =
+        keccak256("Permit(address owner,address spender,uint256 value,uint256 nonce,uint256 deadline)");
+
+    error ERC2612ExpiredSignature(uint256 deadline);
+    error ERC2612InvalidSigner(address signer, address owner);
+    error InvalidAccountNonce(address account, uint256 currentNonce);
 
     // ============ Constructor ============
-    
-    constructor() ERC20("", "") ERC20Permit("Essence") {}
+
+    constructor() ERC20("", "") {}
 
     // ============ Initializer ============
 
@@ -73,7 +81,7 @@ contract EssenceFacet is ERC20, ERC20Permit {
 
     function _update(address from, address to, uint256 value) internal override {
         AppStorage storage s = LibAppStorage.diamondStorage();
-        
+
         if (from == address(0)) {
             // Minting
             s._erc20totalSupply += value;
@@ -103,7 +111,7 @@ contract EssenceFacet is ERC20, ERC20Permit {
 
     function _approve(address owner, address spender, uint256 value, bool emitEvent) internal override {
         AppStorage storage s = LibAppStorage.diamondStorage();
-        
+
         if (owner == address(0)) {
             revert ERC20InvalidApprover(address(0));
         }
@@ -129,21 +137,47 @@ contract EssenceFacet is ERC20, ERC20Permit {
         }
     }
 
-    // ============ Nonces Override (for ERC20Permit) ============
+    // ============ EIP-2612 Permit ============
+
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external override {
+        if (block.timestamp > deadline) {
+            revert ERC2612ExpiredSignature(deadline);
+        }
+
+        bytes32 structHash = keccak256(abi.encode(PERMIT_TYPEHASH, owner, spender, value, _useNonce(owner), deadline));
+        bytes32 hash = LibEIP712.hashTypedDataV4(structHash);
+
+        address signer = ECDSA.recover(hash, v, r, s);
+        if (signer != owner) {
+            revert ERC2612InvalidSigner(signer, owner);
+        }
+
+        _approve(owner, spender, value);
+    }
+
+    // ============ Nonces ============
 
     function nonces(address owner) public view override returns (uint256) {
         AppStorage storage s = LibAppStorage.diamondStorage();
         return s._erc20nonces[owner];
     }
 
-    function _useNonce(address owner) internal override returns (uint256) {
+    function _useNonce(address owner) internal returns (uint256) {
         AppStorage storage s = LibAppStorage.diamondStorage();
         unchecked {
             return s._erc20nonces[owner]++;
         }
     }
 
-    function _useCheckedNonce(address owner, uint256 nonce) internal override {
+    function _useCheckedNonce(address owner, uint256 nonce) internal {
         AppStorage storage s = LibAppStorage.diamondStorage();
         uint256 current = s._erc20nonces[owner];
         if (nonce != current) {
@@ -154,12 +188,9 @@ contract EssenceFacet is ERC20, ERC20Permit {
         }
     }
 
-    // ============ EIP-712 Domain (shared across all diamond facets) ============
+    // ============ EIP-712 Domain ============
 
-    /// @notice Returns the domain separator for EIP-712 signatures
-    /// @dev Overrides ERC20Permit to use shared diamond domain
-    function DOMAIN_SEPARATOR() public view override returns (bytes32) {
+    function DOMAIN_SEPARATOR() external view override returns (bytes32) {
         return LibEIP712.domainSeparatorV4();
     }
 }
-
