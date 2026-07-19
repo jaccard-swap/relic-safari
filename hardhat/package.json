@@ -10,6 +10,7 @@
     "@rocketh/diamond": "^0.19.10",
     "@rocketh/doc": "^0.19.7",
     "@rocketh/export": "^0.19.8",
+    "@rocketh/node": "^0.19.9",
     "@rocketh/proxy": "^0.19.14",
     "@rocketh/read-execute": "^0.19.3",
     "@rocketh/verifier": "^0.19.7",

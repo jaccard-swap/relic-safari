@@ -1,0 +1,22 @@
+FROM node:25
+
+WORKDIR /app
+
+# Copy root package.json for workspace setup
+COPY package.json package-lock.json ./
+COPY hardhat/package.json ./hardhat/
+
+# Install all dependencies from root (workspace linking)
+RUN npm install
+
+# Copy source files
+COPY hardhat ./hardhat
+
+WORKDIR /app/hardhat
+
+# --skip-prompts: hardhat-deploy asks an interactive "gas price may change,
+# proceed?" confirmation before any deployment tx, which hangs forever with
+# no stdin attached in a non-interactive `docker compose up`. No --reset:
+# anvil's chain state persists (see the anvil service's --state volume), so
+# the deploy script only redeploys what isn't already live there.
+CMD ["sh", "-c", "npx hardhat deploy --network localhost --skip-prompts"]

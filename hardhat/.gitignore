@@ -24,6 +24,12 @@
 
 /generated
 
+# Local anvil deployment records - regenerated on every local deploy, pure
+# noise for version control (unlike the real testnet ones, which are the
+# canonical record of what's actually live on those chains).
+/deployments/localhost
+/deployments/31337
+
 /nginx
 
 docker-compose.prod.yaml

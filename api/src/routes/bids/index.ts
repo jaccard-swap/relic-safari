@@ -1,6 +1,6 @@
 import { FastifyPluginAsync } from 'fastify'
 import * as dbSchema from '@shared/database'
-import { countMinHashMatches } from '@shared/constants'
+import { countMinHashMatches, MINHASH_BANDS } from '@shared/constants'
 import { eq, and, gt, desc } from 'drizzle-orm'
 
 const { standingBids, auctions, nfts } = dbSchema
@@ -13,8 +13,8 @@ interface CreateStandingBidBody {
   bidder: string
   chainId: number
   amount: string // wei
-  targetMinHash: string[] // bytes32[5]
-  minMatches: number // 2-5
+  targetMinHash: string[] // bytes8[20]
+  minMatches: number // 2-20
   desiredTraits: Record<string, string> // { rarity: 'legendary', ... }
   salt: string // bytes4
   deadline: number // unix timestamp
@@ -68,14 +68,14 @@ const bidRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
       return { error: 'Bidder must match authenticated address' }
     }
 
-    if (body.targetMinHash.length !== 5) {
+    if (body.targetMinHash.length !== MINHASH_BANDS) {
       reply.code(400)
-      return { error: 'targetMinHash must have exactly 5 bands' }
+      return { error: `targetMinHash must have exactly ${MINHASH_BANDS} bands` }
     }
 
-    if (body.minMatches < 2 || body.minMatches > 5) {
+    if (body.minMatches < 2 || body.minMatches > MINHASH_BANDS) {
       reply.code(400)
-      return { error: 'minMatches must be between 2 and 5' }
+      return { error: `minMatches must be between 2 and ${MINHASH_BANDS}` }
     }
 
     if (body.deadline <= Math.floor(Date.now() / 1000)) {

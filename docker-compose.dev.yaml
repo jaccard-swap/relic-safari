@@ -1,4 +1,80 @@
 services:
+  # Local Ethereum node for chainId 31337 - see
+  # https://www.getfoundry.sh/guides/docker#docker-compose-setup. Not part of
+  # the default dependency graph (api/web don't depend on it); start it
+  # explicitly with `docker compose up anvil` or `docker compose up deploy`.
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:latest
+    entrypoint: ["anvil"]
+    # The foundry image runs as a non-root `foundry` user by default, but
+    # Docker creates the anvil_state volume's mountpoint owned by root -
+    # anvil would otherwise silently fail to write its state dump there.
+    # Safe to run as root here specifically because this is a named volume,
+    # not a host bind mount - nothing lands on the host filesystem for a
+    # non-root host user to get locked out of later.
+    user: "0:0"
+    # --state persists chain state (balances, deployed code, nonces) across
+    # `docker compose down`/`up` in the named volume below - without it, a
+    # fresh chain on every restart goes out of sync with both the recorded
+    # deployment (hardhat/deployments/localhost/) and any off-chain state
+    # (indexed bids, etc.) that reference on-chain data that no longer
+    # exists. --block-time trades away instant-mining for something closer
+    # to real network timing.
+    command:
+      [
+        "--host",
+        "0.0.0.0",
+        "--chain-id",
+        "31337",
+        "--mnemonic",
+        "${MNEMONIC_LOCALHOST}",
+        "--state",
+        "/anvil-state/state.json",
+        "--block-time",
+        "10",
+      ]
+    ports:
+      - "8545:8545"
+    volumes:
+      - anvil_state:/anvil-state
+    healthcheck:
+      test: ["CMD", "cast", "block-number", "--rpc-url", "http://localhost:8545"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+
+  # Deploys the JaccardSwap diamond to the anvil node above and writes fresh
+  # ABIs/addresses to shared/contracts/31337, the single source both api and
+  # web import from. Run on demand with `docker compose up deploy` after
+  # anvil is healthy - not a default dependency of api/web, so it stays
+  # opt-in rather than a boot-time requirement. Safe to run repeatedly:
+  # --skip-prompts just answers the gas price confirmation non-interactively,
+  # and with anvil's chain state now persisted, whether anything actually
+  # redeploys is up to the deploy script's own on-chain staleness checks.
+  deploy:
+    build:
+      context: .
+      dockerfile: hardhat/Dockerfile
+    user: "${UID:-1000}:${GID:-1000}"
+    env_file:
+      - .env
+    environment:
+      LOCALHOST_RPC_URL: http://anvil:8545
+    depends_on:
+      anvil:
+        condition: service_healthy
+    volumes:
+      - ./hardhat:/app/hardhat
+      # The deploy script (hardhat/deploy/00_deploy_diamond.ts) writes fresh
+      # ABIs/addresses straight into this sibling directory - without
+      # mounting it here too, those writes would land inside the container's
+      # own ephemeral /app/shared and never reach the host (nothing else
+      # populates /app/shared in this image).
+      - ./shared/contracts:/app/shared/contracts
+      - /app/node_modules
+      - /app/hardhat/node_modules
+    restart: "no"
+
   postgres:
     image: pgvector/pgvector:pg17
     ports:
@@ -58,7 +134,14 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME}
       MNEMONIC: ${MNEMONIC}
       SEPOLIA_RPC_URL: ${SEPOLIA_RPC_URL}
-      BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL}
+      # Overrides .env's host-facing 127.0.0.1:8545 with the anvil service's
+      # name so the api container can reach it - see the deploy service's
+      # identical override below. Anvil is opt-in (`docker compose up anvil`),
+      # so this is safe even when it isn't running: the wallet/public clients
+      # for chain 31337 are only ever dialed on an actual localhost faucet/
+      # polymerase request.
+      LOCALHOST_RPC_URL: http://anvil:8545
+      MNEMONIC_LOCALHOST: ${MNEMONIC_LOCALHOST}
       RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
       RATE_LIMIT_MAX: ${RATE_LIMIT_MAX}
     depends_on:
@@ -72,24 +155,23 @@ services:
       - ./tsconfig.base.json:/app/tsconfig.base.json:ro
       - /app/node_modules
   
-  farcaster:
+  web:
     build:
       context: .
-      dockerfile: farcaster/Dockerfile
+      dockerfile: web/Dockerfile
     user: "${UID:-1000}:${GID:-1000}"
     ports:
-      - "${FARCASTER_PORT:-5173}:5173"
+      - "${WEB_PORT:-5173}:5173"
     environment:
       VITE_API_URL: ${VITE_API_URL}
-      VITE_AI_AGENT_URL: ${VITE_AI_AGENT_URL}
       VITE_SEPOLIA_RPC_URL: ${SEPOLIA_RPC_URL}
-      VITE_BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL}
     depends_on:
       db-setup:
         condition: service_completed_successfully
     volumes:
-      - ./farcaster:/app/farcaster
-      - ./shared:/app/shared
+      - ./web:/app/web
+      - ./shared/constants:/app/shared/constants
+      - ./shared/contracts:/app/shared/contracts
       - ./tsconfig.base.json:/app/tsconfig.base.json:ro
       - /app/node_modules
     command: npm run dev
@@ -98,3 +180,4 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  anvil_state:

@@ -11,7 +11,7 @@ describe('faucet routes (e2e)', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         recipient: 'invalid-address',
-        chainId: 84532
+        chainId: 11155111
       })
     })
 

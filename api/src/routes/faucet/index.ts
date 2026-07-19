@@ -1,6 +1,10 @@
 import { FastifyPluginAsync } from 'fastify'
 import * as dbSchema from '@shared/database'
-import { computeMinHash, countMinHashMatches, TRAIT_POOLS, type TraitPool } from '@shared/constants'
+import { computeMinHash, countMinHashMatches, MINHASH_BANDS, TRAIT_POOLS, type TraitPool } from '@shared/constants'
+
+// Must match JaccardERC1155Facet.polymerase's fixed floor (LibAppStorage.sol
+// comment: "keeps the ~40% similarity bar from the prior 5/13 config").
+const POLYMERASE_MIN_MATCHES = 8
 import { and, eq, gte, sql } from 'drizzle-orm'
 import { parseEther } from 'viem'
 import type { SupportedChainId } from '../../plugins/web3'
@@ -390,8 +394,8 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
     } as any) as `0x${string}`[]
 
     // Validate on-chain minHashes
-    if (!targetMinHashOnChain || !consumedMinHashOnChain || 
-        targetMinHashOnChain.length !== 5 || consumedMinHashOnChain.length !== 5) {
+    if (!targetMinHashOnChain || !consumedMinHashOnChain ||
+        targetMinHashOnChain.length !== MINHASH_BANDS || consumedMinHashOnChain.length !== MINHASH_BANDS) {
       reply.code(400)
       return { error: 'Invalid on-chain minHash data' }
     }
@@ -414,17 +418,17 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
 
     // Use on-chain minHashes for comparison (source of truth)
     const matchCount = countMinHashMatches(targetMinHashOnChain, consumedMinHashOnChain)
-    const eligible = matchCount >= 2
-    
+    const eligible = matchCount >= POLYMERASE_MIN_MATCHES
+
     // Build band-by-band comparison for UI (using on-chain values)
     const bands = []
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < MINHASH_BANDS; i++) {
       const aHash = targetMinHashOnChain[i]
       const bHash = consumedMinHashOnChain[i]
       const matches = aHash.toLowerCase() === bHash.toLowerCase()
       bands.push({ index: i, aHash, bHash, matches })
     }
-    const estimatedJaccard = matchCount / 5
+    const estimatedJaccard = matchCount / MINHASH_BANDS
 
     // Compute what polymerization would produce
     const targetMeta = targetNft.metadata as Record<string, any>
@@ -499,12 +503,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
   // POST /polymerase - Polymerize artifact B onto artifact A
   // ============================================================================
   fastify.post('/polymerase', { preHandler: [fastify.requireAuth] }, async function (request, reply) {
-    const { walletClients, publicClients, jaccardNft, web3Account } = fastify
-
-    if (!walletClients || !web3Account) {
-      reply.code(503)
-      return { error: 'Service not configured' }
-    }
+    const { walletClients, publicClients, jaccardNft } = fastify
 
     const body = request.body as PolymeraseBody
     const owner = body.owner?.toLowerCase()
@@ -530,6 +529,10 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
 
     const publicClient = publicClients[chainId]
     const walletClient = walletClients[chainId]
+    if (!walletClient) {
+      reply.code(503)
+      return { error: `Sponsored transactions not configured for chain: ${chainId}` }
+    }
 
     // Get both NFTs from DB
     const [targetNft] = await fastify.db
@@ -581,19 +584,19 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
       return { error: 'Owner does not have both artifacts' }
     }
 
-    // Verify minHash compatibility (contract requires 2/5 matches)
+    // Verify minHash compatibility (contract requires POLYMERASE_MIN_MATCHES matches)
     const targetMinHash = targetNft.minHash as string[]
     const consumedMinHash = consumedNft.minHash as string[]
-    
-    if (!targetMinHash || !consumedMinHash || targetMinHash.length !== 5 || consumedMinHash.length !== 5) {
+
+    if (!targetMinHash || !consumedMinHash || targetMinHash.length !== MINHASH_BANDS || consumedMinHash.length !== MINHASH_BANDS) {
       reply.code(400)
       return { error: 'Invalid minHash data for one or both artifacts' }
     }
 
     const matches = countMinHashMatches(targetMinHash, consumedMinHash)
-    if (matches < 2) {
+    if (matches < POLYMERASE_MIN_MATCHES) {
       reply.code(400)
-      return { error: `Insufficient similarity: ${matches}/5 matches (need 2/5)` }
+      return { error: `Insufficient similarity: ${matches}/${MINHASH_BANDS} matches (need ${POLYMERASE_MIN_MATCHES}/${MINHASH_BANDS})` }
     }
 
     // Compute polymerization result
@@ -602,7 +605,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
     const { newMetadata, upgradedTraits, essenceYield } = computePolymerizationResult(targetMeta, consumedMeta)
 
     // Compute new minHash
-    const newMinHash = computeMinHash(newMetadata) as [`0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`]
+    const newMinHash = computeMinHash(newMetadata) as `0x${string}`[]
 
     // Create pending polymerization record
     const [polyRecord] = await fastify.db
@@ -693,12 +696,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
   // POST / - Faucet mint new artifact
   // ============================================================================
   fastify.post('/', { preHandler: [fastify.requireAuth] }, async function (request, reply) {
-    const { walletClients, publicClients, jaccardNft, web3Account } = fastify
-
-    if (!walletClients || !web3Account) {
-      reply.code(503)
-      return { error: 'Faucet not configured' }
-    }
+    const { walletClients, publicClients, jaccardNft } = fastify
 
     const body = request.body as FaucetBody
     const recipient = body.recipient?.toLowerCase()
@@ -717,6 +715,10 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
 
     const publicClient = publicClients[chainId]
     const walletClient = walletClients[chainId]
+    if (!walletClient) {
+      reply.code(503)
+      return { error: `Faucet not configured for chain: ${chainId}` }
+    }
 
     // Rate limit by authenticated session address (not spoofable body)
     const sessionAddress = request.session!.address.toLowerCase()
@@ -773,7 +775,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
 
     try {
       const metadata = generateRandomMetadata(traitCount)
-      const minHash = computeMinHash(metadata) as [`0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`]
+      const minHash = computeMinHash(metadata) as `0x${string}`[]
 
       fastify.log.info({ recipient, chainId, metadata }, 'Minting NFT')
 
@@ -783,7 +785,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
         abi: artifact.abi,
         functionName: 'faucet',
         args: [recipient as `0x${string}`, 1n, minHash],
-        account: web3Account,
+        account: walletClient.account,
       })
       const tokenId = result as bigint
 

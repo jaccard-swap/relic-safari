@@ -25,6 +25,7 @@ Thumbs.db
 # Editor Directories
 .idea/
 .vscode/
+.agents/
 *.code-workspace
 *.swp
 *.swo
@@ -109,6 +110,14 @@ shared/database/node_modules/
 
 # Build output
 shared/database/dist/
+
+# ============================================
+# Shared / Contracts
+# ============================================
+# Regenerated on every local deploy (see hardhat/deploy) - pure noise for
+# version control. Real chains (e.g. shared/contracts/11155111/) stay
+# git-tracked and are updated deliberately.
+shared/contracts/31337/
 
 # Drizzle
 #shared/database/drizzle/

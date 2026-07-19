@@ -2,7 +2,7 @@ import { test, describe, before } from 'node:test'
 import * as assert from 'node:assert'
 
 const API_BASE = process.env.API_URL || 'http://localhost:3000'
-const TEST_CHAIN_ID = 84532
+const TEST_CHAIN_ID = 11155111
 const TEST_WALLET = '0x78B7EEf57904c1F8B4487bf68b0D39f997F00997'
 
 // Seeded test NFTs
@@ -100,10 +100,10 @@ describe('polymerase routes', async () => {
       assert.ok('minHash' in body, 'has minHash')
       assert.ok('matchCount' in body.minHash, 'has matchCount')
       assert.ok('bands' in body.minHash, 'has bands array')
-      assert.equal(body.minHash.bands.length, 5, '5 MinHash bands')
-      
+      assert.equal(body.minHash.bands.length, 20, '20 MinHash bands')
+
       // With 5/7 shared traits, expect high similarity
-      console.log(`MinHash: ${body.minHash.matchCount}/5 matches, eligible=${body.eligible}`)
+      console.log(`MinHash: ${body.minHash.matchCount}/20 matches, eligible=${body.eligible}`)
       
       if (body.eligible) {
         assert.ok('result' in body, 'eligible pair has result')

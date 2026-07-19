@@ -5,68 +5,83 @@ import { keccak256, toHex } from 'viem'
 // ============================================================================
 
 /**
+ * Number of independent MinHash bands. Must match the diamond contract's
+ * bytes8[MINHASH_BANDS] minHash layout (LibAppStorage.sol) exactly.
+ */
+export const MINHASH_BANDS = 20
+
+/**
  * Seeds for MinHash signature computation.
  * CRITICAL: These must be identical across all services (frontend, backend, contracts).
  * Changing these will break all existing MinHash comparisons.
+ * Length is derived from MINHASH_BANDS so the two can never silently drift
+ * apart again (a prior version hardcoded numHashes separately from seeds.length,
+ * which made every band past the seed array's end a duplicate, non-independent
+ * hash instead of adding real Jaccard-estimate accuracy).
  */
-export const MINHASH_SEEDS = [
-  '0x0000000000000000000000000000000000000000000000000000000000000001',
-  '0x0000000000000000000000000000000000000000000000000000000000000002',
-  '0x0000000000000000000000000000000000000000000000000000000000000003',
-  '0x0000000000000000000000000000000000000000000000000000000000000004',
-  '0x0000000000000000000000000000000000000000000000000000000000000005',
-] as const
+export const MINHASH_SEEDS: readonly `0x${string}`[] = Array.from(
+  { length: MINHASH_BANDS },
+  (_, i) => `0x${(i + 1).toString(16).padStart(64, '0')}` as `0x${string}`
+)
 
-export const MINHASH_BANDS = 5
+/**
+ * Truncate a bytes32 hex string down to its low-order 8 bytes (bytes8),
+ * matching the diamond contract's bytes8[20] minHash storage layout.
+ */
+function truncateToBytes8(hash: `0x${string}`): `0x${string}` {
+  return ('0x' + hash.slice(-16)) as `0x${string}`
+}
 
 /**
  * Compute MinHash signature from traits.
  * Used for similarity matching between NFTs and standing bids.
- * 
+ *
  * @param traits - Key-value pairs of traits (e.g., { rarity: 'legendary', material: 'gold' })
- * @returns Array of 5 bytes32 hashes representing the MinHash signature
+ * @returns Array of MINHASH_BANDS bytes8 hashes representing the MinHash signature
  */
 export function computeMinHash(traits: Record<string, string | number>): `0x${string}`[] {
   const features: string[] = []
-  
+
   for (const [key, value] of Object.entries(traits)) {
     // Skip non-trait fields
     if (key === 'name' || key === 'image' || key === 'description') continue
     features.push(`${key}:${value}`)
   }
-  
+
   if (features.length === 0) {
-    return Array(5).fill('0x' + 'f'.repeat(64)) as `0x${string}`[]
+    return Array(MINHASH_BANDS).fill('0x' + 'f'.repeat(16)) as `0x${string}`[]
   }
-  
+
   const hashedFeatures = features.map(f => keccak256(toHex(f)))
-  
+
   const signature: `0x${string}`[] = []
-  
-  for (let i = 0; i < 5; i++) {
+
+  for (let i = 0; i < MINHASH_BANDS; i++) {
+    // Full bytes32 width for the running min-comparison (more entropy for a
+    // fair minimum); only the winning value gets truncated below.
     let minHash = ('0x' + 'f'.repeat(64)) as `0x${string}`
-    
+
     for (const featureHash of hashedFeatures) {
       const h = keccak256(toHex(featureHash + MINHASH_SEEDS[i]))
       if (BigInt(h) < BigInt(minHash)) {
         minHash = h
       }
     }
-    
-    signature.push(minHash)
+
+    signature.push(truncateToBytes8(minHash))
   }
-  
+
   return signature
 }
 
 /**
  * Count matching bands between two MinHash signatures.
- * @returns Number of bands that match (0-5)
+ * @returns Number of bands that match (0-MINHASH_BANDS)
  */
 export function countMinHashMatches(a: string[], b: string[]): number {
-  if (a.length !== 5 || b.length !== 5) return 0
+  if (a.length !== MINHASH_BANDS || b.length !== MINHASH_BANDS) return 0
   let matches = 0
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < MINHASH_BANDS; i++) {
     if (a[i].toLowerCase() === b[i].toLowerCase()) matches++
   }
   return matches
@@ -225,7 +240,7 @@ export const BidTypes = {
   Bid: [
     { name: 'salt', type: 'bytes4' },
     { name: 'deadline', type: 'uint256' },
-    { name: 'targetMinHash', type: 'bytes32[5]' },
+    { name: 'targetMinHash', type: 'bytes8[20]' },
     { name: 'minMatches', type: 'uint8' },
     { name: 'permit', type: 'ERC20PermitData' },
   ],

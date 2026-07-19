@@ -1,19 +1,12 @@
-//import dotenv from "dotenv"
-//dotenv.config({ path: "../.env" });
-import 'dotenv/config'
+import { config as loadEnv } from "dotenv";
+// hardhat/ is a workspace inside the relic-safari monorepo - load the
+// shared root .env instead of expecting a separate one nested in here.
+loadEnv({ path: `${import.meta.dirname}/../.env` });
 import HardhatDeploy from 'hardhat-deploy';
 import { deployAuctionTask } from "./tasks/index.js";
 import type { HardhatUserConfig } from "hardhat/config";
 import hardhatVerify from "@nomicfoundation/hardhat-verify";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
-
-if (!process.env.BASE_SEPOLIA_RPC_URL) {
-  throw new Error("BASE_SEPOLIA_RPC_URL is not set");
-}
-
-if (!process.env.BASE_RPC_URL) {
-  throw new Error("BASE_RPC_URL is not set");
-}
 
 if (!process.env.SEPOLIA_RPC_URL) {
   throw new Error("SEPOLIA_RPC_URL is not set");
@@ -27,8 +20,12 @@ if (!process.env.ETHERSCAN_API_KEY) {
   throw new Error("ETHERSCAN_API_KEY is not set");
 }
 
-if (!process.env.BASESCAN_API_KEY) {
-  throw new Error("BASESCAN_API_KEY is not set");
+if (!process.env.LOCALHOST_RPC_URL) {
+  throw new Error("LOCALHOST_RPC_URL is not set");
+}
+
+if (!process.env.MNEMONIC_LOCALHOST) {
+  throw new Error("MNEMONIC_LOCALHOST is not set");
 }
 
 const config: HardhatUserConfig = {
@@ -51,32 +48,12 @@ const config: HardhatUserConfig = {
     ],
   },
   chainDescriptors: {
-    84532: {
-      name: "Base Sepolia",
-      blockExplorers: {
-        etherscan: {
-          name: "Base Sepolia Explorer",
-          url: "https://sepolia.basescan.org",
-          apiUrl: "https://api-sepolia.basescan.org/api",
-        },
-      },
-    },
-    8453: {
-      name: "Base",
-      blockExplorers: {
-        etherscan: {
-          name: "Etherscan",
-          url: "https://basescan.io",
-          apiUrl: "https://api.etherscan.io/v2/api",
-        },
-      },
-    },
     11155111: {
       name: "Sepolia",
       blockExplorers: {
         etherscan: {
           name: "Sepolia Explorer",
-          url: "https://sepolia.basescan.org",
+          url: "https://sepolia.etherscan.io",
           apiUrl: "https://api.etherscan.io/v2/api",
         },
       },
@@ -99,20 +76,17 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MNEMONIC,
       },
     },
-    base: {
+    // Anvil (chainId 31337). LOCALHOST_RPC_URL is http://127.0.0.1:8545 for
+    // a host-run anvil, or http://anvil:8545 when the deploy container talks
+    // to the anvil compose service by name. MNEMONIC_LOCALHOST is the
+    // well-known Anvil/Hardhat test mnemonic - never the real deployer
+    // mnemonic - since anvil state (and its funded accounts) is throwaway.
+    localhost: {
       type: "http",
       chainType: "l1",
-      url: process.env.BASE_RPC_URL,
+      url: process.env.LOCALHOST_RPC_URL,
       accounts: {
-        mnemonic: process.env.MNEMONIC,
-      },
-    },
-    baseSepolia: {
-      type: "http",
-      chainType: "l1",
-      url: process.env.BASE_SEPOLIA_RPC_URL,
-      accounts: {
-        mnemonic: process.env.MNEMONIC,
+        mnemonic: process.env.MNEMONIC_LOCALHOST,
       },
     },
   },

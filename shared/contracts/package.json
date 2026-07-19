@@ -1,0 +1,10 @@
+{
+  "name": "@shared/contracts",
+  "version": "1.0.0",
+  "description": "Deployed contract ABIs and addresses, keyed by chainId - written directly by hardhat/deploy, read directly by api and web (no build step).",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./*"
+  }
+}

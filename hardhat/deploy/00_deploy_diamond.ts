@@ -13,8 +13,7 @@ async function saveDeployment(
 
   const dirs = [
     join('deployments', chainStr),
-    join('..', 'relic-safari', 'src', 'assets', chainStr),
-    join('..', 'api', 'src', 'artifacts', chainStr),
+    join('..', 'shared', 'contracts', chainStr),
   ];
 
   for (const dir of dirs) {

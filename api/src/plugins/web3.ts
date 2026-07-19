@@ -1,13 +1,13 @@
 import fp from 'fastify-plugin'
 import type { FastifyInstance } from 'fastify'
 import { createPublicClient, createWalletClient, http } from 'viem'
-import { mnemonicToAccount, HDAccount } from 'viem/accounts'
-import { baseSepolia, sepolia } from 'viem/chains'
+import { mnemonicToAccount } from 'viem/accounts'
+import { sepolia, hardhat } from 'viem/chains'
 
-import BaseSepoliaArtifact from '../artifacts/84532/JaccardERC1155.json'
-import SepoliaArtifact from '../artifacts/11155111/JaccardERC1155.json'
+import SepoliaArtifact from '@shared/contracts/11155111/JaccardERC1155.json'
+import LocalhostArtifact from '@shared/contracts/31337/JaccardERC1155.json'
 
-export type SupportedChainId = 84532 | 11155111
+export type SupportedChainId = 11155111 | 31337
 
 export type ContractArtifact = {
   address: `0x${string}`
@@ -15,63 +15,75 @@ export type ContractArtifact = {
 }
 
 export default fp(async (fastify: FastifyInstance) => {
+  // Real chains sign with MNEMONIC (the funded deployer account); the local
+  // anvil chain has its own throwaway funded account under MNEMONIC_LOCALHOST
+  // (see hardhat.config.ts) - reusing MNEMONIC there would sign with an
+  // address that has no balance on a fresh anvil chain.
   const mnemonic = process.env.MNEMONIC
   const account = mnemonic ? mnemonicToAccount(mnemonic, { accountIndex: 0 }) : null
 
+  const localMnemonic = process.env.MNEMONIC_LOCALHOST
+  const localAccount = localMnemonic ? mnemonicToAccount(localMnemonic, { accountIndex: 0 }) : null
+
   const publicClients = {
-    84532: createPublicClient({
-      chain: baseSepolia,
-      transport: http(process.env.BASE_SEPOLIA_RPC_URL)
-    }),
     11155111: createPublicClient({
       chain: sepolia,
       transport: http(process.env.SEPOLIA_RPC_URL)
+    }),
+    31337: createPublicClient({
+      chain: hardhat,
+      transport: http(process.env.LOCALHOST_RPC_URL)
     })
   } as const
 
-  const walletClients = account ? {
-    84532: createWalletClient({
-      account,
-      chain: baseSepolia,
-      transport: http(process.env.BASE_SEPOLIA_RPC_URL)
-    }),
-    11155111: createWalletClient({
+  // Each chain's wallet client is independently gated on its own account
+  // being configured, rather than an all-or-nothing single account - a dev
+  // box can easily have MNEMONIC_LOCALHOST (anvil) without a real MNEMONIC,
+  // or vice versa in a deployed environment with no local chain at all.
+  const walletClients: Partial<Record<SupportedChainId, ReturnType<typeof createWalletClient>>> = {}
+  if (account) {
+    walletClients[11155111] = createWalletClient({
       account,
       chain: sepolia,
       transport: http(process.env.SEPOLIA_RPC_URL)
     })
-  } as const : null
+  }
+  if (localAccount) {
+    walletClients[31337] = createWalletClient({
+      account: localAccount,
+      chain: hardhat,
+      transport: http(process.env.LOCALHOST_RPC_URL)
+    })
+  }
 
   const jaccardNft = {
-    84532: { address: BaseSepoliaArtifact.address as `0x${string}`, abi: BaseSepoliaArtifact.abi },
-    11155111: { address: SepoliaArtifact.address as `0x${string}`, abi: SepoliaArtifact.abi }
+    11155111: { address: SepoliaArtifact.address as `0x${string}`, abi: SepoliaArtifact.abi },
+    31337: { address: LocalhostArtifact.address as `0x${string}`, abi: LocalhostArtifact.abi }
   } as const
 
-  fastify.decorate('web3Account', account)
   fastify.decorate('publicClients', publicClients as any)
   fastify.decorate('walletClients', walletClients as any)
   fastify.decorate('jaccardNft', jaccardNft)
 
-  if (!walletClients) {
-    fastify.log.warn('MNEMONIC not configured - sponsored transactions disabled')
+  if (!account) {
+    fastify.log.warn('MNEMONIC not configured - sponsored transactions on sepolia disabled')
+  }
+  if (!localAccount) {
+    fastify.log.warn('MNEMONIC_LOCALHOST not configured - sponsored transactions on localhost disabled')
   }
 })
 
 // Type declarations - using any for viem clients since the types are complex
 declare module 'fastify' {
   interface FastifyInstance {
-    web3Account: HDAccount | null
     publicClients: {
-      84532: ReturnType<typeof createPublicClient>
       11155111: ReturnType<typeof createPublicClient>
+      31337: ReturnType<typeof createPublicClient>
     }
-    walletClients: {
-      84532: ReturnType<typeof createWalletClient>
-      11155111: ReturnType<typeof createWalletClient>
-    } | null
+    walletClients: Partial<Record<SupportedChainId, ReturnType<typeof createWalletClient>>>
     jaccardNft: {
-      84532: ContractArtifact
       11155111: ContractArtifact
+      31337: ContractArtifact
     }
   }
 }

@@ -46,7 +46,6 @@ services:
       DOMAIN_NAME: ${DOMAIN_NAME}
       MNEMONIC: ${MNEMONIC}
       SEPOLIA_RPC_URL: ${SEPOLIA_RPC_URL}
-      BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL}
     depends_on:
       postgres:
         condition: service_healthy
