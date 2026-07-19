@@ -2,8 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { network } from "hardhat";
-import { computeMinHash } from "../scripts/utils/minhash";
-import { sampleNftCollection } from "../scripts/utils/sample-nft-collection";
+import { computeMinHash } from "../../scripts/utils/minhash";
+import { sampleNftCollection } from "../../scripts/utils/sample-nft-collection";
 
 /**
  * Calculate Jaccard similarity between two MinHash signatures

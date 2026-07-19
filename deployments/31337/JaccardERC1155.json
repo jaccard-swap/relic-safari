@@ -238,9 +238,9 @@
         },
         {
           "indexed": false,
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "newMinHash",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         }
       ],
       "name": "Polymerized",
@@ -451,9 +451,9 @@
           "type": "uint256"
         },
         {
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "minHash",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         }
       ],
       "name": "faucet",
@@ -478,9 +478,9 @@
       "name": "getMinHashByTokenId",
       "outputs": [
         {
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         }
       ],
       "stateMutability": "view",
@@ -628,9 +628,9 @@
           "type": "uint256"
         },
         {
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "newMinHash",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         },
         {
           "internalType": "uint256",

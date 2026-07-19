@@ -1,6 +1,6 @@
 import { network } from "hardhat";
-import { computeMinHash } from "../utils/minhash";
-import { sampleNftCollection } from "../utils/sample-nft-collection";
+import { computeMinHash } from "../../../scripts/utils/minhash";
+import { sampleNftCollection } from "../../../scripts/utils/sample-nft-collection";
 
 export async function nftMinter() {
     const { viem } = await network.connect();

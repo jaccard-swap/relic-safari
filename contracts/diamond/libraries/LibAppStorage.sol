@@ -22,10 +22,32 @@ struct JaccardERC1155Permit {
     bytes4 salt;
 }
 
+// MinHash fingerprint: 20 independent hash functions, 8 bytes (64-bit) each.
+// bytes8[20] tight-packs to exactly 5 storage slots (4 elements/slot, zero
+// padding) -- the previous bytes32[5] layout used 5 slots for only 5 hash
+// functions. 64 bits/hash is already far past the birthday-bound needed to
+// avoid spurious collisions at any realistic collection size, so widening to
+// bytes16/bytes32 buys no extra accuracy, only wasted slots; accuracy instead
+// comes from the *count* of hash functions (lower-variance Jaccard estimate).
+//
+// A further gas-golfed layout (not done here -- optimizing for readability
+// over squeezing out the last bit of gas) would concatenate 4 bytes8 hashes
+// by hand into each bytes32 word (mapping(uint256 => bytes32[5])) and extract
+// lanes via (word >> (i*64)) & type(uint64).max when comparing. Storage cost
+// is identical (5 slots either way, since bytes8[20] already packs for free)
+// but hand-packing avoids two costs the compiler doesn't optimize away for
+// arrays of sub-word elements:
+//   1. copying bytes8[20] storage->memory unpacks every element into its own
+//      32-byte memory word (20 MSTOREs + a shift/mask per element) instead of
+//      a straight 5-word copy.
+//   2. ABI encoding of bytes8[20] in calldata (faucet(), Bid.targetMinHash)
+//      pads every element to a full 32-byte word -- 640 bytes on the wire vs.
+//      160 bytes if pre-packed into bytes32[5]. Fixed-size arrays of value
+//      types are never tightly packed in calldata/memory, only in storage.
 struct Bid {
     bytes4 salt;
     uint256 deadline;
-    bytes32[5] targetMinHash;
+    bytes8[20] targetMinHash;
     uint8 minMatches;
     ERC20PermitData permit;
 }
@@ -51,7 +73,8 @@ struct AppStorage {
     string _uri;
 
     // ---- JaccardERC1155 State ----
-    mapping(uint256 => bytes32[5]) minHashes;
+    // See gas-optimization note on Bid.targetMinHash above.
+    mapping(uint256 => bytes8[20]) minHashes;
     mapping(bytes32 => bool) usedJaccardERC1155Permits;
     uint232 faucetIdCounter;
 

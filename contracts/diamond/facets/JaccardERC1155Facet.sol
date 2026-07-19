@@ -49,7 +49,7 @@ contract JaccardERC1155Facet is ERC1155 {
         uint256 indexed targetTokenId,
         uint256 indexed consumedTokenId,
         uint256 essenceYield,
-        bytes32[5] newMinHash
+        bytes8[20] newMinHash
     );
 
     // ============ Constructor ============
@@ -74,7 +74,7 @@ contract JaccardERC1155Facet is ERC1155 {
         s._uri = newuri;
     }
 
-    function getMinHashByTokenId(uint256 tokenId) external view returns (bytes32[5] memory) {
+    function getMinHashByTokenId(uint256 tokenId) external view returns (bytes8[20] memory) {
         AppStorage storage s = LibAppStorage.diamondStorage();
         return s.minHashes[tokenId];
     }
@@ -89,7 +89,7 @@ contract JaccardERC1155Facet is ERC1155 {
         _mintEssenceERC20(to, amount);
     }
 
-    function faucet(address to, uint256 amount, bytes32[5] calldata minHash) external returns (uint256) {
+    function faucet(address to, uint256 amount, bytes8[20] calldata minHash) external returns (uint256) {
         LibDiamond.enforceIsContractOwner();
         AppStorage storage s = LibAppStorage.diamondStorage();
         uint256 id = nextFaucetId();
@@ -133,7 +133,7 @@ contract JaccardERC1155Facet is ERC1155 {
         uint256 consumedTokenId,
         address to,
         uint256 amount,
-        bytes32[5] calldata newMinHash,
+        bytes8[20] calldata newMinHash,
         uint256 essenceYield
     ) external returns (uint256) {
         LibDiamond.enforceIsContractOwner();
@@ -145,14 +145,17 @@ contract JaccardERC1155Facet is ERC1155 {
         );
         require(targetTokenId != consumedTokenId, "Polymerase: Cannot polymerase same token");
 
-        bytes32[5] memory minHashTarget = s.minHashes[targetTokenId];
-        bytes32[5] memory minHashConsumed = s.minHashes[consumedTokenId];
+        bytes8[20] memory minHashTarget = s.minHashes[targetTokenId];
+        bytes8[20] memory minHashConsumed = s.minHashes[consumedTokenId];
 
         uint256 matches = 0;
-        for (uint256 i = 0; i < 5; i++) {
+        for (uint256 i = 0; i < 20; i++) {
             if (minHashTarget[i] == minHashConsumed[i]) matches++;
         }
-        require(matches >= 2, "Polymerase: Need 2/5 minhash matches");
+        // Fixed floor for polymerase (distinct from the tunable per-bid
+        // threshold in JaccardSwapFacet.minMatches); 8/20 keeps the ~40%
+        // similarity bar from the prior 5/13 config.
+        require(matches >= 8, "Polymerase: Need 8/20 minhash matches");
 
         _burn(to, consumedTokenId, amount);
         s.minHashes[targetTokenId] = newMinHash;

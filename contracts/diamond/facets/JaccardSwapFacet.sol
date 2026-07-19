@@ -32,7 +32,7 @@ contract JaccardSwapFacet {
     );
     
     bytes32 public constant BID_TYPEHASH = keccak256(
-        "Bid(bytes4 salt,uint256 deadline,bytes32[5] targetMinHash,uint8 minMatches,ERC20PermitData permit)ERC20PermitData(address owner,address spender,uint256 value,uint256 deadline)"
+        "Bid(bytes4 salt,uint256 deadline,bytes8[20] targetMinHash,uint8 minMatches,ERC20PermitData permit)ERC20PermitData(address owner,address spender,uint256 value,uint256 deadline)"
     );
 
     bytes32 public constant JACCARD_PERMIT_TYPEHASH = keccak256(
@@ -73,13 +73,10 @@ contract JaccardSwapFacet {
 
     function hashBid(Bid calldata bid) public view returns (bytes32) {
         bytes32 permitHash = hashERC20Permit(bid.permit);
-        bytes32 minHashHash = keccak256(abi.encodePacked(
-            bid.targetMinHash[0],
-            bid.targetMinHash[1],
-            bid.targetMinHash[2],
-            bid.targetMinHash[3],
-            bid.targetMinHash[4]
-        ));
+        // Listing all 20 elements individually (as the array grew from 5 -> 13 -> 20)
+        // overflows the EVM's 16-slot stack ("stack too deep"); encodePacked
+        // takes the calldata array directly instead.
+        bytes32 minHashHash = keccak256(abi.encodePacked(bid.targetMinHash));
         bytes32 structHash = keccak256(
             abi.encode(
                 BID_TYPEHASH,
@@ -113,10 +110,10 @@ contract JaccardSwapFacet {
     // ============ Similarity Matching ============
 
     function countMatches(
-        bytes32[5] calldata targetMinHash,
-        bytes32[5] memory nftMinHash
+        bytes8[20] calldata targetMinHash,
+        bytes8[20] memory nftMinHash
     ) public pure returns (uint8 matches) {
-        for (uint8 i = 0; i < 5; i++) {
+        for (uint8 i = 0; i < 20; i++) {
             if (targetMinHash[i] == nftMinHash[i]) {
                 matches++;
             }
@@ -155,7 +152,7 @@ contract JaccardSwapFacet {
         }
 
         // Get the NFT's MinHash for similarity matching
-        bytes32[5] memory nftMinHash = s.minHashes[auction.nftPermit.tokenId];
+        bytes8[20] memory nftMinHash = s.minHashes[auction.nftPermit.tokenId];
 
         // Find winning bid
         for (uint256 i = 0; i < auction.bids.length; i++) {
@@ -247,14 +244,16 @@ contract JaccardSwapFacet {
         Bid calldata bid,
         bytes calldata bidSig,
         uint256 reservePrice,
-        bytes32[5] memory nftMinHash
+        bytes8[20] memory nftMinHash
     ) internal view returns (bool valid, address bidder, uint8 matches) {
         AppStorage storage s = LibAppStorage.diamondStorage();
-        
+
         if (bid.permit.value < reservePrice) return (false, address(0), 0);
         if (bid.deadline < block.timestamp) return (false, address(0), 0);
         if (bid.permit.deadline < block.timestamp) return (false, address(0), 0);
-        if (bid.minMatches < 2 || bid.minMatches > 5) return (false, address(0), 0);
+        // Bidder-tunable similarity gate, out of 20 hash functions -- kept
+        // wide (2-20) so relic-safari swaps can dial from loose to exact.
+        if (bid.minMatches < 2 || bid.minMatches > 20) return (false, address(0), 0);
         
         matches = countMatches(bid.targetMinHash, nftMinHash);
         if (matches < bid.minMatches) return (false, address(0), 0);

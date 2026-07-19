@@ -21,7 +21,7 @@ const BidTypes = {
   Bid: [
     { name: 'salt', type: 'bytes4' },
     { name: 'deadline', type: 'uint256' },
-    { name: 'targetMinHash', type: 'bytes32[5]' },
+    { name: 'targetMinHash', type: 'bytes8[20]' },
     { name: 'minMatches', type: 'uint8' },
     { name: 'permit', type: 'ERC20PermitData' },
   ],
@@ -66,6 +66,24 @@ function splitSignature(sig: `0x${string}`) {
   return { v, r, s };
 }
 
+// Deterministic 20-element bytes8 MinHash fingerprint
+function baseMinHash(): `0x${string}`[] {
+  return Array.from(
+    { length: 20 },
+    (_, i) => `0x${(i + 1).toString(16).padStart(16, '0')}` as `0x${string}`
+  );
+}
+
+// Copy of `base` with the first `diffCount` elements swapped for distinct
+// values, leaving the rest matching -- for partial-similarity test cases
+function diverge(base: readonly `0x${string}`[], diffCount: number): `0x${string}`[] {
+  return base.map((h, i) =>
+    i < diffCount
+      ? (`0x${(0xdead0000 + i).toString(16).padStart(16, '0')}` as `0x${string}`)
+      : h
+  );
+}
+
 describe("JaccardSwapDiamond", () => {
   const hundred = parseEther('100');
   const oneHour = 3600;
@@ -87,13 +105,7 @@ describe("JaccardSwapDiamond", () => {
       const { env, JaccardDiamond, namedAccounts } = await networkHelpers.loadFixture(deployAll);
       const { deployer } = namedAccounts;
 
-      const dummyMinHash: readonly `0x${string}`[] = [
-        '0x0000000000000000000000000000000000000000000000000000000000000001',
-        '0x0000000000000000000000000000000000000000000000000000000000000002',
-        '0x0000000000000000000000000000000000000000000000000000000000000003',
-        '0x0000000000000000000000000000000000000000000000000000000000000004',
-        '0x0000000000000000000000000000000000000000000000000000000000000005',
-      ] as const;
+      const dummyMinHash = baseMinHash();
 
       const nftTokenId = await env.read(JaccardDiamond, {
         functionName: 'faucet',
@@ -120,13 +132,7 @@ describe("JaccardSwapDiamond", () => {
       const { env, JaccardDiamond, namedAccounts } = await networkHelpers.loadFixture(deployAll);
       const { deployer } = namedAccounts;
 
-      const expectedMinHash: readonly `0x${string}`[] = [
-        '0x1111111111111111111111111111111111111111111111111111111111111111',
-        '0x2222222222222222222222222222222222222222222222222222222222222222',
-        '0x3333333333333333333333333333333333333333333333333333333333333333',
-        '0x4444444444444444444444444444444444444444444444444444444444444444',
-        '0x5555555555555555555555555555555555555555555555555555555555555555',
-      ] as const;
+      const expectedMinHash = baseMinHash();
 
       const nftTokenId = await env.read(JaccardDiamond, {
         functionName: 'faucet',
@@ -145,7 +151,7 @@ describe("JaccardSwapDiamond", () => {
         args: [nftTokenId],
       }) as readonly `0x${string}`[];
 
-      for (let i = 0; i < 5; i++) {
+      for (let i = 0; i < 20; i++) {
         assert.equal(storedMinHash[i], expectedMinHash[i]);
       }
     });
@@ -222,13 +228,7 @@ describe("JaccardSwapDiamond", () => {
       const deadline = BigInt(Math.floor(Date.now() / 1000) + oneHour);
 
       // Mint NFT to auctioneer
-      const nftMinHash: readonly `0x${string}`[] = [
-        '0x1111111111111111111111111111111111111111111111111111111111111111',
-        '0x2222222222222222222222222222222222222222222222222222222222222222',
-        '0x3333333333333333333333333333333333333333333333333333333333333333',
-        '0x4444444444444444444444444444444444444444444444444444444444444444',
-        '0x5555555555555555555555555555555555555555555555555555555555555555',
-      ] as const;
+      const nftMinHash = baseMinHash();
 
       const nftTokenId = await env.read(JaccardDiamond, {
         functionName: 'faucet',
@@ -321,12 +321,12 @@ describe("JaccardSwapDiamond", () => {
 
       const { v, r, s } = splitSignature(erc20PermitSig);
 
-      // 4. Bidder signs Bid (exact match 5/5)
+      // 4. Bidder signs Bid (exact match 20/20)
       const bidData = {
         salt: randomSalt(),
         deadline,
-        targetMinHash: [...nftMinHash] as [`0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`],
-        minMatches: 5,
+        targetMinHash: [...nftMinHash],
+        minMatches: 20,
         permit: {
           owner: bidder,
           spender: diamondAddr,
@@ -375,7 +375,7 @@ describe("JaccardSwapDiamond", () => {
       assert.equal(bidderNftAfter - bidderNftBefore, 1n, 'Bidder should have received NFT');
     });
 
-    it('accepts bid with partial similarity (3/5 bands match)', async () => {
+    it('accepts bid with partial similarity (12/20 bands match)', async () => {
       const { env, JaccardDiamond, MockERC20, namedAccounts, unnamedAccounts } = 
         await networkHelpers.loadFixture(deployAll);
       const { deployer } = namedAccounts;
@@ -406,22 +406,10 @@ describe("JaccardSwapDiamond", () => {
       const deadline = BigInt(Math.floor(Date.now() / 1000) + oneHour);
 
       // NFT with specific MinHash
-      const nftMinHash: readonly `0x${string}`[] = [
-        '0x1111111111111111111111111111111111111111111111111111111111111111',
-        '0x2222222222222222222222222222222222222222222222222222222222222222',
-        '0x3333333333333333333333333333333333333333333333333333333333333333',
-        '0x4444444444444444444444444444444444444444444444444444444444444444',
-        '0x5555555555555555555555555555555555555555555555555555555555555555',
-      ] as const;
+      const nftMinHash = baseMinHash();
 
-      // Bidder wants 3/5 match (different bands 0 and 1)
-      const bidderTargetMinHash: [`0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`] = [
-        '0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', // different
-        '0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB', // different
-        '0x3333333333333333333333333333333333333333333333333333333333333333', // same
-        '0x4444444444444444444444444444444444444444444444444444444444444444', // same
-        '0x5555555555555555555555555555555555555555555555555555555555555555', // same
-      ];
+      // Bidder wants 12/20 match (bands 0-7 differ, 8-19 match)
+      const bidderTargetMinHash = diverge(nftMinHash, 8);
 
       const nftTokenId = await env.read(JaccardDiamond, {
         functionName: 'faucet',
@@ -515,7 +503,7 @@ describe("JaccardSwapDiamond", () => {
         salt: randomSalt(),
         deadline,
         targetMinHash: bidderTargetMinHash,
-        minMatches: 3, // Only require 3/5 similarity
+        minMatches: 12, // Only require 12/20 similarity
         permit: {
           owner: bidder,
           spender: diamondAddr,
@@ -557,7 +545,7 @@ describe("JaccardSwapDiamond", () => {
         args: [bidder, nftTokenId],
       }) as bigint;
 
-      assert.equal(bidderNftAfter - bidderNftBefore, 1n, 'Bidder should have received NFT with 3/5 similarity');
+      assert.equal(bidderNftAfter - bidderNftBefore, 1n, 'Bidder should have received NFT with 12/20 similarity');
     });
   });
 });

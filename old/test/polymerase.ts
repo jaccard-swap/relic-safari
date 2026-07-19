@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { network } from "hardhat";
-import { computeMinHash } from "../scripts/utils/minhash";
+import { computeMinHash } from "../../scripts/utils/minhash";
 
 // All 7 trait keys
 const TRAIT_KEYS = ['rarity', 'age', 'quality', 'material', 'form', 'site', 'inscription'] as const;

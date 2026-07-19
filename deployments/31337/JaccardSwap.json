@@ -213,9 +213,9 @@
                   "type": "uint256"
                 },
                 {
-                  "internalType": "bytes32[5]",
+                  "internalType": "bytes8[20]",
                   "name": "targetMinHash",
-                  "type": "bytes32[5]"
+                  "type": "bytes8[20]"
                 },
                 {
                   "internalType": "uint8",
@@ -293,14 +293,14 @@
     {
       "inputs": [
         {
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "targetMinHash",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         },
         {
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "nftMinHash",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         }
       ],
       "name": "countMatches",
@@ -398,9 +398,9 @@
                   "type": "uint256"
                 },
                 {
-                  "internalType": "bytes32[5]",
+                  "internalType": "bytes8[20]",
                   "name": "targetMinHash",
-                  "type": "bytes32[5]"
+                  "type": "bytes8[20]"
                 },
                 {
                   "internalType": "uint8",
@@ -491,9 +491,9 @@
               "type": "uint256"
             },
             {
-              "internalType": "bytes32[5]",
+              "internalType": "bytes8[20]",
               "name": "targetMinHash",
-              "type": "bytes32[5]"
+              "type": "bytes8[20]"
             },
             {
               "internalType": "uint8",
@@ -719,9 +719,9 @@
               "type": "uint256"
             },
             {
-              "internalType": "bytes32[5]",
+              "internalType": "bytes8[20]",
               "name": "targetMinHash",
-              "type": "bytes32[5]"
+              "type": "bytes8[20]"
             },
             {
               "internalType": "uint8",
