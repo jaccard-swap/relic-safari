@@ -2,16 +2,14 @@ import { http, createConfig } from "wagmi";
 import { sepolia, hardhat } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 
-// Dev additionally wires up the local hardhat chain so the app is usable
-// against `npx hardhat node` without a testnet - but Sepolia stays
-// available in both, since that's the only chain the API's server-signed
-// endpoints (faucet mint, polymerase) currently talk to.
+// Dev runs solely against the local hardhat chain (`npx hardhat node` /
+// the anvil docker service) - no need to also offer Sepolia there. Prod
+// stays Sepolia-only.
 export const wagmiConfig = import.meta.env.DEV
   ? createConfig({
-      chains: [sepolia, hardhat],
+      chains: [hardhat],
       connectors: [injected()],
       transports: {
-        [sepolia.id]: http(),
         [hardhat.id]: http(),
       },
     })
