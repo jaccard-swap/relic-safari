@@ -56,10 +56,10 @@ export function CreateAuctionModal({ nft, onClose }: CreateAuctionModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-sm rounded-lg border border-amber-900/50 bg-stone-800 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-amber-900/30 px-4 py-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between border-b border-amber-900/30 px-5 py-4">
+          <div className="flex items-center gap-3">
             <span className="text-xl">{form ? FORM_EMOJI[form] || "⚱️" : "⚱️"}</span>
             <h3 className="font-semibold text-amber-200">List for Auction</h3>
           </div>
@@ -68,50 +68,50 @@ export function CreateAuctionModal({ nft, onClose }: CreateAuctionModalProps) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3 p-4">
+        <form onSubmit={handleSubmit} className="space-y-4 p-5">
           <div>
-            <label className="mb-1 block text-[10px] text-stone-400">Title</label>
+            <label className="mb-1.5 block text-[13px] text-stone-400">Title</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={80}
-              className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1.5 text-sm text-stone-200 focus:border-amber-600 focus:outline-none"
+              className="w-full rounded border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-200 focus:border-amber-600 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-[10px] text-stone-400">Description (optional)</label>
+            <label className="mb-1.5 block text-[13px] text-stone-400">Description (optional)</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={280}
               rows={2}
-              className="w-full resize-none rounded border border-stone-700 bg-stone-900 px-2 py-1.5 text-sm text-stone-200 focus:border-amber-600 focus:outline-none"
+              className="w-full resize-none rounded border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-200 focus:border-amber-600 focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="mb-1 block text-[10px] text-stone-400">Starting bid (SCRIP)</label>
+            <label className="mb-1.5 block text-[13px] text-stone-400">Starting bid (SCRIP)</label>
             <input
               type="text"
               inputMode="decimal"
               value={startingBid}
               onChange={(e) => setStartingBid(e.target.value)}
-              className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1.5 text-sm text-stone-200 focus:border-amber-600 focus:outline-none"
+              className="w-full rounded border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-200 focus:border-amber-600 focus:outline-none"
             />
-            {!bidValid && startingBid.length > 0 && <p className="mt-1 text-[9px] text-red-400">Enter a positive amount</p>}
+            {!bidValid && startingBid.length > 0 && <p className="mt-1.5 text-xs text-red-400">Enter a positive amount</p>}
           </div>
 
           <div>
-            <label className="mb-1 block text-[10px] text-stone-400">Duration</label>
-            <div className="grid grid-cols-3 gap-1.5">
+            <label className="mb-1.5 block text-[13px] text-stone-400">Duration</label>
+            <div className="grid grid-cols-3 gap-2">
               {DURATION_OPTIONS.map((opt) => (
                 <button
                   key={opt.hours}
                   type="button"
                   onClick={() => setDurationHours(opt.hours)}
-                  className={`rounded px-1.5 py-1 text-[9px] font-medium transition-colors ${
+                  className={`rounded px-2 py-1.5 text-xs font-medium transition-colors ${
                     durationHours === opt.hours ? "bg-amber-700 text-white" : "bg-stone-700/50 text-stone-400 hover:bg-stone-700"
                   }`}
                 >
@@ -121,12 +121,12 @@ export function CreateAuctionModal({ nft, onClose }: CreateAuctionModalProps) {
             </div>
           </div>
 
-          {error && <p className="text-[10px] text-red-400">{error instanceof Error ? error.message : "Failed to create auction"}</p>}
+          {error && <p className="text-[13px] text-red-400">{error instanceof Error ? error.message : "Failed to create auction"}</p>}
 
           <button
             type="submit"
             disabled={isPending || !bidValid}
-            className="w-full rounded bg-gradient-to-r from-amber-600 to-yellow-700 py-2 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
+            className="w-full rounded bg-gradient-to-r from-amber-600 to-yellow-700 py-3 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
           >
             {isPending ? "Signing…" : "🏛️ List Artifact"}
           </button>

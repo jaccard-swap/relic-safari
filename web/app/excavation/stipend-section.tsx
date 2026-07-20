@@ -72,7 +72,7 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
         summary={
           <>
             <span className="font-mono text-sm text-amber-200">{scripBalance?.formatted?.toFixed(2) ?? "0.00"}</span>
-            <span className="text-[9px] text-stone-500">SCRIP</span>
+            <span className="text-xs text-stone-500">SCRIP</span>
           </>
         }
         action={
@@ -80,14 +80,14 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
             type="button"
             onClick={handleClaim}
             disabled={!isConnected || claimPending || claimConfirming}
-            className="relative w-14 rounded bg-gradient-to-r from-amber-600 to-yellow-700 py-1.5 text-center text-xs font-medium text-white transition-all hover:from-amber-500 hover:to-yellow-600 disabled:opacity-50"
+            className="relative w-14 rounded bg-gradient-to-r from-amber-600 to-yellow-700 py-2 text-center text-xs font-medium text-white transition-all hover:from-amber-500 hover:to-yellow-600 disabled:opacity-50"
           >
             {claimPending ? "✍️" : claimConfirming ? "⏳" : claimError ? "✗" : "Claim"}
-            {claimConfirmed && <span className="absolute -right-1 -top-1 text-[10px] text-green-400">✓</span>}
+            {claimConfirmed && <span className="absolute -right-1 -top-1.5 text-[13px] text-green-400">✓</span>}
           </button>
         }
       >
-        <div className="mt-2 space-y-0.5 rounded border border-stone-700/50 bg-stone-800/50 px-1.5 py-1.5 text-[9px] text-stone-500">
+        <div className="mt-3 space-y-1 rounded border border-stone-700/50 bg-stone-800/50 px-2 py-2 text-xs text-stone-500">
           <div>
             <span className="text-amber-400">1st claim:</span> ~5.24 SCRIP (φ²)
           </div>
@@ -96,17 +96,17 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
           </div>
           <div className="text-stone-600">Resets every 12 hours</div>
         </div>
-        <div className="mb-1 mt-2 text-[9px] text-stone-500">Recent Claims</div>
-        <div className="space-y-0.5">
+        <div className="mb-1.5 mt-3 text-xs text-stone-500">Recent Claims</div>
+        <div className="space-y-1">
           {history.length === 0 ? (
-            <div className="py-1 text-[9px] text-stone-600">No claims yet</div>
+            <div className="py-1.5 text-xs text-stone-600">No claims yet</div>
           ) : (
             history.map((h) => {
               const txUrl = getExplorerUrlForChain(h.chainId, h.txHash, "transaction");
               const displayAmount = Math.floor(Number(BigInt(h.amount) / BigInt(10 ** 18)));
               return (
-                <div key={h.txHash} className="flex items-center justify-between py-0.5 text-[9px]">
-                  <div className="flex items-center gap-1.5">
+                <div key={h.txHash} className="flex items-center justify-between py-1 text-xs">
+                  <div className="flex items-center gap-2">
                     <span className="text-stone-400">{formatTimeAgo(h.createdAt)}</span>
                     {txUrl ? (
                       <a href={txUrl} target="_blank" rel="noopener noreferrer" className="font-mono text-stone-500 hover:text-amber-300">

@@ -18,12 +18,12 @@ export function AuctionCard({ auction }: AuctionCardProps) {
   const startingBid = parseFloat(formatEther(BigInt(auction.startingBid))).toFixed(1);
 
   return (
-    <Link to={`/auction/${auction.id}`} className="block rounded border border-amber-900/30 bg-stone-800/40 p-1.5 transition-colors hover:border-amber-700/50">
-      <div className="flex items-center justify-between gap-2">
-        <span className="truncate text-[10px] text-amber-200">{auction.title}</span>
-        <span className={`shrink-0 text-[8px] ${timeLeft === "Ended" ? "text-stone-500" : "text-amber-400/80"}`}>{timeLeft}</span>
+    <Link to={`/auction/${auction.id}`} className="block rounded border border-amber-900/30 bg-stone-800/40 p-2 transition-colors hover:border-amber-700/50">
+      <div className="flex items-center justify-between gap-3">
+        <span className="truncate text-[13px] text-amber-200">{auction.title}</span>
+        <span className={`shrink-0 text-[11px] ${timeLeft === "Ended" ? "text-stone-500" : "text-amber-400/80"}`}>{timeLeft}</span>
       </div>
-      <div className="mt-0.5 text-[9px] text-stone-400">Starting bid: {startingBid} SCRIP</div>
+      <div className="mt-1 text-xs text-stone-400">Starting bid: {startingBid} SCRIP</div>
     </Link>
   );
 }

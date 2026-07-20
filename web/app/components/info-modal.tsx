@@ -20,10 +20,10 @@ export function InfoModal({ open, onClose, title, icon, children }: InfoModalPro
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-sm rounded-lg border border-amber-900/50 bg-stone-800 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-amber-900/30 px-4 py-3">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between border-b border-amber-900/30 px-5 py-4">
+          <div className="flex items-center gap-3">
             <span className="text-xl">{icon}</span>
             <h3 className="font-semibold text-amber-200">{title}</h3>
           </div>
@@ -31,7 +31,7 @@ export function InfoModal({ open, onClose, title, icon, children }: InfoModalPro
             ✕
           </button>
         </div>
-        <div className="space-y-3 p-4 text-sm text-stone-300">{children}</div>
+        <div className="space-y-4 p-5 text-sm text-stone-300">{children}</div>
       </div>
     </div>
   );

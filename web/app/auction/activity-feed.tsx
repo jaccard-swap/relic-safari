@@ -25,10 +25,10 @@ export function ActivityFeed({ events, onSendChat, canChat }: ActivityFeedProps)
   }
 
   return (
-    <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-2">
-      <h2 className="mb-1.5 text-xs font-semibold text-amber-300">📜 Activity</h2>
-      <div className="scrollbar-thin scrollbar-thumb-stone-700 max-h-48 space-y-1 overflow-y-auto">
-        {events.length === 0 && <div className="text-[9px] text-stone-500">No activity yet</div>}
+    <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-3">
+      <h2 className="mb-2 text-xs font-semibold text-amber-300">📜 Activity</h2>
+      <div className="scrollbar-thin scrollbar-thumb-stone-700 max-h-48 space-y-1.5 overflow-y-auto">
+        {events.length === 0 && <div className="text-xs text-stone-500">No activity yet</div>}
         {events.map((event) => (
           <EventItem key={event.id} event={event} />
         ))}
@@ -36,16 +36,16 @@ export function ActivityFeed({ events, onSendChat, canChat }: ActivityFeedProps)
       </div>
 
       {canChat && (
-        <form onSubmit={handleSend} className="mt-2 flex gap-1">
+        <form onSubmit={handleSend} className="mt-3 flex gap-1.5">
           <input
             type="text"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             maxLength={280}
             placeholder="Say something…"
-            className="flex-1 rounded border border-stone-700 bg-stone-900 px-2 py-1 text-[10px] text-stone-200 focus:border-amber-600 focus:outline-none"
+            className="flex-1 rounded border border-stone-700 bg-stone-900 px-3 py-1.5 text-[13px] text-stone-200 focus:border-amber-600 focus:outline-none"
           />
-          <button type="submit" className="rounded bg-stone-700 px-2 py-1 text-[10px] text-stone-300 hover:bg-stone-600">
+          <button type="submit" className="rounded bg-stone-700 px-3 py-1.5 text-[13px] text-stone-300 hover:bg-stone-600">
             Send
           </button>
         </form>

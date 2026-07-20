@@ -48,8 +48,8 @@ export function Toast({ message, icon, type = "info", duration = 4000, onClose }
         exiting ? "translate-x-4 opacity-0" : "translate-x-0 opacity-100"
       }`}
     >
-      <div className={`rounded-lg border px-3 py-2 shadow-lg ${bgColor}`}>
-        <div className="flex items-center gap-2 text-xs">
+      <div className={`rounded-lg border px-4 py-3 shadow-lg ${bgColor}`}>
+        <div className="flex items-center gap-3 text-xs">
           <span className={type === "loading" ? "animate-pulse" : ""}>{icon || defaultIcon}</span>
           <span className={textColor}>{message}</span>
           {duration > 0 && onClose && (
@@ -62,7 +62,7 @@ export function Toast({ message, icon, type = "info", duration = 4000, onClose }
                   onClose();
                 }, 300);
               }}
-              className="ml-2 text-stone-500 hover:text-stone-300"
+              className="ml-3 text-stone-500 hover:text-stone-300"
             >
               ✕
             </button>

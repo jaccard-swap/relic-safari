@@ -21,19 +21,19 @@ export function AuctionRoomPage() {
   }
 
   if (isLoading) {
-    return <div className="rounded bg-stone-800/30 p-3 text-center text-[10px] text-stone-400">Loading auction…</div>;
+    return <div className="rounded bg-stone-800/30 p-4 text-center text-[13px] text-stone-400">Loading auction…</div>;
   }
 
   if (error || !auction) {
-    return <div className="rounded bg-red-900/20 p-3 text-center text-[10px] text-red-400">Auction not found</div>;
+    return <div className="rounded bg-red-900/20 p-4 text-center text-[13px] text-red-400">Auction not found</div>;
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <AuctionHeader auction={auction} nft={nft} highestBid={highestBid} connected={connected} connectionLost={connectionLost} participantCount={participantCount} />
 
       {nft && (
-        <button type="button" onClick={() => setShowNftDetail(true)} className="w-full rounded border border-stone-700/50 bg-stone-800/30 p-1.5 text-left text-[9px] text-stone-400 hover:border-amber-700/50">
+        <button type="button" onClick={() => setShowNftDetail(true)} className="w-full rounded border border-stone-700/50 bg-stone-800/30 p-2 text-left text-xs text-stone-400 hover:border-amber-700/50">
           View artifact details →
         </button>
       )}

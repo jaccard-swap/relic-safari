@@ -88,9 +88,9 @@ function ToastCard({ toast }: { toast: TransactionToast }) {
   const Icon = meta.icon;
 
   return (
-    <div className="pointer-events-auto flex w-80 flex-col gap-2 rounded-lg border border-amber-900/30 bg-stone-800 p-4 shadow-lg">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
+    <div className="pointer-events-auto flex w-80 flex-col gap-3 rounded-lg border border-amber-900/30 bg-stone-800 p-5 shadow-lg">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
           <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${meta.badgeClass}`}>
             <Icon className={`h-3.5 w-3.5 ${meta.iconClass}`} />
           </span>
@@ -113,7 +113,7 @@ function ToastCard({ toast }: { toast: TransactionToast }) {
 
       {toast.status === "error" && toast.errorMessage && <p className="text-xs text-red-400">{toast.errorMessage}</p>}
 
-      <div className="flex items-center justify-between gap-2 text-xs">
+      <div className="flex items-center justify-between gap-3 text-xs">
         {toast.explorerUrl ? (
           <a href={toast.explorerUrl} target="_blank" rel="noreferrer" className="font-mono text-stone-400 hover:text-amber-300">
             {shortHash(toast.hash)}
@@ -126,7 +126,7 @@ function ToastCard({ toast }: { toast: TransactionToast }) {
             href={toast.explorerUrl}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 font-medium text-amber-400 hover:text-amber-300"
+            className="flex items-center gap-1.5 font-medium text-amber-400 hover:text-amber-300"
           >
             View on explorer
             <ExternalLinkIcon className="h-3 w-3 stroke-current" />
@@ -143,7 +143,7 @@ export function TransactionToaster() {
   if (toasts.length === 0) return null;
 
   return (
-    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-3">
+    <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-4">
       {toasts.map((toast) => (
         <ToastCard key={toast.id} toast={toast} />
       ))}

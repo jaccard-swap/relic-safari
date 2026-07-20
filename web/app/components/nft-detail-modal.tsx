@@ -38,12 +38,12 @@ export function NftDetailModal({ nft, onClose }: NftDetailModalProps) {
 
   return (
     <InfoModal open={true} onClose={onClose} title={metadata.name || `Artifact #${nft.tokenId.slice(-6)}`} icon={form ? FORM_EMOJI[form] || "⚱️" : "⚱️"}>
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-4 flex items-center gap-3">
         <span className={`text-lg ${nameStyles}`}>{RARITY_EMOJI[rarity]}</span>
         <span className={`text-sm font-semibold ${nameStyles}`}>{rarity}</span>
       </div>
 
-      <div className="space-y-2">
+      <div className="space-y-3">
         {age && (
           <div className="flex items-center justify-between">
             <span className="text-xs text-stone-400">Age</span>
@@ -95,7 +95,7 @@ export function NftDetailModal({ nft, onClose }: NftDetailModalProps) {
       </div>
 
       <div className="mt-4 border-t border-stone-700 pt-3">
-        <div className="space-y-1 text-[10px] text-stone-500">
+        <div className="space-y-1.5 text-[13px] text-stone-500">
           <div className="flex justify-between">
             <span>Token ID</span>
             {nftUrl ? (
@@ -129,7 +129,7 @@ export function NftDetailModal({ nft, onClose }: NftDetailModalProps) {
             href={nftUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 block w-full rounded bg-stone-700/50 py-1.5 text-center text-[10px] font-medium text-amber-200/80 transition-colors hover:bg-stone-600/50"
+            className="mt-4 block w-full rounded bg-stone-700/50 py-2 text-center text-[13px] font-medium text-amber-200/80 transition-colors hover:bg-stone-600/50"
           >
             View on {explorerName} ↗
           </a>

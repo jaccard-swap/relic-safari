@@ -55,7 +55,7 @@ export function EventItem({ event }: EventItemProps) {
   }
 
   return (
-    <div className="flex items-start gap-1.5 text-[9px]">
+    <div className="flex items-start gap-2 text-xs">
       <span className="shrink-0 text-stone-600">{time}</span>
       <span className="text-stone-300">{content}</span>
     </div>

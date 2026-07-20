@@ -23,18 +23,18 @@ export function MiniNftCard({ nft, selected, role, onSelect, onClick }: MiniNftC
     <button
       type="button"
       onClick={handleClick}
-      className={`flex w-full items-center gap-1.5 rounded border p-1 text-left transition-all ${cardStyles} ${
+      className={`flex w-full items-center gap-2 rounded border p-1.5 text-left transition-all ${cardStyles} ${
         selected ? `ring-2 ${ringColor}` : ""
       } ${handleClick ? "cursor-pointer hover:brightness-110" : ""}`}
     >
       <div className="flex h-5 w-5 items-center justify-center rounded bg-black/30 text-xs">{form ? FORM_EMOJI[form] || "⚱️" : "⚱️"}</div>
       <div className="min-w-0 flex-1">
-        <div className={`truncate text-[9px] ${nameStyles}`}>
+        <div className={`truncate text-xs ${nameStyles}`}>
           {RARITY_EMOJI[rarity]} {metadata.name || `#${nft.tokenId.slice(-6)}`}
         </div>
       </div>
-      {role === "target" && <span className="text-[8px] font-medium text-emerald-400">TARGET</span>}
-      {role === "consumed" && <span className="text-[8px] font-medium text-cyan-400">FUSE</span>}
+      {role === "target" && <span className="text-[11px] font-medium text-emerald-400">TARGET</span>}
+      {role === "consumed" && <span className="text-[11px] font-medium text-cyan-400">FUSE</span>}
     </button>
   );
 }

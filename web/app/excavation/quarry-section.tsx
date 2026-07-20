@@ -49,8 +49,8 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
         onHelp={onHelp}
         summary={
           <>
-            <span className="text-[10px] text-stone-400">{nfts.length} artifacts found</span>
-            <span className="text-[9px] text-stone-500">1/day</span>
+            <span className="text-[13px] text-stone-400">{nfts.length} artifacts found</span>
+            <span className="text-xs text-stone-500">5/day</span>
           </>
         }
         action={
@@ -58,18 +58,18 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
             type="button"
             onClick={() => dig.mutate()}
             disabled={!isConnected || dig.isPending}
-            className="relative w-14 rounded bg-gradient-to-r from-stone-600 to-amber-800 py-1.5 text-center text-xs font-medium text-white transition-all hover:from-stone-500 hover:to-amber-700 disabled:opacity-50"
+            className="relative w-14 rounded bg-gradient-to-r from-stone-600 to-amber-800 py-2 text-center text-xs font-medium text-white transition-all hover:from-stone-500 hover:to-amber-700 disabled:opacity-50"
           >
             {dig.isPending ? "⏳" : dig.isError ? "✗" : "Dig"}
-            {dig.isSuccess && <span className="absolute -right-1 -top-1 text-[10px] text-green-400">✓</span>}
+            {dig.isSuccess && <span className="absolute -right-1 -top-1.5 text-[13px] text-green-400">✓</span>}
           </button>
         }
       >
-        <div className="mb-1 mt-2 text-[9px] text-stone-500">Recent Finds</div>
+        <div className="mb-1.5 mt-3 text-xs text-stone-500">Recent Finds</div>
         {nfts.length === 0 ? (
-          <div className="py-2 text-center text-[9px] text-stone-500">No artifacts yet</div>
+          <div className="py-3 text-center text-xs text-stone-500">No artifacts yet</div>
         ) : (
-          <div className="max-h-40 space-y-0.5 overflow-y-auto">
+          <div className="max-h-40 space-y-1 overflow-y-auto">
             {nfts.slice(0, 5).map((nft) => (
               <MiniNftCard key={nft.id} nft={nft} onClick={() => setDetailNft(nft)} />
             ))}

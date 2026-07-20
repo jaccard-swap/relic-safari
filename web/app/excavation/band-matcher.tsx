@@ -4,7 +4,7 @@ interface BandMatcherProps {
 
 export function BandMatcher({ bands }: BandMatcherProps) {
   return (
-    <div className="flex flex-wrap items-center justify-center gap-0.5">
+    <div className="flex flex-wrap items-center justify-center gap-1">
       {bands.map((b) => (
         <div
           key={b.index}

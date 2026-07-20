@@ -11,7 +11,7 @@ export function BazaarPage() {
   const [ordersModal, setOrdersModal] = useState(false);
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <ActiveAuctionsSection expanded={auctionsExpanded} onToggle={() => setAuctionsExpanded((v) => !v)} onHelp={() => setAuctionsModal(true)} />
 
       <StandingBuyOrders expanded={ordersExpanded} onToggle={() => setOrdersExpanded((v) => !v)} onHelp={() => setOrdersModal(true)} />

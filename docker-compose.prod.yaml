@@ -46,6 +46,8 @@ services:
       DOMAIN_NAME: ${DOMAIN_NAME}
       MNEMONIC: ${MNEMONIC}
       SEPOLIA_RPC_URL: ${SEPOLIA_RPC_URL}
+      RATE_LIMIT_WINDOW_MS: ${RATE_LIMIT_WINDOW_MS}
+      RATE_LIMIT_MAX: ${RATE_LIMIT_MAX}
     depends_on:
       postgres:
         condition: service_healthy

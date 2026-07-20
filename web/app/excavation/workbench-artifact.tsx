@@ -25,16 +25,16 @@ export function WorkbenchArtifact({ nft, role }: WorkbenchArtifactProps) {
   if (metadata.inscription) traits.push({ emoji: INSCRIPTION_EMOJI[metadata.inscription as string] || "📜", label: metadata.inscription as string });
 
   return (
-    <div className={`rounded border p-1.5 ${borderColor} ${bgColor}`}>
-      <div className={`mb-0.5 text-[8px] font-bold ${labelColor}`}>{role === "target" ? "◆ TARGET" : "◇ CATALYST"}</div>
-      <div className={`truncate text-[9px] font-medium ${nameStyles}`}>{metadata.name || `Artifact #${nft.tokenId.slice(-6)}`}</div>
-      <div className="mt-1 flex items-center gap-1">
+    <div className={`rounded border p-2 ${borderColor} ${bgColor}`}>
+      <div className={`mb-1 text-[11px] font-bold ${labelColor}`}>{role === "target" ? "◆ TARGET" : "◇ CATALYST"}</div>
+      <div className={`truncate text-xs font-medium ${nameStyles}`}>{metadata.name || `Artifact #${nft.tokenId.slice(-6)}`}</div>
+      <div className="mt-1.5 flex items-center gap-1.5">
         <span className="text-base" title={form || "artifact"}>
           {form ? FORM_EMOJI[form] || "⚱️" : "⚱️"}
         </span>
-        <div className="flex flex-wrap gap-0.5">
+        <div className="flex flex-wrap gap-1">
           {traits.map(({ emoji, label }, i) => (
-            <span key={i} className="cursor-default text-[10px]" title={label}>
+            <span key={i} className="cursor-default text-[13px]" title={label}>
               {emoji}
             </span>
           ))}

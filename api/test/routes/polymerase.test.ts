@@ -1,9 +1,15 @@
 import { test, describe, before } from 'node:test'
 import * as assert from 'node:assert'
+import { testToken } from '../helper'
 
 const API_BASE = process.env.API_URL || 'http://localhost:3000'
-const TEST_CHAIN_ID = 11155111
+// 31337 (local anvil), not Sepolia - this dev stack's SEPOLIA_RPC_URL is a
+// deliberate unset.invalid placeholder (see .env), so any readContract call
+// against 11155111 fails with a network error, not a clean on-chain
+// response. 31337 is the chain actually running in docker-compose.dev.yaml.
+const TEST_CHAIN_ID = 31337
 const TEST_WALLET = '0x78B7EEf57904c1F8B4487bf68b0D39f997F00997'
+const AUTH_HEADER = { Authorization: `Bearer ${testToken(TEST_WALLET)}` }
 
 // Seeded test NFTs
 let nftA: { id: string; tokenId: string } | null = null
@@ -21,15 +27,6 @@ async function seedNft(metadata: Record<string, string>, tokenId: string) {
   return null
 }
 
-async function getNft(id: string) {
-  const res = await fetch(`${API_BASE}/nft/${id}`)
-  if (res.status === 200) {
-    const body = await res.json() as any
-    return body.nft
-  }
-  return null
-}
-
 describe('polymerase routes', async () => {
 
   describe('validation', () => {
@@ -41,10 +38,19 @@ describe('polymerase routes', async () => {
     test('rejects invalid owner', async () => {
       const res = await fetch(`${API_BASE}/faucet/polymerase`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
         body: JSON.stringify({ owner: 'bad', targetTokenId: '1', consumedTokenId: '2', chainId: TEST_CHAIN_ID })
       })
       assert.equal(res.status, 400)
+    })
+
+    test('rejects unauthenticated request', async () => {
+      const res = await fetch(`${API_BASE}/faucet/polymerase`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ owner: TEST_WALLET, targetTokenId: '1', consumedTokenId: '2', chainId: TEST_CHAIN_ID })
+      })
+      assert.equal(res.status, 401)
     })
   })
 
@@ -82,7 +88,20 @@ describe('polymerase routes', async () => {
       console.log('Seeded:', { A: nftA?.id, B: nftB?.id })
     })
 
-    test('simulate returns eligibility and preview', async () => {
+    // /simulate treats on-chain minHash as the source of truth (it re-reads
+    // getMinHashByTokenId and syncs the DB from it), so it can't return an
+    // eligibility preview for /nft/seed's DB-only fixtures - they were
+    // never actually minted. getMinHashByTokenId doesn't revert for a
+    // missing tokenId (it's a plain mapping read - JaccardERC1155Facet.sol
+    // :77-80), it silently returns an all-zero bytes8[20]; without an
+    // explicit zero-value check, two never-minted tokenIds would read back
+    // identical signatures and falsely report 100% eligibility. That's now
+    // caught explicitly (see faucet/index.ts) and returns a clean 404. Real
+    // eligibility/threshold behavior is covered directly against
+    // computeMinHash/countMinHashMatches in test/lib/minhash.test.ts
+    // instead - this just confirms the route degrades gracefully rather
+    // than reporting a false match for stale/unminted records.
+    test('simulate 404s for artifacts that were never minted on-chain', async () => {
       if (!nftA || !nftB) {
         console.log('SKIP: seed endpoint unavailable')
         return
@@ -91,38 +110,26 @@ describe('polymerase routes', async () => {
       const res = await fetch(
         `${API_BASE}/faucet/polymerase/simulate?targetNftId=${nftA.id}&consumedNftId=${nftB.id}`
       )
-      assert.equal(res.status, 200)
-
+      assert.equal(res.status, 404)
       const body = await res.json() as any
-      
-      // Core assertions - response structure: { eligible, minHash: { bands, matchCount }, result: { ... } }
-      assert.ok('eligible' in body, 'has eligible')
-      assert.ok('minHash' in body, 'has minHash')
-      assert.ok('matchCount' in body.minHash, 'has matchCount')
-      assert.ok('bands' in body.minHash, 'has bands array')
-      assert.equal(body.minHash.bands.length, 20, '20 MinHash bands')
-
-      // With 5/7 shared traits, expect high similarity
-      console.log(`MinHash: ${body.minHash.matchCount}/20 matches, eligible=${body.eligible}`)
-      
-      if (body.eligible) {
-        assert.ok('result' in body, 'eligible pair has result')
-        assert.ok('essenceYield' in body.result, 'result has essenceYield')
-        console.log(`Preview: essenceYield=${body.result.essenceYield}`)
-      }
+      assert.equal(body.error, 'One or both artifacts not found on-chain')
     })
 
-    test('polymerase attempts on-chain call', async () => {
+    // Unlike getMinHashByTokenId (see the simulate test above), balanceOf
+    // doesn't revert for a tokenId that was never minted - it just returns
+    // 0. So this deterministically reaches and fails the on-chain ownership
+    // check rather than 404ing earlier, which is what we want to verify:
+    // the route gets all the way through validation/DB lookups to the
+    // on-chain check before rejecting.
+    test('polymerase fails ownership check for artifacts that were never minted on-chain', async () => {
       if (!nftA || !nftB) {
         console.log('SKIP: seed endpoint unavailable')
         return
       }
 
-      // This will fail at on-chain ownership check (expected)
-      // but verifies the route works up to that point
       const res = await fetch(`${API_BASE}/faucet/polymerase`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...AUTH_HEADER },
         body: JSON.stringify({
           owner: TEST_WALLET,
           targetTokenId: nftA.tokenId,
@@ -131,34 +138,9 @@ describe('polymerase routes', async () => {
         })
       })
 
+      assert.equal(res.status, 403)
       const body = await res.json() as any
-      
-      // Expected: fails at ownership check (seed NFTs aren't on-chain)
-      // This proves the route reached the on-chain verification step
-      if (res.status === 403) {
-        assert.equal(body.error, 'Owner does not have both artifacts')
-        console.log('Correctly failed at on-chain ownership check')
-      } else if (res.status === 200) {
-        // If somehow it succeeded (unlikely without on-chain NFTs)
-        // Verify the key outputs
-        assert.ok(body.txHash, 'has txHash')
-        assert.ok(body.newMetadata, 'has newMetadata')
-        assert.ok('essenceYield' in body, 'has essenceYield')
-        
-        // Verify DB state
-        const updatedA = await getNft(nftA.id)
-        const updatedB = await getNft(nftB.id)
-        
-        assert.ok(updatedA, 'target NFT still exists')
-        assert.equal(updatedB?.status, 'consumed', 'consumed NFT marked consumed')
-        
-        console.log('Polymerase succeeded!')
-        console.log(`  essenceYield: ${body.essenceYield}`)
-        console.log(`  consumed NFT status: ${updatedB?.status}`)
-      } else {
-        // Other error - log for debugging
-        console.log(`Unexpected status ${res.status}:`, body)
-      }
+      assert.equal(body.error, 'Owner does not have both artifacts')
     })
   })
 })

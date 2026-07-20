@@ -18,7 +18,7 @@ export function ExcavationPage() {
   const { essenceBalance } = useBalances();
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       <StipendSection expanded={stipendExpanded} onToggle={() => setStipendExpanded((v) => !v)} onHelp={() => setStipendModal(true)} />
 
       <QuarrySection expanded={quarryExpanded} onToggle={() => setQuarryExpanded((v) => !v)} onHelp={() => setQuarryModal(true)} />
@@ -48,7 +48,7 @@ export function ExcavationPage() {
           Each excavation unearths a relic with <strong className="text-amber-300">1-8 random traits</strong> (Gaussian distribution).
         </p>
         <p>Traits: rarity, age, quality, material, form, site, inscription.</p>
-        <p className="mt-2 text-xs text-amber-400/80">
+        <p className="mt-3 text-xs text-amber-400/80">
           ⏳ Rate limit: <strong>3 excavations per hour</strong>
         </p>
         <p className="text-xs text-stone-500">Technical: ERC-1155 with on-chain MinHash.</p>

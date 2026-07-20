@@ -61,17 +61,17 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
       expanded={expanded}
       onToggle={onToggle}
       onHelp={onHelp}
-      summary={<span className="text-[9px] text-stone-500">{standingBids?.length ?? 0} active</span>}
+      summary={<span className="text-xs text-stone-500">{standingBids?.length ?? 0} active</span>}
     >
-      <div className="space-y-2 pt-1">
+      <div className="space-y-3 pt-1">
         {!isConnected ? (
-          <div className="py-2 text-center text-[10px] text-stone-400">Connect a wallet to place a standing buy order</div>
+          <div className="py-3 text-center text-[13px] text-stone-400">Connect a wallet to place a standing buy order</div>
         ) : (
-          <div className="space-y-2 rounded border border-stone-700/50 bg-stone-900/40 p-2">
+          <div className="space-y-3 rounded border border-stone-700/50 bg-stone-900/40 p-3">
             <TraitSelector selected={traits} onChange={setTraits} />
 
             {Object.keys(traits).length > 0 && (
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-wrap gap-1.5">
                 {Object.entries(traits).map(([key, value]) => (
                   <TraitChip
                     key={key}
@@ -92,7 +92,7 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
             <MinHashPreview minHash={minHash} />
 
             <div>
-              <label className="mb-1 flex items-center justify-between text-[9px] text-stone-400">
+              <label className="mb-1.5 flex items-center justify-between text-xs text-stone-400">
                 <span>Match threshold</span>
                 <span className="text-amber-300">
                   {minMatches}/{MINHASH_BANDS} bands
@@ -108,22 +108,22 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
               />
             </div>
 
-            <div className="flex items-end gap-2">
+            <div className="flex items-end gap-3">
               <div className="flex-1">
-                <label className="mb-1 block text-[9px] text-stone-400">Bid (SCRIP)</label>
+                <label className="mb-1.5 block text-xs text-stone-400">Bid (SCRIP)</label>
                 <input
                   type="text"
                   inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full rounded border border-stone-700 bg-stone-900 px-2 py-1 text-xs text-stone-200 focus:border-amber-600 focus:outline-none"
+                  className="w-full rounded border border-stone-700 bg-stone-900 px-3 py-1.5 text-xs text-stone-200 focus:border-amber-600 focus:outline-none"
                 />
               </div>
               <button
                 type="button"
                 onClick={handleSubmit}
                 disabled={!canSubmit}
-                className="rounded bg-gradient-to-r from-amber-600 to-yellow-700 px-3 py-1.5 text-[10px] font-semibold text-white transition-opacity disabled:opacity-50"
+                className="rounded bg-gradient-to-r from-amber-600 to-yellow-700 px-4 py-2 text-[13px] font-semibold text-white transition-opacity disabled:opacity-50"
               >
                 {createBid.isPending ? "Signing…" : "Place Order"}
               </button>
@@ -131,12 +131,12 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
           </div>
         )}
 
-        {isLoading && <div className="py-2 text-center text-[10px] text-stone-400">Loading…</div>}
+        {isLoading && <div className="py-3 text-center text-[13px] text-stone-400">Loading…</div>}
         {!isLoading && (!standingBids || standingBids.length === 0) && (
-          <div className="py-2 text-center text-[10px] text-stone-400">No standing buy orders yet</div>
+          <div className="py-3 text-center text-[13px] text-stone-400">No standing buy orders yet</div>
         )}
         {standingBids && standingBids.length > 0 && (
-          <div className="scrollbar-thin scrollbar-thumb-stone-700 max-h-40 space-y-1 overflow-y-auto">
+          <div className="scrollbar-thin scrollbar-thumb-stone-700 max-h-40 space-y-1.5 overflow-y-auto">
             {standingBids.map((bid) => (
               <StandingBidCard key={bid.id} bid={bid} onCancel={() => handleCancel(bid.id)} isCancelling={cancellingId === bid.id} />
             ))}

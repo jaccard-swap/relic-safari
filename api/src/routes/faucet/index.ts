@@ -379,19 +379,45 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
       return { error: `Unsupported chain: ${chainId}` }
     }
 
-    const targetMinHashOnChain = await publicClient.readContract({
-      address: artifact.address,
-      abi: artifact.abi as any,
-      functionName: 'getMinHashByTokenId',
-      args: [BigInt(targetNft.tokenId)],
-    } as any) as `0x${string}`[]
+    // Reads can fail outright (RPC/network error) - without this catch that
+    // bubbles up as an unhandled 500 instead of a clean, expected error.
+    let targetMinHashOnChain: `0x${string}`[]
+    let consumedMinHashOnChain: `0x${string}`[]
+    try {
+      targetMinHashOnChain = await publicClient.readContract({
+        address: artifact.address,
+        abi: artifact.abi as any,
+        functionName: 'getMinHashByTokenId',
+        args: [BigInt(targetNft.tokenId)],
+      } as any) as `0x${string}`[]
 
-    const consumedMinHashOnChain = await publicClient.readContract({
-      address: artifact.address,
-      abi: artifact.abi as any,
-      functionName: 'getMinHashByTokenId',
-      args: [BigInt(consumedNft.tokenId)],
-    } as any) as `0x${string}`[]
+      consumedMinHashOnChain = await publicClient.readContract({
+        address: artifact.address,
+        abi: artifact.abi as any,
+        functionName: 'getMinHashByTokenId',
+        args: [BigInt(consumedNft.tokenId)],
+      } as any) as `0x${string}`[]
+    } catch (error) {
+      fastify.log.warn({ error, targetNftId: targetNft.id, consumedNftId: consumedNft.id }, 'Failed to read on-chain minHash')
+      reply.code(502)
+      return { error: 'Failed to read on-chain artifact data' }
+    }
+
+    // getMinHashByTokenId doesn't revert for a tokenId that was never
+    // minted (JaccardERC1155Facet.sol:77-80 is a plain mapping read) - it
+    // silently returns Solidity's zero-initialized bytes8[20]. Left
+    // unchecked, two never-minted/desynced tokenIds (e.g. stale DB rows
+    // after a chain reset) would both read back identical all-zero
+    // signatures and match on all 20 bands, reporting false eligibility.
+    // A real mint's minHash can't organically land on all-zero (that would
+    // require every one of 20 independent keccak256 mins to hit exactly
+    // zero), so treating it as "not minted" is safe.
+    const ZERO_BYTES8 = '0x0000000000000000'
+    const isUnminted = (hash: `0x${string}`[]) => hash.every((h) => h.toLowerCase() === ZERO_BYTES8)
+    if (isUnminted(targetMinHashOnChain) || isUnminted(consumedMinHashOnChain)) {
+      reply.code(404)
+      return { error: 'One or both artifacts not found on-chain' }
+    }
 
     // Validate on-chain minHashes
     if (!targetMinHashOnChain || !consumedMinHashOnChain ||

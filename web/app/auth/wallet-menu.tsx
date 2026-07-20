@@ -52,13 +52,13 @@ export function WalletMenu() {
             setOpen((v) => !v);
           }}
           disabled={login.isPending}
-          className="rounded border border-amber-900/30 bg-stone-800/50 px-2 py-1 text-[11px] font-medium text-amber-200/80 hover:bg-stone-700/50 disabled:opacity-60"
+          className="rounded border border-amber-900/30 bg-stone-800/50 px-3 py-1.5 text-sm font-medium text-amber-200/80 hover:bg-stone-700/50 disabled:opacity-60"
         >
           {login.isPending ? "Signing in…" : isConnected ? "Sign in" : "Connect Wallet"}
         </button>
 
         {open && !isConnected && connectors.length > 1 && (
-          <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded border border-amber-900/40 bg-stone-800 p-2 shadow-lg">
+          <div className="absolute right-0 top-full z-50 mt-1.5 min-w-[160px] rounded border border-amber-900/40 bg-stone-800 p-3 shadow-lg">
             <ConnectorList
               connectors={connectors}
               disabled={login.isPending}
@@ -71,7 +71,7 @@ export function WalletMenu() {
         )}
 
         {login.isError && (
-          <p className="absolute right-0 top-full mt-1 w-48 text-right text-[10px] text-red-400">
+          <p className="absolute right-0 top-full mt-1.5 w-48 text-right text-[13px] text-red-400">
             {login.error instanceof Error ? login.error.message : "Sign-in failed"}
           </p>
         )}
@@ -86,7 +86,7 @@ export function WalletMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 rounded border border-amber-900/30 bg-stone-800/50 px-2 py-1 text-[11px] font-medium text-amber-200/80 hover:bg-stone-700/50"
+        className="flex items-center gap-2 rounded border border-amber-900/30 bg-stone-800/50 px-3 py-1.5 text-sm font-medium text-amber-200/80 hover:bg-stone-700/50"
       >
         {walletMismatch && <span title="Wallet is on an unsupported network">⚠️</span>}
         <span className="font-mono">{chain?.name ?? "Unsupported"}</span>
@@ -95,9 +95,9 @@ export function WalletMenu() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 min-w-[180px] rounded border border-amber-900/40 bg-stone-800 p-2 shadow-lg">
-          <p className="mb-1 px-2 text-[9px] font-semibold uppercase tracking-wide text-stone-500">Network</p>
-          <div className="flex flex-col gap-0.5">
+        <div className="absolute right-0 top-full z-50 mt-1.5 min-w-[180px] rounded border border-amber-900/40 bg-stone-800 p-3 shadow-lg">
+          <p className="mb-1.5 px-3 text-xs font-semibold uppercase tracking-wide text-stone-500">Network</p>
+          <div className="flex flex-col gap-1">
             {chains.map((c) => (
               <button
                 key={c.id}
@@ -107,7 +107,7 @@ export function WalletMenu() {
                   setOpen(false);
                 }}
                 disabled={isSwitchingChain}
-                className={`rounded px-2 py-1 text-left text-[11px] font-medium disabled:opacity-50 ${
+                className={`rounded px-3 py-1.5 text-left text-sm font-medium disabled:opacity-50 ${
                   c.id === chainId ? "bg-amber-900/30 text-amber-300" : "text-amber-200/70 hover:bg-stone-700"
                 }`}
               >
@@ -122,7 +122,7 @@ export function WalletMenu() {
               disconnect();
               setOpen(false);
             }}
-            className="mt-2 w-full rounded px-2 py-1 text-left text-[11px] font-medium text-red-400 hover:bg-red-950"
+            className="mt-3 w-full rounded px-3 py-1.5 text-left text-sm font-medium text-red-400 hover:bg-red-950"
           >
             Disconnect
           </button>

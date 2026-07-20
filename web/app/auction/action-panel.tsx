@@ -47,15 +47,15 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
   if (auction.status === "settled") {
     const explorerUrl = auction.settlementTxHash ? getExplorerTxUrl(auction.chainId, auction.settlementTxHash) : null;
     return (
-      <div className="rounded-lg border border-emerald-800/50 bg-emerald-900/20 p-3 text-center">
+      <div className="rounded-lg border border-emerald-800/50 bg-emerald-900/20 p-4 text-center">
         <div className="text-sm font-semibold text-emerald-300">🎉 Auction Settled</div>
         {auction.winner && (
-          <div className="mt-1 text-[10px] text-stone-300">
+          <div className="mt-1.5 text-[13px] text-stone-300">
             Won by {short(auction.winner)} for {auction.winningBid ? parseFloat(formatEther(BigInt(auction.winningBid))).toFixed(2) : "?"} SCRIP
           </div>
         )}
         {explorerUrl && (
-          <a href={explorerUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[9px] text-amber-400/80 underline hover:text-amber-300">
+          <a href={explorerUrl} target="_blank" rel="noopener noreferrer" className="mt-1.5 inline-block text-xs text-amber-400/80 underline hover:text-amber-300">
             View transaction
           </a>
         )}
@@ -64,25 +64,25 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
   }
 
   if (auction.status === "cancelled") {
-    return <div className="rounded-lg border border-stone-700/50 bg-stone-800/30 p-3 text-center text-[10px] text-stone-400">Auction cancelled</div>;
+    return <div className="rounded-lg border border-stone-700/50 bg-stone-800/30 p-4 text-center text-[13px] text-stone-400">Auction cancelled</div>;
   }
 
   if (isAuctioneer) {
     if (!ended) {
       return (
-        <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-3 text-center text-[10px] text-stone-400">
+        <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-4 text-center text-[13px] text-stone-400">
           Waiting for bids — you can settle once the auction ends
         </div>
       );
     }
     const busy = consumeStatus === "loading" || consumeStatus === "confirming" || consumeStatus === "recording";
     return (
-      <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-3">
+      <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-4">
         <button
           type="button"
           onClick={() => void consume()}
           disabled={busy}
-          className="w-full rounded bg-gradient-to-r from-amber-600 to-yellow-700 py-2 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
+          className="w-full rounded bg-gradient-to-r from-amber-600 to-yellow-700 py-3 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
         >
           {consumeStatus === "loading"
             ? "Preparing…"
@@ -92,19 +92,19 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
                 ? "Recording…"
                 : "🏆 Settle & Transfer"}
         </button>
-        {consumeError && <p className="mt-1 text-[9px] text-red-400">{consumeError}</p>}
+        {consumeError && <p className="mt-1.5 text-xs text-red-400">{consumeError}</p>}
       </div>
     );
   }
 
   if (ended) {
-    return <div className="rounded-lg border border-stone-700/50 bg-stone-800/30 p-3 text-center text-[10px] text-stone-400">Auction ended — waiting for the auctioneer to settle</div>;
+    return <div className="rounded-lg border border-stone-700/50 bg-stone-800/30 p-4 text-center text-[13px] text-stone-400">Auction ended — waiting for the auctioneer to settle</div>;
   }
 
   return (
-    <form onSubmit={handleBid} className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-3">
-      <label className="mb-1 block text-[9px] text-stone-400">Your bid (min {parseFloat(formatEther(minBid)).toFixed(2)} SCRIP)</label>
-      <div className="flex gap-1.5">
+    <form onSubmit={handleBid} className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-4">
+      <label className="mb-1.5 block text-xs text-stone-400">Your bid (min {parseFloat(formatEther(minBid)).toFixed(2)} SCRIP)</label>
+      <div className="flex gap-2">
         <input
           type="text"
           inputMode="decimal"
@@ -112,18 +112,18 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
           onChange={(e) => setBidAmount(e.target.value)}
           placeholder={parseFloat(formatEther(minBid)).toFixed(2)}
           disabled={!isConnected}
-          className="flex-1 rounded border border-stone-700 bg-stone-900 px-2 py-1.5 text-xs text-stone-200 focus:border-amber-600 focus:outline-none disabled:opacity-50"
+          className="flex-1 rounded border border-stone-700 bg-stone-900 px-3 py-2 text-xs text-stone-200 focus:border-amber-600 focus:outline-none disabled:opacity-50"
         />
         <button
           type="submit"
           disabled={!isConnected || createBid.isPending || !bidAmount}
-          className="rounded bg-gradient-to-r from-amber-600 to-yellow-700 px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
+          className="rounded bg-gradient-to-r from-amber-600 to-yellow-700 px-4 py-2 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
         >
           {createBid.isPending ? "Signing…" : "Bid"}
         </button>
       </div>
-      {!isConnected && <p className="mt-1 text-[9px] text-stone-500">Connect a wallet to bid</p>}
-      {bidError && <p className="mt-1 text-[9px] text-red-400">{bidError}</p>}
+      {!isConnected && <p className="mt-1.5 text-xs text-stone-500">Connect a wallet to bid</p>}
+      {bidError && <p className="mt-1.5 text-xs text-red-400">{bidError}</p>}
     </form>
   );
 }
