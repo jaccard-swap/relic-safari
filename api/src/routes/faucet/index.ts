@@ -1,10 +1,7 @@
 import { FastifyPluginAsync } from 'fastify'
 import * as dbSchema from '@shared/database'
 import { computeMinHash, countMinHashMatches, MINHASH_BANDS, TRAIT_POOLS, type TraitPool } from '@shared/constants'
-
-// Must match JaccardERC1155Facet.polymerase's fixed floor (LibAppStorage.sol
-// comment: "keeps the ~40% similarity bar from the prior 5/13 config").
-const POLYMERASE_MIN_MATCHES = 8
+import { computePolymerizationResult, generateArtifactName, POLYMERASE_MIN_MATCHES } from '../../lib/polymerase'
 import { and, eq, gte, sql } from 'drizzle-orm'
 import { parseEther } from 'viem'
 import type { SupportedChainId } from '../../plugins/web3'
@@ -21,32 +18,6 @@ function weightedRandom(pool: TraitPool): string {
   }
   
   return pool.values[pool.values.length - 1].value
-}
-
-// Capitalize first letter
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
-
-// Generate artifact name from traits: "Antediluvian Bronze Tablet"
-function generateArtifactName(traits: Record<string, string>): string {
-  const parts: string[] = []
-  
-  // Age adjective (if present)
-  if (traits.age) parts.push(cap(traits.age))
-  
-  // Material (if present)  
-  if (traits.material) parts.push(cap(traits.material))
-  
-  // Form is required for name
-  if (traits.form) {
-    parts.push(cap(traits.form))
-  } else {
-    parts.push('Fragment')
-  }
-  
-  // Add fingerprint suffix
-  const fingerprint = Date.now().toString(36).slice(-4).toUpperCase()
-  
-  return `${parts.join(' ')} #${fingerprint}`
 }
 
 function generateRandomMetadata(traitCount: number): Record<string, string | number> {
@@ -88,96 +59,6 @@ interface PolymeraseBody {
 interface SimulatePolymeraseQuery {
   targetNftId: string
   consumedNftId: string
-}
-
-// Get next upgrade level for a trait (returns null if maxed)
-function getNextUpgradeLevel(traitKey: string, currentValue: string): { value: string; cost: number } | null {
-  const pool = TRAIT_POOLS[traitKey]
-  if (!pool || !pool.upgradeable) return null
-  
-  const currentIdx = pool.values.findIndex(v => v.value === currentValue)
-  if (currentIdx < 0 || currentIdx >= pool.values.length - 1) return null
-  
-  const nextLevel = pool.values[currentIdx + 1]
-  return { value: nextLevel.value, cost: nextLevel.levelUpCost || 0 }
-}
-
-// Get essence value of a trait at its current level
-// Non-upgradeable traits have a base value of 5
-const BASE_ESSENCE_VALUE = 5
-// Minimum essence yield for any polymerization (consuming an NFT should always yield something)
-const MIN_POLYMERIZATION_ESSENCE = 15
-
-function getTraitEssenceValue(traitKey: string, value: string): number {
-  const pool = TRAIT_POOLS[traitKey]
-  if (!pool) return 0
-  
-  if (!pool.upgradeable) {
-    // Non-upgradeable traits yield base essence
-    return BASE_ESSENCE_VALUE
-  }
-  
-  const level = pool.values.find(v => v.value === value)
-  // Upgradeable traits yield their levelUpCost as essence
-  return level?.levelUpCost || BASE_ESSENCE_VALUE
-}
-
-// Compute polymerization result: A + B → upgraded A + essence
-// Rules:
-// - A keeps all its traits
-// - Matching upgradeable traits → upgrade A's trait
-// - Matching non-upgradeable traits → convert to essence
-// - Non-matching traits from B → convert to essence
-function computePolymerizationResult(
-  targetMeta: Record<string, any>,
-  consumedMeta: Record<string, any>
-): {
-  newMetadata: Record<string, any>
-  upgradedTraits: Record<string, { from: string; to: string }>
-  essenceYield: number
-} {
-  const newMetadata = { ...targetMeta }
-  const upgradedTraits: Record<string, { from: string; to: string }> = {}
-  let essenceYield = 0
-
-  for (const key of Object.keys(TRAIT_POOLS)) {
-    const pool = TRAIT_POOLS[key]
-    const targetVal = targetMeta[key] as string | undefined
-    const consumedVal = consumedMeta[key] as string | undefined
-
-    // Skip if B doesn't have this trait
-    if (!consumedVal) continue
-
-    if (targetVal === consumedVal) {
-      // Matching trait
-      if (pool.upgradeable) {
-        // Upgrade A's trait if possible
-        const upgrade = getNextUpgradeLevel(key, targetVal)
-        if (upgrade) {
-          newMetadata[key] = upgrade.value
-          upgradedTraits[key] = { from: targetVal, to: upgrade.value }
-        }
-        // If maxed, matching upgradeable yields no essence (already absorbed into upgrade)
-      } else {
-        // Matching non-upgradeable → convert to essence
-        essenceYield += getTraitEssenceValue(key, consumedVal)
-      }
-    } else {
-      // Non-matching trait from B → convert to essence
-      essenceYield += getTraitEssenceValue(key, consumedVal)
-    }
-  }
-
-  // Regenerate name with new traits
-  const traits = Object.fromEntries(
-    Object.entries(newMetadata).filter(([k]) => k !== 'name')
-  ) as Record<string, string>
-  newMetadata.name = generateArtifactName(traits)
-
-  // Ensure minimum essence yield (consuming an NFT should always yield something)
-  const finalEssenceYield = Math.max(essenceYield, MIN_POLYMERIZATION_ESSENCE)
-
-  return { newMetadata, upgradedTraits, essenceYield: finalEssenceYield }
 }
 
 // Validate required env vars at load time
@@ -459,7 +340,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
     // Compute what polymerization would produce
     const targetMeta = targetNft.metadata as Record<string, any>
     const consumedMeta = consumedNft.metadata as Record<string, any>
-    const result = computePolymerizationResult(targetMeta, consumedMeta)
+    const result = computePolymerizationResult(targetMeta, consumedMeta, matchCount)
 
     // Trait-by-trait breakdown
     const traitBreakdown: Record<string, {
@@ -500,10 +381,11 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
 
     return {
       eligible,
+      tier: result.tier,
       minHash: {
         bands,
         matchCount,
-        threshold: 2,
+        threshold: POLYMERASE_MIN_MATCHES,
         estimatedJaccard
       },
       traitBreakdown,
@@ -610,7 +492,8 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
       return { error: 'Owner does not have both artifacts' }
     }
 
-    // Verify minHash compatibility (contract requires POLYMERASE_MIN_MATCHES matches)
+    // Verify minHash compatibility - this is the only place eligibility is
+    // enforced now (see lib/polymerase.ts POLYMERASE_MIN_MATCHES comment).
     const targetMinHash = targetNft.minHash as string[]
     const consumedMinHash = consumedNft.minHash as string[]
 
@@ -625,10 +508,10 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
       return { error: `Insufficient similarity: ${matches}/${MINHASH_BANDS} matches (need ${POLYMERASE_MIN_MATCHES}/${MINHASH_BANDS})` }
     }
 
-    // Compute polymerization result
+    // Compute polymerization result (essence yield scales with resonance tier)
     const targetMeta = targetNft.metadata as Record<string, any>
     const consumedMeta = consumedNft.metadata as Record<string, any>
-    const { newMetadata, upgradedTraits, essenceYield } = computePolymerizationResult(targetMeta, consumedMeta)
+    const { newMetadata, upgradedTraits, essenceYield, tier } = computePolymerizationResult(targetMeta, consumedMeta, matches)
 
     // Compute new minHash
     const newMinHash = computeMinHash(newMetadata) as `0x${string}`[]
@@ -648,12 +531,14 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
       .returning()
 
     try {
-      fastify.log.info({ 
-        owner, 
-        targetTokenId: body.targetTokenId, 
+      fastify.log.info({
+        owner,
+        targetTokenId: body.targetTokenId,
         consumedTokenId: body.consumedTokenId,
         upgradedTraits,
         essenceYield,
+        tier,
+        matches,
       }, 'Polymerizing artifacts')
 
       // Execute polymerization on-chain
@@ -704,6 +589,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
         newMetadata,
         upgradedTraits,
         essenceYield,
+        tier,
       }
     } catch (error) {
       // Update polymerization record with failure

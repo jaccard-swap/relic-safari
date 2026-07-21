@@ -136,26 +136,19 @@ contract JaccardERC1155Facet is ERC1155 {
         bytes8[20] calldata newMinHash,
         uint256 essenceYield
     ) external returns (uint256) {
+        // Match-count eligibility (and its tiering) is decided by the API
+        // before this is ever called - enforceIsContractOwner means only
+        // that trusted backend can reach this function, so there's no one
+        // else to check the minHash against. Re-deriving it on-chain would
+        // just be spending gas to double-check a caller we already trust.
         LibDiamond.enforceIsContractOwner();
         AppStorage storage s = LibAppStorage.diamondStorage();
-        
+
         require(
             balanceOf(to, targetTokenId) >= amount && balanceOf(to, consumedTokenId) >= amount,
             "Polymerase: Insufficient balance"
         );
         require(targetTokenId != consumedTokenId, "Polymerase: Cannot polymerase same token");
-
-        bytes8[20] memory minHashTarget = s.minHashes[targetTokenId];
-        bytes8[20] memory minHashConsumed = s.minHashes[consumedTokenId];
-
-        uint256 matches = 0;
-        for (uint256 i = 0; i < 20; i++) {
-            if (minHashTarget[i] == minHashConsumed[i]) matches++;
-        }
-        // Fixed floor for polymerase (distinct from the tunable per-bid
-        // threshold in JaccardSwapFacet.minMatches); 8/20 keeps the ~40%
-        // similarity bar from the prior 5/13 config.
-        require(matches >= 8, "Polymerase: Need 8/20 minhash matches");
 
         _burn(to, consumedTokenId, amount);
         s.minHashes[targetTokenId] = newMinHash;

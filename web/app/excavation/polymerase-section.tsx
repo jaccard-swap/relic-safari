@@ -6,11 +6,13 @@ import { usePolymeraseSimulation } from "./use-polymerase-simulation";
 import { usePolymerizationHistory, useFuse, type PolymerizationRecord } from "./use-polymerization-history";
 import { CollapsibleSection } from "../components/collapsible-section";
 import { MiniNftCard } from "./mini-nft-card";
+import { TradingCard } from "./trading-card";
 import { WorkbenchArtifact } from "./workbench-artifact";
 import { SimulationPanel } from "./simulation-panel";
 import { ReactionCard } from "./reaction-card";
 import { ReactionDetailModal } from "./reaction-detail-modal";
 import { Toast } from "../components/toast";
+import { ViewToggle, type CardView } from "../components/view-toggle";
 
 interface PolymeraseSectionProps {
   expanded: boolean;
@@ -24,6 +26,7 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
   const [selectedNfts, setSelectedNfts] = useState<string[]>([]);
   const [detailReaction, setDetailReaction] = useState<PolymerizationRecord | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [view, setView] = useState<CardView>("list");
 
   const { chainId } = useAccount();
   const { essenceBalance, refetchEssence } = useBalances();
@@ -163,17 +166,36 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
 
         <div className="mb-1.5 mt-3 flex items-center justify-between">
           <span className="text-xs text-stone-500">{!targetNft ? "Select target artifact" : !consumedNft ? "Select catalyst" : "Selected"}</span>
-          <span className="text-xs text-amber-300">{selectedNfts.length}/2</span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-amber-300">{selectedNfts.length}/2</span>
+            <ViewToggle view={view} onChange={setView} />
+          </div>
         </div>
         {nfts.length < 2 ? (
           <div className="py-3 text-center text-xs text-stone-500">Need at least 2 artifacts</div>
-        ) : (
+        ) : view === "list" ? (
           <div className="max-h-40 space-y-1 overflow-y-auto">
             {nfts.map((nft) => {
               const isTarget = nft.id === targetNftId;
               const isConsumed = nft.id === consumedNftId;
               return (
                 <MiniNftCard
+                  key={nft.id}
+                  nft={nft}
+                  selected={isTarget || isConsumed}
+                  role={isTarget ? "target" : isConsumed ? "consumed" : undefined}
+                  onSelect={() => toggleNftSelection(nft.id)}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex max-h-64 flex-wrap gap-2 overflow-y-auto">
+            {nfts.map((nft) => {
+              const isTarget = nft.id === targetNftId;
+              const isConsumed = nft.id === consumedNftId;
+              return (
+                <TradingCard
                   key={nft.id}
                   nft={nft}
                   selected={isTarget || isConsumed}

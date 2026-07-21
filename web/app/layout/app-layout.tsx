@@ -17,7 +17,7 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-stone-900">
       <nav className="sticky top-0 z-40 border-b border-amber-900/30 bg-gradient-to-r from-stone-900 via-stone-800 to-stone-900">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
+        <div className="flex items-center justify-between px-4 py-3">
           <div className="flex items-center gap-1.5">
             {NAV_ITEMS.map((item) => {
               const active = item.to === "/" ? location.pathname === "/" : location.pathname.startsWith(item.to);
@@ -39,7 +39,7 @@ export function AppLayout() {
         </div>
       </nav>
 
-      <main className="mx-auto max-w-4xl p-4">
+      <main className="p-4">
         <Outlet />
       </main>
     </div>
