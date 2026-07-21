@@ -110,17 +110,9 @@ export function NftCard({ nft, isExpanded, onToggle, onAuction, onShowDetails }:
               </span>
             </div>
 
-            <div className="flex gap-1.5">
-              <button type="button" onClick={handleAuction} className="flex-1 py-1.5 bg-amber-700/80 hover:bg-amber-600 text-white text-xs font-medium rounded transition-colors">
-                🏛️ Auction
-              </button>
-              <button type="button" disabled className="flex-1 py-1.5 bg-stone-600/30 text-stone-500 text-xs font-medium rounded cursor-not-allowed">
-                ⚗️ Fuse
-              </button>
-              <button type="button" disabled className="flex-1 py-1.5 bg-stone-700/30 text-stone-500 text-xs font-medium rounded cursor-not-allowed">
-                ↗ Gift
-              </button>
-            </div>
+            <button type="button" onClick={handleAuction} className="w-full py-1.5 bg-amber-700/80 hover:bg-amber-600 text-white text-xs font-medium rounded transition-colors">
+              🏛️ Auction
+            </button>
           </div>
         </div>
       </div>

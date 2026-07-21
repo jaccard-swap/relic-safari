@@ -1,5 +1,5 @@
 import { auctions, bids, nfts, auctionEvents } from '@shared/database'
-import { eq, desc, and, gte } from 'drizzle-orm'
+import { eq, desc, and, gte, inArray } from 'drizzle-orm'
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres'
 import type { CreateAuctionBody, PlaceBidBody } from './types'
 import { broadcastEvent } from './rooms'
@@ -57,6 +57,14 @@ export function isValidAddress(addr: string): boolean {
 
 // ============ Auction Operations ============
 
+// Fetch nfts by id in one round trip, keyed by id - used to attach `nft` to
+// auction rows without an N+1 query per auction.
+async function getNftsMapByIds(db: DB, ids: string[]): Promise<Map<string, typeof nfts.$inferSelect>> {
+  if (ids.length === 0) return new Map()
+  const results = await db.select().from(nfts).where(inArray(nfts.id, ids))
+  return new Map(results.map((nft) => [nft.id, nft]))
+}
+
 export async function createAuction(db: DB, body: CreateAuctionBody) {
   const [auction] = await db
     .insert(auctions)
@@ -85,7 +93,16 @@ export async function createAuction(db: DB, body: CreateAuctionBody) {
     message: body.title,
   })
 
-  return auction
+  // Attach the nft so this shape matches listAuctions/getAuctionWithDetails -
+  // both the create response and the NEW_AUCTION feed broadcast (which
+  // forwards whatever this returns as-is) need it for grid-card rendering.
+  let nft = null
+  if (auction.nftId) {
+    const [nftResult] = await db.select().from(nfts).where(eq(nfts.id, auction.nftId)).limit(1)
+    nft = nftResult
+  }
+
+  return { ...auction, nft }
 }
 
 export async function getAuction(db: DB, id: string) {
@@ -156,7 +173,13 @@ export async function listAuctions(db: DB, filters: ListAuctionsFilters = {}) {
     .where(and(...conditions))
     .orderBy(desc(auctions.createdAt))
 
-  return results
+  const nftIds = results.map((a) => a.nftId).filter((id): id is string => !!id)
+  const nftsById = await getNftsMapByIds(db, nftIds)
+
+  return results.map((auction) => ({
+    ...auction,
+    nft: auction.nftId ? nftsById.get(auction.nftId) ?? null : null,
+  }))
 }
 
 export async function getAuctionsByAuctioneer(db: DB, address: string) {

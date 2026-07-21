@@ -1,18 +1,16 @@
 import { useParams } from "react-router";
-import { NftDetailModal } from "../components/nft-detail-modal";
 import { useAuctionRoom } from "../lib/use-auction-room";
 import { useCheckStandingBids } from "../lib/use-check-standing-bids";
 import { useSession } from "../auth/use-auth";
 import { ActionPanel } from "./action-panel";
 import { ActivityFeed } from "./activity-feed";
+import { ArtifactPanel } from "./artifact-panel";
 import { AuctionHeader } from "./auction-header";
-import { useState } from "react";
 
 export function AuctionRoomPage() {
   const { auctionId } = useParams();
   const { data: session } = useSession();
   const { auction, nft, highestBid, events, isLoading, error, connected, connectionLost, participantCount, sendChat } = useAuctionRoom(auctionId ?? "");
-  const [showNftDetail, setShowNftDetail] = useState(false);
 
   useCheckStandingBids(auctionId ?? "", connected);
 
@@ -29,20 +27,14 @@ export function AuctionRoomPage() {
   }
 
   return (
-    <div className="space-y-3">
-      <AuctionHeader auction={auction} nft={nft} highestBid={highestBid} connected={connected} connectionLost={connectionLost} participantCount={participantCount} />
+    <div className="grid gap-3 md:grid-cols-[minmax(260px,380px)_1fr] md:items-start">
+      {nft && <ArtifactPanel nft={nft} />}
 
-      {nft && (
-        <button type="button" onClick={() => setShowNftDetail(true)} className="w-full rounded border border-stone-700/50 bg-stone-800/30 p-2 text-left text-xs text-stone-400 hover:border-amber-700/50">
-          View artifact details →
-        </button>
-      )}
-
-      <ActionPanel auction={auction} nft={nft} highestBid={highestBid} />
-
-      <ActivityFeed events={events} onSendChat={sendChat} canChat={!!session?.authenticated} />
-
-      <NftDetailModal nft={showNftDetail ? nft : null} onClose={() => setShowNftDetail(false)} />
+      <div className="min-w-0 space-y-3">
+        <AuctionHeader auction={auction} highestBid={highestBid} connected={connected} connectionLost={connectionLost} participantCount={participantCount} />
+        <ActionPanel auction={auction} nft={nft} highestBid={highestBid} />
+        <ActivityFeed events={events} onSendChat={sendChat} canChat={!!session?.authenticated} />
+      </div>
     </div>
   );
 }

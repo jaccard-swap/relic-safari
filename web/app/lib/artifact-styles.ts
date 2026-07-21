@@ -108,6 +108,26 @@ export const TRAIT_KEY_EMOJI: Record<string, string> = {
   inscription: "✍️",
 };
 
+// Polymerase MinHash resonance tiers - separate scale from NFT rarity above,
+// following a WoW item-quality-style ladder (white/green/blue/purple/gold)
+// instead of rarity's stone/emerald/sky/violet/amber, since "insufficient"
+// needs to read as a neutral/base state rather than a bad one - a fusion
+// that's simply not yet eligible, not a broken or low-quality item.
+export const RESONANCE_TIER_STYLES: Record<
+  string,
+  { border: string; bg: string; text: string; label: string; multiplier: string }
+> = {
+  insufficient: { border: "border-slate-400/30", bg: "bg-slate-800/30", text: "text-white", label: "Insufficient", multiplier: "0x" },
+  low: { border: "border-emerald-500/30", bg: "bg-emerald-950/30", text: "text-emerald-400", label: "Low Resonance", multiplier: "1x" },
+  medium: { border: "border-sky-500/30", bg: "bg-sky-950/30", text: "text-sky-400", label: "Medium Resonance", multiplier: "1.5x" },
+  high: { border: "border-violet-500/30", bg: "bg-violet-950/30", text: "text-violet-300", label: "High Resonance", multiplier: "2x" },
+  super: { border: "border-amber-500/30", bg: "bg-amber-950/30", text: "text-amber-300 font-medium", label: "Super Resonance", multiplier: "2.5x" },
+};
+
+export function getResonanceTierStyles(tier: string = "insufficient") {
+  return RESONANCE_TIER_STYLES[tier] || RESONANCE_TIER_STYLES.insufficient;
+}
+
 export function getCardStyles(rarity: string = "common"): string {
   const style = RARITY_STYLES[rarity] || RARITY_STYLES.common;
   return `${style.bg} ${style.border} ${style.glow || ""}`;

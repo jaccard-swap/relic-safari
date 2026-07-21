@@ -1,3 +1,5 @@
+import type { Nft } from "./use-nfts";
+
 // Client-side shape of an auction row, as returned by api/src/routes/auction.
 // Mirrors shared/database's `auctions` table plus the derived `status` values
 // the backend actually writes ('active' | 'settled' | 'cancelled' - 'pending'
@@ -19,6 +21,9 @@ export interface Auction {
   winningBid?: string | null;
   settlementTxHash?: string | null;
   createdAt: string;
+  // Joined in by the API (listAuctions/createAuction) alongside the bare
+  // auction row - null for auctions somehow created without a linked nftId.
+  nft?: Nft | null;
 }
 
 export interface AuctionEvent {

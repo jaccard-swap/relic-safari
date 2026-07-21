@@ -1,14 +1,15 @@
 import { TRAIT_POOLS } from '@shared/constants'
 
 // Below this floor a fusion isn't attempted at all. The on-chain contract
-// used to also enforce this itself (a flat `require(matches >= 8, ...)` in
-// JaccardERC1155Facet.polymerase), but that function is gated by
-// enforceIsContractOwner() - only this backend can ever call it - so
-// re-deriving the match count on-chain was pure redundant gas. The floor now
-// lives here only; the contract trusts whatever this API decides.
-export const POLYMERASE_MIN_MATCHES = 8
+// used to enforce a hardcoded 8-match floor itself (a flat
+// `require(matches >= 8, ...)` in JaccardERC1155Facet.polymerase), but that
+// function is gated by enforceIsContractOwner() - only this backend can ever
+// call it - so re-deriving the match count on-chain was pure redundant gas.
+// The floor now lives here only, and was lowered to 4 as part of the move to
+// five even-width (4-match) resonance bands below.
+export const POLYMERASE_MIN_MATCHES = 4
 
-export type ResonanceTier = 'insufficient' | 'low' | 'medium' | 'super'
+export type ResonanceTier = 'insufficient' | 'low' | 'medium' | 'high' | 'super'
 
 interface TierDef {
   min: number
@@ -16,14 +17,18 @@ interface TierDef {
   multiplier: number
 }
 
-// Checked highest-min-first. The multiplier scales the trait-derived
-// essenceYield - stronger resonance between the two fused artifacts yields
-// more essence for the same fusion. `insufficient` never actually reaches a
-// multiplier in practice since callers reject the fusion before computing a
-// result, but it's included so getResonanceTier is total over all inputs.
+// Five even bands of 4 matches each (0-3/4-7/8-11/12-15/16-20, the last
+// absorbing the extra value since 21 possible match counts don't divide
+// evenly by 5). Checked highest-min-first. The multiplier scales the
+// trait-derived essenceYield in even +0.5 steps - stronger resonance between
+// the two fused artifacts yields more essence for the same fusion.
+// `insufficient` never actually reaches a multiplier in practice since
+// callers reject the fusion before computing a result, but it's included so
+// getResonanceTier is total over all inputs.
 const RESONANCE_TIERS: readonly TierDef[] = [
-  { min: 16, tier: 'super', multiplier: 2 },
-  { min: 12, tier: 'medium', multiplier: 1.5 },
+  { min: 16, tier: 'super', multiplier: 2.5 },
+  { min: 12, tier: 'high', multiplier: 2 },
+  { min: 8, tier: 'medium', multiplier: 1.5 },
   { min: POLYMERASE_MIN_MATCHES, tier: 'low', multiplier: 1 },
   { min: 0, tier: 'insufficient', multiplier: 0 },
 ]

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useAccount, useConnect, useSignMessage, type Connector } from "wagmi";
+import { useAccount, useSignMessage } from "wagmi";
 import { apiJson, clearAuthToken, getAuthToken } from "../lib/api";
 import { buildSiweMessage, fetchSiweNonce, loginWithSiwe } from "./siwe";
 
@@ -24,30 +24,25 @@ export function useSession() {
   });
 }
 
-// Combines wallet-connect + SIWE sign + API login into one action, matching
-// the original app's single-click "connect and sign in" gesture.
+// Deliberately separate from wallet connection - popping a signature request
+// the instant a wallet connects is a phishing-adjacent pattern users are
+// trained to distrust. This only ever signs for the already-connected
+// account; the caller (WalletMenu) gates it behind its own explicit "Sign
+// In" button that only appears once a wallet is connected.
 export function useSiweLogin() {
   const queryClient = useQueryClient();
   const { address, chainId } = useAccount();
-  const { connectAsync } = useConnect();
   const { signMessageAsync } = useSignMessage();
 
   return useMutation({
-    mutationFn: async (connector: Connector) => {
-      let activeAddress = address;
-      let activeChainId = chainId;
-      if (!activeAddress) {
-        const result = await connectAsync({ connector });
-        activeAddress = result.accounts[0];
-        activeChainId = result.chainId;
-      }
-      if (!activeAddress || !activeChainId) {
-        throw new Error("No wallet connected.");
+    mutationFn: async () => {
+      if (!address || !chainId) {
+        throw new Error("Connect a wallet before signing in.");
       }
 
       const nonce = await fetchSiweNonce();
-      const message = buildSiweMessage({ address: activeAddress, chainId: activeChainId, nonce });
-      const signature = await signMessageAsync({ account: activeAddress, message });
+      const message = buildSiweMessage({ address, chainId, nonce });
+      const signature = await signMessageAsync({ account: address, message });
       return loginWithSiwe(message, signature, nonce);
     },
     onSuccess: () => {

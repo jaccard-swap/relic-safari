@@ -11,8 +11,8 @@ export function WalletMenu() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { address, chain, chainId, isConnected, connector: activeConnector } = useAccount();
-  const { connectors } = useConnect();
+  const { address, chain, chainId, isConnected } = useAccount();
+  const { connectors, connectAsync, isPending: isConnecting } = useConnect();
   const chains = useChains();
   const { switchChain, isPending: isSwitchingChain } = useSwitchChain();
   const { disconnect } = useDisconnect();
@@ -30,51 +30,67 @@ export function WalletMenu() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const isAuthed = isConnected && session?.authenticated;
-
-  if (!isAuthed) {
+  // Not connected yet - this button only connects a wallet, it never signs
+  // anything. Signing in is a separate, explicit step below.
+  if (!isConnected) {
     return (
       <div className="relative" ref={containerRef}>
         <button
           type="button"
           onClick={() => {
-            // Wallet's already connected (e.g. a stale/expired SIWE token) -
-            // just re-sign with the connector already in use.
-            if (isConnected && activeConnector) {
-              login.mutate(activeConnector);
-              return;
-            }
             if (connectors.length <= 1) {
               const connector = connectors[0];
-              if (connector) login.mutate(connector);
+              if (connector) void connectAsync({ connector });
               return;
             }
             setOpen((v) => !v);
           }}
-          disabled={login.isPending}
+          disabled={isConnecting}
           className="rounded border border-amber-900/30 bg-stone-800/50 px-3 py-1.5 text-sm font-medium text-amber-200/80 hover:bg-stone-700/50 disabled:opacity-60"
         >
-          {login.isPending ? "Signing in…" : isConnected ? "Sign in" : "Connect Wallet"}
+          {isConnecting ? "Connecting…" : "Connect Wallet"}
         </button>
 
-        {open && !isConnected && connectors.length > 1 && (
+        {open && connectors.length > 1 && (
           <div className="absolute right-0 top-full z-50 mt-1.5 min-w-[160px] rounded border border-amber-900/40 bg-stone-800 p-3 shadow-lg">
             <ConnectorList
               connectors={connectors}
-              disabled={login.isPending}
+              disabled={isConnecting}
               onSelect={(connector) => {
-                login.mutate(connector);
+                void connectAsync({ connector });
                 setOpen(false);
               }}
             />
           </div>
         )}
+      </div>
+    );
+  }
 
-        {login.isError && (
-          <p className="absolute right-0 top-full mt-1.5 w-48 text-right text-[13px] text-red-400">
-            {login.error instanceof Error ? login.error.message : "Sign-in failed"}
-          </p>
-        )}
+  // Connected, but no (or a stale) SIWE session - require an explicit click
+  // to sign rather than popping the signature prompt the moment the wallet
+  // connects.
+  if (!session?.authenticated) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="rounded border border-stone-700/50 bg-stone-800/30 px-3 py-1.5 font-mono text-sm text-stone-400">
+          {address && shortAddress(address)}
+        </span>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => login.mutate()}
+            disabled={login.isPending}
+            className="rounded border border-amber-900/30 bg-stone-800/50 px-3 py-1.5 text-sm font-medium text-amber-200/80 hover:bg-stone-700/50 disabled:opacity-60"
+          >
+            {login.isPending ? "Signing in…" : "Sign In"}
+          </button>
+          {login.isError && (
+            <p className="absolute right-0 top-full mt-1.5 w-48 text-right text-[13px] text-red-400">
+              {login.error instanceof Error ? login.error.message : "Sign-in failed"}
+            </p>
+          )}
+        </div>
       </div>
     );
   }

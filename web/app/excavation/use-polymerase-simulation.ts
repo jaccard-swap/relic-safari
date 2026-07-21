@@ -18,6 +18,7 @@ export interface TraitBreakdown {
 
 export interface SimulationResult {
   eligible: boolean;
+  tier: "insufficient" | "low" | "medium" | "high" | "super";
   minHash: {
     bands: BandMatch[];
     matchCount: number;

@@ -15,23 +15,28 @@ import {
 describe('getResonanceTier', () => {
   test('below the floor is insufficient', () => {
     assert.deepEqual(getResonanceTier(0), { tier: 'insufficient', multiplier: 0 })
-    assert.deepEqual(getResonanceTier(7), { tier: 'insufficient', multiplier: 0 })
+    assert.deepEqual(getResonanceTier(3), { tier: 'insufficient', multiplier: 0 })
   })
 
   test('POLYMERASE_MIN_MATCHES is the low-tier floor', () => {
-    assert.equal(POLYMERASE_MIN_MATCHES, 8)
-    assert.deepEqual(getResonanceTier(8), { tier: 'low', multiplier: 1 })
-    assert.deepEqual(getResonanceTier(11), { tier: 'low', multiplier: 1 })
+    assert.equal(POLYMERASE_MIN_MATCHES, 4)
+    assert.deepEqual(getResonanceTier(4), { tier: 'low', multiplier: 1 })
+    assert.deepEqual(getResonanceTier(7), { tier: 'low', multiplier: 1 })
   })
 
-  test('12-15 is medium', () => {
-    assert.deepEqual(getResonanceTier(12), { tier: 'medium', multiplier: 1.5 })
-    assert.deepEqual(getResonanceTier(15), { tier: 'medium', multiplier: 1.5 })
+  test('8-11 is medium', () => {
+    assert.deepEqual(getResonanceTier(8), { tier: 'medium', multiplier: 1.5 })
+    assert.deepEqual(getResonanceTier(11), { tier: 'medium', multiplier: 1.5 })
+  })
+
+  test('12-15 is high', () => {
+    assert.deepEqual(getResonanceTier(12), { tier: 'high', multiplier: 2 })
+    assert.deepEqual(getResonanceTier(15), { tier: 'high', multiplier: 2 })
   })
 
   test('16-20 is super', () => {
-    assert.deepEqual(getResonanceTier(16), { tier: 'super', multiplier: 2 })
-    assert.deepEqual(getResonanceTier(20), { tier: 'super', multiplier: 2 })
+    assert.deepEqual(getResonanceTier(16), { tier: 'super', multiplier: 2.5 })
+    assert.deepEqual(getResonanceTier(20), { tier: 'super', multiplier: 2.5 })
   })
 })
 
@@ -44,45 +49,51 @@ describe('computePolymerizationResult essence scaling', () => {
   const consumed = { name: 'Consumed', age: 'iron age', material: 'gold', form: 'idol', site: 'desert-tomb' }
 
   test('insufficient tier zeroes out essence entirely', () => {
-    const result = computePolymerizationResult(target, consumed, 7)
+    const result = computePolymerizationResult(target, consumed, 3)
     assert.equal(result.tier, 'insufficient')
     assert.equal(result.essenceYield, 0)
   })
 
-  test('low tier (8-11 matches) applies a 1x multiplier', () => {
-    const atFloor = computePolymerizationResult(target, consumed, 8)
-    const atCeiling = computePolymerizationResult(target, consumed, 11)
+  test('low tier (4-7 matches) applies a 1x multiplier', () => {
+    const atFloor = computePolymerizationResult(target, consumed, 4)
+    const atCeiling = computePolymerizationResult(target, consumed, 7)
     assert.equal(atFloor.tier, 'low')
     assert.equal(atFloor.essenceYield, 20)
     assert.equal(atCeiling.tier, 'low')
     assert.equal(atCeiling.essenceYield, 20)
   })
 
-  test('medium tier (12-15 matches) applies a 1.5x multiplier', () => {
-    const result = computePolymerizationResult(target, consumed, 12)
+  test('medium tier (8-11 matches) applies a 1.5x multiplier', () => {
+    const result = computePolymerizationResult(target, consumed, 8)
     assert.equal(result.tier, 'medium')
     assert.equal(result.essenceYield, 30) // 20 * 1.5
   })
 
-  test('super tier (16-20 matches) applies a 2x multiplier', () => {
+  test('high tier (12-15 matches) applies a 2x multiplier', () => {
+    const result = computePolymerizationResult(target, consumed, 12)
+    assert.equal(result.tier, 'high')
+    assert.equal(result.essenceYield, 40) // 20 * 2
+  })
+
+  test('super tier (16-20 matches) applies a 2.5x multiplier', () => {
     const result = computePolymerizationResult(target, consumed, 20)
     assert.equal(result.tier, 'super')
-    assert.equal(result.essenceYield, 40) // 20 * 2
+    assert.equal(result.essenceYield, 50) // 20 * 2.5
   })
 
   test('the minimum essence floor is applied before tier scaling, not after', () => {
     // A single non-upgradeable trait yields a base essence of 5, well under
     // MIN_POLYMERIZATION_ESSENCE (15). If the floor were applied after
     // scaling instead of before, super tier would still show 15; applied
-    // before, super tier doubles the floored value to 30.
+    // before, super tier scales the floored value up to 37.5 -> 38.
     const sparseTarget = { name: 'Target', age: 'bronze age' }
     const sparseConsumed = { name: 'Consumed', age: 'iron age' }
 
-    const low = computePolymerizationResult(sparseTarget, sparseConsumed, 8)
+    const low = computePolymerizationResult(sparseTarget, sparseConsumed, 4)
     assert.equal(low.essenceYield, MIN_POLYMERIZATION_ESSENCE)
 
     const superTier = computePolymerizationResult(sparseTarget, sparseConsumed, 20)
-    assert.equal(superTier.essenceYield, MIN_POLYMERIZATION_ESSENCE * 2)
+    assert.equal(superTier.essenceYield, Math.round(MIN_POLYMERIZATION_ESSENCE * 2.5))
   })
 
   test('a non-integer scaled result rounds rather than truncating', () => {
@@ -92,7 +103,7 @@ describe('computePolymerizationResult essence scaling', () => {
     const targetWithQuality = { ...target, quality: 'fragmented' }
     const consumedWithQuality = { ...consumed, quality: 'worn' }
 
-    const result = computePolymerizationResult(targetWithQuality, consumedWithQuality, 12)
+    const result = computePolymerizationResult(targetWithQuality, consumedWithQuality, 8)
     assert.equal(result.tier, 'medium')
     assert.equal(result.essenceYield, 38)
   })
@@ -110,7 +121,7 @@ describe('computePolymerizationResult trait upgrades (unaffected by tier scaling
     // instead), floored to MIN_POLYMERIZATION_ESSENCE, then still scaled by
     // the super-tier multiplier - the floor and the tier multiplier compose
     // independently of whichever traits actually produced essence.
-    assert.equal(result.essenceYield, MIN_POLYMERIZATION_ESSENCE * 2)
+    assert.equal(result.essenceYield, Math.round(MIN_POLYMERIZATION_ESSENCE * 2.5))
   })
 
   test('an already-maxed matching upgradeable trait yields neither an upgrade nor essence', () => {
@@ -129,7 +140,7 @@ describe('computePolymerizationResult trait upgrades (unaffected by tier scaling
     const target = { name: 'Target', age: 'bronze age' }
     const consumed = { name: 'Consumed', age: 'bronze age' }
 
-    const result = computePolymerizationResult(target, consumed, 8)
+    const result = computePolymerizationResult(target, consumed, 4)
     assert.equal(result.tier, 'low')
     assert.equal(result.essenceYield, MIN_POLYMERIZATION_ESSENCE) // floor(5) * 1
   })

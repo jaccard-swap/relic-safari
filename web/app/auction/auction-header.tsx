@@ -1,18 +1,16 @@
 import { useEffect, useState } from "react";
 import { formatEther } from "viem";
 import { formatTimeLeft, type Auction } from "../lib/auctions";
-import type { Nft } from "../lib/use-nfts";
 
 interface AuctionHeaderProps {
   auction: Auction;
-  nft: Nft | null;
   highestBid: string | null;
   connected: boolean;
   connectionLost: boolean;
   participantCount: number;
 }
 
-export function AuctionHeader({ auction, nft, highestBid, connected, connectionLost, participantCount }: AuctionHeaderProps) {
+export function AuctionHeader({ auction, highestBid, connected, connectionLost, participantCount }: AuctionHeaderProps) {
   const [timeLeft, setTimeLeft] = useState(() => formatTimeLeft(auction.endTime));
 
   useEffect(() => {
@@ -54,13 +52,6 @@ export function AuctionHeader({ auction, nft, highestBid, connected, connectionL
           </div>
         </div>
       </div>
-
-      {nft && (
-        <div className="mt-3 flex items-center gap-2 border-t border-stone-700/50 pt-2 text-xs text-stone-400">
-          <span>Artifact:</span>
-          <span className="text-amber-300">{nft.metadata.name || `#${nft.tokenId.slice(-6)}`}</span>
-        </div>
-      )}
     </div>
   );
 }

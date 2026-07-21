@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useAccount } from "wagmi";
+import { ViewToggle, type CardView } from "../components/view-toggle";
 import { CreateAuctionModal } from "../components/create-auction-modal";
 import { NftDetailModal } from "../components/nft-detail-modal";
 import { useBalances } from "../lib/use-balances";
 import { useNfts, type Nft } from "../lib/use-nfts";
 import { NftCard } from "./nft-card";
+import { TradingCard } from "../excavation/trading-card";
 
 export function VaultPage() {
   const { isConnected } = useAccount();
@@ -14,6 +16,7 @@ export function VaultPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [auctionNft, setAuctionNft] = useState<Nft | null>(null);
   const [detailNft, setDetailNft] = useState<Nft | null>(null);
+  const [view, setView] = useState<CardView>("list");
 
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
 
@@ -61,20 +64,42 @@ export function VaultPage() {
         <div>
           <div className="mb-2 flex items-center justify-between px-0.5">
             <span className="text-[13px] font-medium text-stone-400">Artifacts</span>
-            <span className="text-xs text-stone-500">{nfts.length} recovered</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-stone-500">{nfts.length} recovered</span>
+              <ViewToggle view={view} onChange={setView} />
+            </div>
           </div>
-          <div className="scrollbar-thin scrollbar-thumb-stone-700 max-h-96 space-y-1.5 overflow-y-auto">
-            {nfts.map((nft) => (
-              <NftCard
-                key={nft.id}
-                nft={nft}
-                isExpanded={expandedId === nft.id}
-                onToggle={() => toggleExpand(nft.id)}
-                onAuction={() => setAuctionNft(nft)}
-                onShowDetails={() => setDetailNft(nft)}
-              />
-            ))}
-          </div>
+
+          {view === "list" ? (
+            <div className="scrollbar-thin scrollbar-thumb-stone-700 max-h-96 space-y-1.5 overflow-y-auto">
+              {nfts.map((nft) => (
+                <NftCard
+                  key={nft.id}
+                  nft={nft}
+                  isExpanded={expandedId === nft.id}
+                  onToggle={() => toggleExpand(nft.id)}
+                  onAuction={() => setAuctionNft(nft)}
+                  onShowDetails={() => setDetailNft(nft)}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="scrollbar-thin scrollbar-thumb-stone-700 flex max-h-96 flex-wrap gap-2 overflow-y-auto">
+              {nfts.map((nft) => (
+                <div key={nft.id} className="relative">
+                  <TradingCard nft={nft} onClick={() => setDetailNft(nft)} />
+                  <button
+                    type="button"
+                    onClick={() => setAuctionNft(nft)}
+                    title="Auction"
+                    className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-700/80 text-xs text-white transition-colors hover:bg-amber-600"
+                  >
+                    🏛️
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

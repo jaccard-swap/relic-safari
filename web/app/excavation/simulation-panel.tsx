@@ -1,5 +1,6 @@
 import type { SimulationResult } from "./use-polymerase-simulation";
 import { BandMatcher } from "./band-matcher";
+import { getResonanceTierStyles } from "../lib/artifact-styles";
 
 interface SimulationPanelProps {
   simulation: SimulationResult | undefined;
@@ -23,20 +24,22 @@ export function SimulationPanel({ simulation, loading, error }: SimulationPanelP
 
   if (!simulation) return null;
 
-  const { eligible, minHash, traitBreakdown, result } = simulation;
+  const { eligible, tier, minHash, traitBreakdown, result } = simulation;
+  const tierStyle = getResonanceTierStyles(tier);
 
   return (
     <div className="space-y-3">
-      <div className={`rounded border p-3 ${eligible ? "border-emerald-500/30 bg-emerald-950/30" : "border-red-500/30 bg-red-950/30"}`}>
+      <div className={`rounded border p-3 ${tierStyle.border} ${tierStyle.bg}`}>
         <div className="mb-1.5 flex items-center justify-between">
           <span className="text-xs text-stone-400">MinHash Resonance</span>
-          <span className={`font-mono text-[13px] ${eligible ? "text-emerald-400" : "text-red-400"}`}>
+          <span className={`font-mono text-[13px] ${tierStyle.text}`}>
             {minHash.matchCount}/{minHash.bands.length}
           </span>
         </div>
         <BandMatcher bands={minHash.bands} />
-        <div className={`mt-1.5 text-center text-[11px] ${eligible ? "text-emerald-300" : "text-red-300"}`}>
-          {eligible ? "✓ Fusion possible" : "✗ Insufficient resonance"}
+        <div className={`mt-1.5 flex items-center justify-center gap-1.5 text-[11px] ${tierStyle.text}`}>
+          <span>{eligible ? "✓" : "✗"} {tierStyle.label}</span>
+          {eligible && <span className="text-stone-500">· {tierStyle.multiplier} essence</span>}
         </div>
       </div>
 
