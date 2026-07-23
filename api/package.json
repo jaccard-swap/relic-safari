@@ -9,6 +9,7 @@
   "scripts": {
     "test": "npm run build:ts && tsc -p test/tsconfig.json && c8 node --test --test-timeout=60000 -r ts-node/register \"test/**/*.ts\"",
     "test:e2e": "node --test --test-timeout=60000 -r ts-node/register \"test/**/*.ts\"",
+    "seed:standing-bid-demo": "TS_NODE_PROJECT=test/tsconfig.json node -r ts-node/register scripts/seed-standing-bid-demo.ts",
     "start": "npm run build:ts && fastify start -l info dist/app.js",
     "build:ts": "tsc",
     "watch:ts": "tsc -w --preserveWatchOutput",

@@ -219,7 +219,6 @@ const bidRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
     const { auctionId } = request.params as { auctionId: string }
 
     try {
-      // Get the auction and its NFT
       const [auction] = await fastify.db
         .select()
         .from(auctions)
@@ -236,89 +235,19 @@ const bidRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
         return { error: 'Auction has no linked NFT' }
       }
 
-      // Get the NFT
-      const [nft] = await fastify.db
-        .select()
-        .from(nfts)
-        .where(eq(nfts.id, auction.nftId))
-        .limit(1)
+      // Delegates to the same matcher used on auction creation (see
+      // lib/Auction/standingBids.ts) rather than reimplementing the
+      // match/attach loop here - a prior duplicate copy ignored placeBid's
+      // {success: false} result and could mark a standing bid 'matched'
+      // even when the attach itself failed (e.g. amount below the
+      // auction's startingBid).
+      const { attachStandingBids } = await import('../../lib/Auction/standingBids.js')
+      const attached = await attachStandingBids(fastify.db, fastify.log, auctionId)
 
-      if (!nft) {
-        reply.code(404)
-        return { error: 'NFT not found' }
-      }
-
-      const nftMinHash = nft.minHash as string[]
-
-      // Get active standing bids for this chain
-      const activeBids = await fastify.db
-        .select()
-        .from(standingBids)
-        .where(and(
-          eq(standingBids.status, 'active'),
-          eq(standingBids.chainId, nft.chainId),
-          gt(standingBids.deadline, new Date())
-        ))
-        .orderBy(desc(standingBids.amount))
-
-      // Find matching bids and attach them
-        const { placeBid } = await import('../../lib/Auction/db.js')
-        const attached: string[] = []
-
-      for (const standingBid of activeBids) {
-        const bidMinHash = standingBid.targetMinHash as string[]
-        const matches = countMinHashMatches(bidMinHash, nftMinHash)
-        
-        if (matches >= standingBid.minMatches) {
-          // Create auction bid from standing bid
-          const erc20Permit = standingBid.erc20Permit as {
-            owner: string
-            spender: string
-            value: string
-            deadline: number
-            v: number
-            r: string
-            s: string
-          }
-
-          await placeBid(fastify.db, auctionId, {
-            bidder: standingBid.bidder,
-            amount: standingBid.amount,
-            salt: standingBid.salt,
-            deadline: Math.floor(standingBid.deadline.getTime() / 1000),
-            targetMinHash: bidMinHash,
-            minMatches: standingBid.minMatches,
-            signature: standingBid.signature,
-            erc20Permit: {
-              ...erc20Permit,
-              deadline: String(erc20Permit.deadline),
-            },
-          })
-
-          // Mark standing bid as matched
-          await fastify.db
-            .update(standingBids)
-            .set({ 
-              status: 'matched',
-              matchedAuctionId: auctionId,
-              updatedAt: new Date(),
-            })
-            .where(eq(standingBids.id, standingBid.id))
-
-          attached.push(standingBid.id)
-          fastify.log.info({ 
-            standingBidId: standingBid.id, 
-            auctionId, 
-            matches,
-            amount: standingBid.amount 
-          }, 'Standing bid attached to auction')
-        }
-      }
-
-      return { 
+      return {
         auctionId,
         attachedCount: attached.length,
-        attachedBidIds: attached,
+        attachedBidIds: attached.map(a => a.id),
       }
     } catch (error) {
       fastify.log.error({ error, auctionId }, 'Failed to attach standing bids')
