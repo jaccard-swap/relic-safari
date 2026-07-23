@@ -19,7 +19,7 @@ interface ActionPanelProps {
 
 export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
   const { address, isConnected } = useAccount();
-  const createBid = useCreateBid(auction.id);
+  const createBid = useCreateBid(auction.id, auction.endTime);
   const { consume, status: consumeStatus, error: consumeError } = useConsumeAuction(auction.id);
 
   const [bidAmount, setBidAmount] = useState("");
@@ -68,16 +68,21 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
   }
 
   if (isAuctioneer) {
-    if (!ended) {
+    if (!highestBid) {
       return (
         <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-4 text-center text-[13px] text-stone-400">
-          Waiting for bids — you can settle once the auction ends
+          Waiting for a bid — you can settle as soon as one comes in
         </div>
       );
     }
     const busy = consumeStatus === "loading" || consumeStatus === "confirming" || consumeStatus === "recording";
     return (
       <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-4">
+        {!ended && (
+          <p className="mb-2 text-[11px] text-stone-500">
+            Ends the auction now and accepts the current highest bid ({parseFloat(formatEther(BigInt(highestBid))).toFixed(2)} SCRIP).
+          </p>
+        )}
         <button
           type="button"
           onClick={() => void consume()}
@@ -90,7 +95,9 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
               ? "Confirming…"
               : consumeStatus === "recording"
                 ? "Recording…"
-                : "🏆 Settle & Transfer"}
+                : ended
+                  ? "🏆 Settle & Transfer"
+                  : "🏆 End Auction Now"}
         </button>
         {consumeError && <p className="mt-1.5 text-xs text-red-400">{consumeError}</p>}
       </div>

@@ -69,20 +69,20 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
         }
       >
         <div className="mb-1.5 mt-3 flex items-center justify-between">
-          <span className="text-xs text-stone-500">Recent Finds</span>
+          <span className="text-xs text-stone-500">Finds</span>
           <ViewToggle view={view} onChange={setView} />
         </div>
         {nfts.length === 0 ? (
           <div className="py-3 text-center text-xs text-stone-500">No artifacts yet</div>
         ) : view === "list" ? (
           <div className="max-h-40 space-y-1 overflow-y-auto">
-            {nfts.slice(0, 5).map((nft) => (
+            {nfts.map((nft) => (
               <MiniNftCard key={nft.id} nft={nft} onClick={() => setDetailNft(nft)} />
             ))}
           </div>
         ) : (
           <div className="flex max-h-64 flex-wrap gap-2 overflow-y-auto">
-            {nfts.slice(0, 5).map((nft) => (
+            {nfts.map((nft) => (
               <TradingCard key={nft.id} nft={nft} onClick={() => setDetailNft(nft)} />
             ))}
           </div>

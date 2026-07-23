@@ -25,6 +25,39 @@ contract JaccardSwapFacet {
         uint8 similarityMatches
     );
 
+    // ============ Errors ============
+
+    // Surfaced from the highest (first) bid only - lower bids failing is
+    // expected once a higher one wins, so it's the top bid's rejection that's
+    // actually worth debugging when settlement comes back empty-handed.
+    enum BidRejectReason {
+        None,
+        BelowReserve,
+        BidExpired,
+        PermitExpired,
+        BadMinMatchesRange,
+        InsufficientMatches,
+        BadBidSignature,
+        WrongPermitSpender,
+        AlreadyUsed,
+        PaymentDeclined
+    }
+
+    // selector 0x29b9d38c - NoValidBids(uint8), enum encodes as its
+    // underlying uint8: 0=None 1=BelowReserve 2=BidExpired 3=PermitExpired
+    // 4=BadMinMatchesRange 5=InsufficientMatches 6=BadBidSignature
+    // 7=WrongPermitSpender 8=AlreadyUsed 9=PaymentDeclined
+    error NoValidBids(BidRejectReason topBidRejectReason);
+
+    // Packed into a struct (rather than 4 loose return values) to keep
+    // consumeAuction's loop under the stack-depth limit.
+    struct BidCheckResult {
+        bool valid;
+        address bidder;
+        uint8 matches;
+        BidRejectReason reason;
+    }
+
     // ============ Type Hashes ============
 
     bytes32 public constant ERC20_PERMIT_TYPEHASH = keccak256(
@@ -155,22 +188,26 @@ contract JaccardSwapFacet {
         bytes8[20] memory nftMinHash = s.minHashes[auction.nftPermit.tokenId];
 
         // Find winning bid
+        BidRejectReason topBidRejectReason = BidRejectReason.None;
         for (uint256 i = 0; i < auction.bids.length; i++) {
-            (bool valid, address bidder, uint8 matches) = _isBidValid(
+            BidCheckResult memory check = _isBidValid(
                 auction.bids[i],
                 auction.bidSignatures[i],
                 auction.reservePrice,
                 nftMinHash
             );
-            
-            if (!valid) continue;
+
+            if (!check.valid) {
+                if (i == 0) topBidRejectReason = check.reason;
+                continue;
+            }
 
             if (_tryPermitAndTransfer(auction.token, auction.bids[i].permit, auctioneer)) {
                 s.usedBids[hashBid(auction.bids[i])] = true;
                 s.usedAuctions[auctionHash] = true;
-                
+
                 // Internal transfer within diamond
-                _transferNft(auction.nftPermit, bidder);
+                _transferNft(auction.nftPermit, check.bidder);
 
                 emit AuctionSettled(
                     auction.nft,
@@ -178,14 +215,15 @@ contract JaccardSwapFacet {
                     auction.nftPermit.tokenId,
                     auction.bids[i].permit.value,
                     auctioneer,
-                    bidder,
-                    matches
+                    check.bidder,
+                    check.matches
                 );
                 return;
             }
+            if (i == 0) topBidRejectReason = BidRejectReason.PaymentDeclined;
         }
 
-        revert("No valid bids");
+        revert NoValidBids(topBidRejectReason);
     }
 
     // ============ View Functions ============
@@ -245,26 +283,26 @@ contract JaccardSwapFacet {
         bytes calldata bidSig,
         uint256 reservePrice,
         bytes8[20] memory nftMinHash
-    ) internal view returns (bool valid, address bidder, uint8 matches) {
+    ) internal view returns (BidCheckResult memory) {
         AppStorage storage s = LibAppStorage.diamondStorage();
 
-        if (bid.permit.value < reservePrice) return (false, address(0), 0);
-        if (bid.deadline < block.timestamp) return (false, address(0), 0);
-        if (bid.permit.deadline < block.timestamp) return (false, address(0), 0);
+        if (bid.permit.value < reservePrice) return BidCheckResult(false, address(0), 0, BidRejectReason.BelowReserve);
+        if (bid.deadline < block.timestamp) return BidCheckResult(false, address(0), 0, BidRejectReason.BidExpired);
+        if (bid.permit.deadline < block.timestamp) return BidCheckResult(false, address(0), 0, BidRejectReason.PermitExpired);
         // Bidder-tunable similarity gate, out of 20 hash functions -- kept
         // wide (2-20) so relic-safari swaps can dial from loose to exact.
-        if (bid.minMatches < 2 || bid.minMatches > 20) return (false, address(0), 0);
-        
-        matches = countMatches(bid.targetMinHash, nftMinHash);
-        if (matches < bid.minMatches) return (false, address(0), 0);
+        if (bid.minMatches < 2 || bid.minMatches > 20) return BidCheckResult(false, address(0), 0, BidRejectReason.BadMinMatchesRange);
+
+        uint8 matches = countMatches(bid.targetMinHash, nftMinHash);
+        if (matches < bid.minMatches) return BidCheckResult(false, address(0), 0, BidRejectReason.InsufficientMatches);
 
         bytes32 bidHash = hashBid(bid);
-        bidder = bidHash.recover(bidSig);
-        if (bidder != bid.permit.owner) return (false, address(0), 0);
-        if (bid.permit.spender != address(this)) return (false, address(0), 0);
-        if (s.usedBids[bidHash]) return (false, address(0), 0);
+        address bidder = bidHash.recover(bidSig);
+        if (bidder != bid.permit.owner) return BidCheckResult(false, address(0), 0, BidRejectReason.BadBidSignature);
+        if (bid.permit.spender != address(this)) return BidCheckResult(false, address(0), 0, BidRejectReason.WrongPermitSpender);
+        if (s.usedBids[bidHash]) return BidCheckResult(false, address(0), 0, BidRejectReason.AlreadyUsed);
 
-        return (true, bidder, matches);
+        return BidCheckResult(true, bidder, matches, BidRejectReason.None);
     }
 
     function _tryPermitAndTransfer(

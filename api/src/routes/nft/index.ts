@@ -141,7 +141,7 @@ const nftRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
   // This is a lightweight alternative to a full event indexer
   fastify.post('/sync-ownership', async function (request, reply) {
     const body = request.body as SyncOwnershipBody
-    const { publicClients, jaccardNft } = fastify
+    const { publicClients, getJaccardNft } = fastify
 
     fastify.log.info({ body }, 'sync-ownership request received')
 
@@ -157,7 +157,7 @@ const nftRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
     }
 
     const chainId = body.chainId as SupportedChainId
-    const artifact = jaccardNft[chainId]
+    const artifact = getJaccardNft(chainId)
 
     if (!artifact || !publicClients?.[chainId]) {
       reply.code(400)

@@ -1,17 +1,41 @@
+import { readFileSync } from 'node:fs'
 import fp from 'fastify-plugin'
 import type { FastifyInstance } from 'fastify'
 import { createPublicClient, createWalletClient, http } from 'viem'
 import { mnemonicToAccount } from 'viem/accounts'
 import { sepolia, hardhat } from 'viem/chains'
 
-import SepoliaArtifact from '@shared/contracts/11155111/JaccardERC1155.json'
-import LocalhostArtifact from '@shared/contracts/31337/JaccardERC1155.json'
-
 export type SupportedChainId = 11155111 | 31337
 
 export type ContractArtifact = {
   address: `0x${string}`
   abi: readonly unknown[]
+}
+
+// hardhat/deploy overwrites these JSON files in place whenever contracts are
+// (re)deployed, including after this process has already booted - a static
+// `import` would bake in whatever address existed at module-load time and
+// never see a later redeploy. Resolving the path once (cheap, and stable for
+// the process lifetime) but re-reading the file contents on every call keeps
+// this correct across both the initial deploy-vs-boot race and any
+// mid-session redeploy, without requiring an api restart either way.
+const artifactPaths: Record<SupportedChainId, string> = {
+  11155111: require.resolve('@shared/contracts/11155111/JaccardERC1155.json'),
+  31337: require.resolve('@shared/contracts/31337/JaccardERC1155.json')
+}
+
+function loadJaccardNftArtifact(chainId: SupportedChainId): ContractArtifact | undefined {
+  // chainId is often just a cast of unvalidated request input (see callers),
+  // so an unsupported value must fall through to undefined here rather than
+  // throw - callers rely on this to produce a clean 400 instead of a 500.
+  const filePath = artifactPaths[chainId]
+  if (!filePath) return undefined
+
+  const data = JSON.parse(readFileSync(filePath, 'utf-8')) as {
+    address: `0x${string}`
+    abi: readonly unknown[]
+  }
+  return { address: data.address, abi: data.abi }
 }
 
 export default fp(async (fastify: FastifyInstance) => {
@@ -56,14 +80,9 @@ export default fp(async (fastify: FastifyInstance) => {
     })
   }
 
-  const jaccardNft = {
-    11155111: { address: SepoliaArtifact.address as `0x${string}`, abi: SepoliaArtifact.abi },
-    31337: { address: LocalhostArtifact.address as `0x${string}`, abi: LocalhostArtifact.abi }
-  } as const
-
   fastify.decorate('publicClients', publicClients as any)
   fastify.decorate('walletClients', walletClients as any)
-  fastify.decorate('jaccardNft', jaccardNft)
+  fastify.decorate('getJaccardNft', loadJaccardNftArtifact)
 
   if (!account) {
     fastify.log.warn('MNEMONIC not configured - sponsored transactions on sepolia disabled')
@@ -81,9 +100,6 @@ declare module 'fastify' {
       31337: ReturnType<typeof createPublicClient>
     }
     walletClients: Partial<Record<SupportedChainId, ReturnType<typeof createWalletClient>>>
-    jaccardNft: {
-      11155111: ContractArtifact
-      31337: ContractArtifact
-    }
+    getJaccardNft: (chainId: SupportedChainId) => ContractArtifact | undefined
   }
 }

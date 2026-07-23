@@ -53,17 +53,17 @@ export default async function (
     await verify.run({address: auction.address});
     
     if (taskArguments.testTokens) {
-        const mockToken = await viem.deployContract("MockERC20");
-        console.log(`Deployed MockERC20 at ${mockToken.address}`);
+        const scrip = await viem.deployContract("Scrip");
+        console.log(`Deployed Scrip at ${scrip.address}`);
 
-        await mockToken.write.faucet();
-        console.log("Fauceted MockERC20");
+        await scrip.write.faucet();
+        console.log("Fauceted Scrip");
 
         const jaccardNft = await viem.deployContract("JaccardERC1155");
         console.log(`Deployed JaccardERC1155 at ${jaccardNft.address}`);
 
         if (taskArguments.saveDeployments) {
-            await saveDeployment(hre, BigInt(chainId), "MockERC20", mockToken.address);
+            await saveDeployment(hre, BigInt(chainId), "Scrip", scrip.address);
             await saveDeployment(hre, BigInt(chainId), "JaccardERC1155", jaccardNft.address);
         }
 
@@ -73,14 +73,14 @@ export default async function (
 
         if (taskArguments.verify) {
             await Promise.all([
-                verify.run({address: mockToken.address}),
+                verify.run({address: scrip.address}),
                 verify.run({address: jaccardNft.address}),
             ]);
         }
 
         return {
             auction: auction.address,
-            mockToken: mockToken.address,
+            scrip: scrip.address,
             jaccardNft: jaccardNft.address,
         }
     }

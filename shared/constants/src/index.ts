@@ -289,6 +289,11 @@ export const ERC20PermitTypes = {
 export const EIP712_DOMAINS = {
   JACCARD_SWAP: 'JaccardDiamond',
   JACCARD_ERC1155: 'JaccardDiamond',
+  // Must match Scrip's ERC20Permit("Scrip") constructor arg exactly. A
+  // mismatch here doesn't fail loudly: the signature is still well-formed,
+  // just recovers to an unrelated address, so permit() reverts, the
+  // allowance() fallback is never pre-approved either, and every auction
+  // settlement dead-ends in NoValidBids(PaymentDeclined).
   SCRIP: 'Scrip',
 } as const
 

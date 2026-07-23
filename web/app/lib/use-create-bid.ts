@@ -15,7 +15,7 @@ export interface CreateBidParams {
 // (minMatches = MINHASH_BANDS against the NFT's own minHash) - distinct from
 // a standing buy order's trait-based approximate match. Same signature-only
 // shape: no funds move until the auctioneer settles.
-export function useCreateBid(auctionId: string) {
+export function useCreateBid(auctionId: string, auctionEndTime: string) {
   const queryClient = useQueryClient();
   const { address, chainId } = useAccount();
   const { signErc20Permit, signBid } = useAuctionSignature(chainId ?? 0);
@@ -38,7 +38,12 @@ export function useCreateBid(auctionId: string) {
 
       const targetMinHash = asMinHashTuple(params.nftMinHash);
       const value = parseEther(params.amount);
-      const deadline = BigInt(Math.floor(Date.now() / 1000) + 3600);
+      // Both the bid and its ERC20 permit must still be valid whenever the
+      // auctioneer actually settles - which can be any time up to (and a
+      // little past) the auction's own end, not shortly after the bid was
+      // placed. A flat now+1h TTL made early bids on multi-day auctions
+      // unsettleable well before the auction even ended.
+      const deadline = BigInt(Math.floor(new Date(auctionEndTime).getTime() / 1000) + 7 * 24 * 60 * 60);
 
       const { v, r, s } = await signErc20Permit({ owner: address, spender: jaccardSwap.address, value, nonce: nonce as bigint, deadline });
 

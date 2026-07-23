@@ -85,7 +85,7 @@ function diverge(base: readonly `0x${string}`[], diffCount: number): `0x${string
 }
 
 describe("JaccardSwapDiamond", () => {
-  const hundred = parseEther('100');
+  const bidAmount = parseEther('2'); // comfortably under Scrip.faucet()'s 5-token grant
   const oneHour = 3600;
 
   describe('Basic Diamond Functionality', () => {
@@ -197,7 +197,7 @@ describe("JaccardSwapDiamond", () => {
 
   describe('Auction Settlement', () => {
     it('settles an auction with similarity matching', async () => {
-      const { env, JaccardDiamond, MockERC20, namedAccounts, unnamedAccounts } = 
+      const { env, JaccardDiamond, Scrip, namedAccounts, unnamedAccounts } = 
         await networkHelpers.loadFixture(deployAll);
       const { deployer } = namedAccounts;
       const auctioneer = unnamedAccounts[0];
@@ -215,7 +215,7 @@ describe("JaccardSwapDiamond", () => {
 
       const chainId = await publicClient.getChainId();
       const diamondAddr = JaccardDiamond.address as `0x${string}`;
-      const tokenAddr = MockERC20.address as `0x${string}`;
+      const tokenAddr = Scrip.address as `0x${string}`;
 
       // Unified domain for diamond
       const diamondDomain = {
@@ -242,8 +242,8 @@ describe("JaccardSwapDiamond", () => {
         account: deployer,
       });
 
-      // Give bidder tokens via MockERC20 faucet
-      await env.execute(MockERC20, {
+      // Give bidder tokens via Scrip faucet
+      await env.execute(Scrip, {
         functionName: 'faucet',
         args: [],
         account: bidder,
@@ -273,7 +273,7 @@ describe("JaccardSwapDiamond", () => {
         deadline,
         nft: diamondAddr,
         token: tokenAddr,
-        reservePrice: hundred,
+        reservePrice: bidAmount,
         nftPermit: nftPermitData,
         nftPermitSignature: nftPermitSig,
       };
@@ -287,7 +287,7 @@ describe("JaccardSwapDiamond", () => {
       });
 
       // 3. Bidder signs ERC20 permit
-      const bidderNonce = await env.read(MockERC20, {
+      const bidderNonce = await env.read(Scrip, {
         functionName: 'nonces',
         args: [bidder],
       }) as bigint;
@@ -295,7 +295,7 @@ describe("JaccardSwapDiamond", () => {
       const erc20PermitSig = await bidderWallet.signTypedData({
         account: bidderWallet.account!,
         domain: {
-          name: 'MockERC20',
+          name: 'Scrip',
           version: '1',
           chainId,
           verifyingContract: tokenAddr,
@@ -313,7 +313,7 @@ describe("JaccardSwapDiamond", () => {
         message: {
           owner: bidder,
           spender: diamondAddr,
-          value: hundred,
+          value: bidAmount,
           nonce: bidderNonce,
           deadline,
         },
@@ -330,7 +330,7 @@ describe("JaccardSwapDiamond", () => {
         permit: {
           owner: bidder,
           spender: diamondAddr,
-          value: hundred,
+          value: bidAmount,
           deadline,
           v,
           r,
@@ -376,7 +376,7 @@ describe("JaccardSwapDiamond", () => {
     });
 
     it('accepts bid with partial similarity (12/20 bands match)', async () => {
-      const { env, JaccardDiamond, MockERC20, namedAccounts, unnamedAccounts } = 
+      const { env, JaccardDiamond, Scrip, namedAccounts, unnamedAccounts } = 
         await networkHelpers.loadFixture(deployAll);
       const { deployer } = namedAccounts;
       const auctioneer = unnamedAccounts[0];
@@ -394,7 +394,7 @@ describe("JaccardSwapDiamond", () => {
 
       const chainId = await publicClient.getChainId();
       const diamondAddr = JaccardDiamond.address as `0x${string}`;
-      const tokenAddr = MockERC20.address as `0x${string}`;
+      const tokenAddr = Scrip.address as `0x${string}`;
 
       const diamondDomain = {
         name: 'JaccardDiamond',
@@ -423,7 +423,7 @@ describe("JaccardSwapDiamond", () => {
         account: deployer,
       });
 
-      await env.execute(MockERC20, {
+      await env.execute(Scrip, {
         functionName: 'faucet',
         args: [],
         account: bidder,
@@ -452,7 +452,7 @@ describe("JaccardSwapDiamond", () => {
         deadline,
         nft: diamondAddr,
         token: tokenAddr,
-        reservePrice: hundred,
+        reservePrice: bidAmount,
         nftPermit: nftPermitData,
         nftPermitSignature: nftPermitSig,
       };
@@ -465,7 +465,7 @@ describe("JaccardSwapDiamond", () => {
         message: auctionData,
       });
 
-      const bidderNonce = await env.read(MockERC20, {
+      const bidderNonce = await env.read(Scrip, {
         functionName: 'nonces',
         args: [bidder],
       }) as bigint;
@@ -473,7 +473,7 @@ describe("JaccardSwapDiamond", () => {
       const erc20PermitSig = await bidderWallet.signTypedData({
         account: bidderWallet.account!,
         domain: {
-          name: 'MockERC20',
+          name: 'Scrip',
           version: '1',
           chainId,
           verifyingContract: tokenAddr,
@@ -491,7 +491,7 @@ describe("JaccardSwapDiamond", () => {
         message: {
           owner: bidder,
           spender: diamondAddr,
-          value: hundred,
+          value: bidAmount,
           nonce: bidderNonce,
           deadline,
         },
@@ -507,7 +507,7 @@ describe("JaccardSwapDiamond", () => {
         permit: {
           owner: bidder,
           spender: diamondAddr,
-          value: hundred,
+          value: bidAmount,
           deadline,
           v,
           r,

@@ -250,9 +250,9 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
     }
 
     // Fetch on-chain minHashes (source of truth)
-    const { publicClients, jaccardNft } = fastify
+    const { publicClients, getJaccardNft } = fastify
     const chainId = targetNft.chainId as SupportedChainId
-    const artifact = jaccardNft[chainId]
+    const artifact = getJaccardNft(chainId)
     const publicClient = publicClients[chainId]
 
     if (!artifact || !publicClient) {
@@ -411,7 +411,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
   // POST /polymerase - Polymerize artifact B onto artifact A
   // ============================================================================
   fastify.post('/polymerase', { preHandler: [fastify.requireAuth] }, async function (request, reply) {
-    const { walletClients, publicClients, jaccardNft } = fastify
+    const { walletClients, publicClients, getJaccardNft } = fastify
 
     const body = request.body as PolymeraseBody
     const owner = body.owner?.toLowerCase()
@@ -429,7 +429,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
     }
 
     const chainId = body.chainId as SupportedChainId
-    const artifact = jaccardNft[chainId]
+    const artifact = getJaccardNft(chainId)
     if (!artifact) {
       reply.code(400)
       return { error: `Unsupported chain: ${body.chainId}` }
@@ -608,7 +608,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
   // POST / - Faucet mint new artifact
   // ============================================================================
   fastify.post('/', { preHandler: [fastify.requireAuth] }, async function (request, reply) {
-    const { walletClients, publicClients, jaccardNft } = fastify
+    const { walletClients, publicClients, getJaccardNft } = fastify
 
     const body = request.body as FaucetBody
     const recipient = body.recipient?.toLowerCase()
@@ -619,7 +619,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
     }
 
     const chainId = body.chainId as SupportedChainId
-    const artifact = jaccardNft[chainId]
+    const artifact = getJaccardNft(chainId)
     if (!artifact) {
       reply.code(400)
       return { error: `Unsupported chain: ${body.chainId}` }

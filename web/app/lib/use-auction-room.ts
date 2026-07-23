@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { WS_MSG } from "@shared/constants";
 import { useAccount } from "wagmi";
+import useWebSocket, { ReadyState } from "react-use-websocket";
 import { apiJson, apiWebSocketUrl } from "./api";
 import type { Auction } from "./auctions";
 import type { Nft } from "./use-nfts";
@@ -44,86 +45,50 @@ export function useAuctionRoom(auctionId: string) {
     enabled: !!auctionId,
   });
 
-  const [connected, setConnected] = useState(false);
   const [participantCount, setParticipantCount] = useState(0);
   const [connectionLost, setConnectionLost] = useState(false);
-  const socketRef = useRef<WebSocket | null>(null);
-  const addressRef = useRef(address);
-  addressRef.current = address;
 
-  useEffect(() => {
-    if (!auctionId) return;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let attempt = 0;
-    let stopped = false;
-    const MAX_ATTEMPTS = 8;
+  const { sendJsonMessage, readyState } = useWebSocket(auctionId ? apiWebSocketUrl(`/auction/${auctionId}/room`) : null, {
+    onOpen: () => {
+      setConnectionLost(false);
+      if (address) sendJsonMessage({ type: WS_MSG.JOIN, address });
+    },
+    onMessage: (event) => {
+      let msg: { type: string; count?: number };
+      try {
+        msg = JSON.parse(event.data);
+      } catch {
+        return;
+      }
 
-    function connect() {
-      const ws = new WebSocket(apiWebSocketUrl(`/auction/${auctionId}/room`));
-      socketRef.current = ws;
+      if (msg.type === WS_MSG.JOINED || msg.type === WS_MSG.LEFT) {
+        if (typeof msg.count === "number") setParticipantCount(msg.count);
+      }
+      if (msg.type === WS_MSG.EVENT) {
+        // Server is the source of truth for everything an event implies
+        // (highest bid, status, settlement) - refetch rather than
+        // reconstruct state from the event payload piecemeal.
+        void queryClient.invalidateQueries({ queryKey: auctionQueryKey(auctionId) });
+      }
+    },
+    shouldReconnect: () => true,
+    reconnectAttempts: 8,
+    reconnectInterval: (attempt) => Math.min(15_000, 1_000 * 2 ** attempt),
+    onReconnectStop: () => setConnectionLost(true),
+  });
 
-      ws.onopen = () => {
-        attempt = 0;
-        setConnected(true);
-        setConnectionLost(false);
-        if (addressRef.current) {
-          ws.send(JSON.stringify({ type: WS_MSG.JOIN, address: addressRef.current }));
-        }
-      };
-
-      ws.onmessage = (event) => {
-        let msg: { type: string; count?: number };
-        try {
-          msg = JSON.parse(event.data);
-        } catch {
-          return;
-        }
-
-        if (msg.type === WS_MSG.JOINED || msg.type === WS_MSG.LEFT) {
-          if (typeof msg.count === "number") setParticipantCount(msg.count);
-        }
-        if (msg.type === WS_MSG.EVENT) {
-          // Server is the source of truth for everything an event implies
-          // (highest bid, status, settlement) - refetch rather than
-          // reconstruct state from the event payload piecemeal.
-          void queryClient.invalidateQueries({ queryKey: auctionQueryKey(auctionId) });
-        }
-      };
-
-      ws.onclose = () => {
-        setConnected(false);
-        socketRef.current = null;
-        if (stopped) return;
-        if (attempt >= MAX_ATTEMPTS) {
-          setConnectionLost(true);
-          return;
-        }
-        const delay = Math.min(15_000, 1_000 * 2 ** attempt);
-        attempt++;
-        reconnectTimer = setTimeout(connect, delay);
-      };
-    }
-
-    connect();
-
-    return () => {
-      stopped = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      socketRef.current?.close();
-      socketRef.current = null;
-    };
-  }, [auctionId, queryClient]);
+  const connected = readyState === ReadyState.OPEN;
 
   // Re-announce identity if the connected wallet changes mid-session.
   useEffect(() => {
-    if (connected && address && socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: WS_MSG.JOIN, address }));
+    if (connected && address) {
+      sendJsonMessage({ type: WS_MSG.JOIN, address });
     }
-  }, [address, connected]);
+  }, [address, connected, sendJsonMessage]);
 
   function sendChat(message: string) {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: WS_MSG.CHAT, message }));
+    if (connected) {
+      sendJsonMessage({ type: WS_MSG.CHAT, message });
     }
   }
 
