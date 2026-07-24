@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import fp from 'fastify-plugin'
 import type { FastifyInstance } from 'fastify'
 import { createPublicClient, createWalletClient, http } from 'viem'
-import { mnemonicToAccount } from 'viem/accounts'
+import { mnemonicToAccount, privateKeyToAccount } from 'viem/accounts'
 import { sepolia, hardhat } from 'viem/chains'
 
 export type SupportedChainId = 11155111 | 31337
@@ -39,12 +39,21 @@ function loadJaccardNftArtifact(chainId: SupportedChainId): ContractArtifact | u
 }
 
 export default fp(async (fastify: FastifyInstance) => {
-  // Real chains sign with MNEMONIC (the funded deployer account); the local
-  // anvil chain has its own throwaway funded account under MNEMONIC_LOCALHOST
-  // (see hardhat.config.ts) - reusing MNEMONIC there would sign with an
-  // address that has no balance on a fresh anvil chain.
-  const mnemonic = process.env.MNEMONIC
-  const account = mnemonic ? mnemonicToAccount(mnemonic, { accountIndex: 0 }) : null
+  // Real chains sign with the sponsor/relayer account; the local anvil chain
+  // has its own throwaway funded account under MNEMONIC_LOCALHOST (see
+  // hardhat.config.ts) - reusing the real signer there would sign with an
+  // address that has no balance on a fresh anvil chain. In production the
+  // signer comes from a plain private key (SPONSOR_PRIVATE_KEY) rather than
+  // a mnemonic - one fewer derivation step, and there's no reason to hold a
+  // whole HD wallet for an account that's always index 0 anyway.
+  const account =
+    process.env.NODE_ENV === 'production'
+      ? process.env.SPONSOR_PRIVATE_KEY
+        ? privateKeyToAccount(process.env.SPONSOR_PRIVATE_KEY as `0x${string}`)
+        : null
+      : process.env.MNEMONIC
+        ? mnemonicToAccount(process.env.MNEMONIC, { accountIndex: 0 })
+        : null
 
   const localMnemonic = process.env.MNEMONIC_LOCALHOST
   const localAccount = localMnemonic ? mnemonicToAccount(localMnemonic, { accountIndex: 0 }) : null
@@ -85,7 +94,8 @@ export default fp(async (fastify: FastifyInstance) => {
   fastify.decorate('getJaccardNft', loadJaccardNftArtifact)
 
   if (!account) {
-    fastify.log.warn('MNEMONIC not configured - sponsored transactions on sepolia disabled')
+    const missingVar = process.env.NODE_ENV === 'production' ? 'SPONSOR_PRIVATE_KEY' : 'MNEMONIC'
+    fastify.log.warn(`${missingVar} not configured - sponsored transactions on sepolia disabled`)
   }
   if (!localAccount) {
     fastify.log.warn('MNEMONIC_LOCALHOST not configured - sponsored transactions on localhost disabled')
