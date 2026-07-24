@@ -1,0 +1,25 @@
+# Caddy handles Let's Encrypt automatically once DNS points here, no
+# certbot/cron needed.
+relic-safari.social {
+	# Background-radiation bot scans (WordPress/phpMyAdmin/.env probes hit
+	# every public IP constantly) - 404 them here, before they reach web's
+	# React Router handler, so they don't show up as "no route matches"
+	# noise in logs. Not a security control (these paths don't exist
+	# either way) - purely to keep logs clean.
+	@scanners path /wp-admin/* /wp-login.php /wp-content/* /wp-includes/* /wordpress/* /xmlrpc.php /.env /.env.* /.git/* /phpmyadmin/* /pma/* /administrator/* /.aws/* /.ssh/* /vendor/phpunit/* /cgi-bin/*
+	handle @scanners {
+		respond 404
+	}
+
+	# handle_path (not handle) strips the matched /api prefix before
+	# forwarding - the api service's own routes have no /api prefix
+	# internally, /api only ever existed as a proxy-routing convention.
+	# Mirrors the dev Vite proxy's explicit
+	# `rewrite: (path) => path.replace(/^\/api/, "")` in vite.config.ts.
+	handle_path /api/* {
+		reverse_proxy api:3000
+	}
+	handle {
+		reverse_proxy web:3000
+	}
+}

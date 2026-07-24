@@ -13,9 +13,9 @@
 # isn't stored anywhere - the deploy workflow passes it inline per-run
 # (defaults to `latest` otherwise).
 #
-# api and web sit behind an existing host-level nginx (outside this repo,
-# not managed by this compose file) - hence both are bound to 127.0.0.1
-# only rather than getting their own Caddy/nginx service here.
+# api and web have no host port bindings - Caddy reaches them by service
+# name over the compose network and is the only thing exposed to the host
+# (ports 80/443 below), matching scamstaker's paradigm.
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -53,8 +53,6 @@ services:
   api:
     image: ghcr.io/${GHCR_OWNER}/relic-safari-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:${API_PORT:-3000}:3000"
     environment:
       NODE_ENV: production
       DATABASE_URL: ${DATABASE_URL}
@@ -74,19 +72,33 @@ services:
   # listed here - they're Vite build-time envs baked into the image itself
   # (see web/Dockerfile.prod's ARG/ENV bridge and deploy.yml's build-args),
   # not something the running container reads. web/app/lib/api.ts hardcodes
-  # API_BASE="/api" (relative, same-origin) - the host nginx in front of
-  # this container is expected to route /api/* to the api service above and
-  # everything else to this one.
+  # API_BASE="/api" (relative, same-origin) - the Caddyfile below routes
+  # /api/* to the api service and everything else to this one.
   web:
     image: ghcr.io/${GHCR_OWNER}/relic-safari-web:${IMAGE_TAG:-latest}
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:${WEB_PORT:-3001}:3000"
     environment:
       NODE_ENV: production
     depends_on:
       db-setup:
         condition: service_completed_successfully
 
+  # Reverse proxy + automatic Let's Encrypt HTTPS - see ./Caddyfile.
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - web
+    restart: unless-stopped
+
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:
