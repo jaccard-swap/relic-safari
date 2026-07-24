@@ -12,6 +12,12 @@
 .env
 .env.local
 .env.*.local
+# .env.production holds real prod secrets managed directly on the deploy
+# box (see docker-compose.prod.yaml's header comment) - never committed.
+# .env.*.local above already covers e.g. .env.production.local, but not
+# .env.production itself.
+.env.production
+!.env.production.example
 
 # OS Files
 .DS_Store

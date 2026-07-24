@@ -1,0 +1,93 @@
+name: Deploy
+
+# Runs only after CI succeeds on the default branch - not a separate push
+# trigger, so there's no risk of deploying a commit CI hasn't actually
+# validated. This repo's default branch is named "default", not "main".
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [default]
+
+jobs:
+  build-and-push:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push api
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: api/Dockerfile.prod
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/relic-safari-api:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/relic-safari-api:latest
+
+      # VITE_API_URL/VITE_SEPOLIA_RPC_URL are baked into the client bundle
+      # at build time (see web/Dockerfile.prod's ARG/ENV bridge) - sourced
+      # from repo variables (not secrets), since they end up in a public
+      # JS bundle anyway and don't need secrecy. Currently unconsumed by
+      # any client code (web/app/lib/api.ts hardcodes a relative "/api"
+      # instead), so leaving either var unset in repo settings is harmless
+      # today - this is forward-compatible plumbing, not a hard requirement.
+      - name: Build and push web
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: web/Dockerfile.prod
+          push: true
+          build-args: |
+            VITE_API_URL=${{ vars.VITE_API_URL }}
+            VITE_SEPOLIA_RPC_URL=${{ vars.VITE_SEPOLIA_RPC_URL }}
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/relic-safari-web:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/relic-safari-web:latest
+
+      - name: Build and push db-setup
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: shared/database/Dockerfile.prod
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/relic-safari-db-setup:${{ github.sha }}
+            ghcr.io/${{ github.repository_owner }}/relic-safari-db-setup:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      # Assumes the repo is already cloned on the box (e.g. ~/relic-safari)
+      # and .env.production / the .env -> .env.production symlink already
+      # exist there - both one-time manual setup steps, not something this
+      # workflow creates.
+      - name: SSH deploy (pull images, restart)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            cd ~/relic-safari
+            git pull
+            export IMAGE_TAG=${{ github.sha }}
+            docker compose -f docker-compose.prod.yaml pull
+            docker compose -f docker-compose.prod.yaml up -d
+            # Every deploy pulls uniquely SHA-tagged images and nothing else
+            # ever removes the previous ones - on a small box that fills the
+            # disk within a handful of deploys. Safe to run after `up -d`
+            # since the new containers are already running on the new tag,
+            # so the prune only catches images nothing references anymore.
+            docker system prune -af

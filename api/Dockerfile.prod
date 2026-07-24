@@ -8,8 +8,11 @@ COPY api/package.json api/package-lock.json ./api/
 COPY shared/database/package.json shared/database/package-lock.json ./shared/database/
 COPY shared/constants/package.json ./shared/constants/
 
-# Install all deps (including dev for build)
-RUN npm install
+# Reproducible, faster than npm install - requires package-lock.json to
+# already be in sync, which is the point (fails loudly on drift instead of
+# silently re-resolving). Works fine with only a subset of workspace
+# package.jsons copied in, verified against this repo's actual lockfile.
+RUN npm ci
 
 # Copy source
 COPY tsconfig.base.json ./
@@ -39,7 +42,7 @@ COPY api/package.json api/package-lock.json ./api/
 COPY shared/database/package.json shared/database/package-lock.json ./shared/database/
 COPY shared/constants/package.json ./shared/constants/
 
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 # Copy built artifacts
 COPY --from=builder /app/api/dist ./api/dist

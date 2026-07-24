@@ -99,7 +99,7 @@ services:
   db-setup:
     build:
       context: .
-      dockerfile: shared/database/Dockerfile
+      dockerfile: shared/database/Dockerfile.dev
     env_file:
       - .env
     environment:
@@ -119,7 +119,7 @@ services:
   api:
     build:
       context: .
-      dockerfile: api/Dockerfile
+      dockerfile: api/Dockerfile.dev
     user: "${UID:-1000}:${GID:-1000}"
     ports:
       - "${API_PORT:-3000}:3000"
@@ -158,7 +158,7 @@ services:
   web:
     build:
       context: .
-      dockerfile: web/Dockerfile
+      dockerfile: web/Dockerfile.dev
     user: "${UID:-1000}:${GID:-1000}"
     ports:
       - "${WEB_PORT:-5173}:5173"

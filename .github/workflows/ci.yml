@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: relic_safari_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/relic_safari_ci
+      ADMIN_EMAIL: admin@relic-safari.test
+      ADMIN_PASSWORD: test-admin-password
+      ADMIN_USERNAME: admin
+      # hardhat.config.ts throws if these are missing, but every test here
+      # runs against the in-process/anvil network - junk placeholders are
+      # fine, same convention as .env.example's mnemonic. No real secrets
+      # needed for CI at all.
+      SEPOLIA_RPC_URL: http://localhost:8545
+      MNEMONIC: "test test test test test test test test test test test junk"
+      ETHERSCAN_API_KEY: unused-in-ci
+      LOCALHOST_RPC_URL: http://127.0.0.1:8545
+      MNEMONIC_LOCALHOST: "test test test test test test test test test test test junk"
+      RATE_LIMIT_WINDOW_MS: 86400000
+      RATE_LIMIT_MAX: 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 25
+          cache: npm
+
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      - run: npm ci
+
+      # pgvector's own image ships the extension but doesn't enable it -
+      # normally done by shared/database/init-db.sql via Postgres's
+      # docker-entrypoint-initdb.d, but GH Actions service containers don't
+      # support mounting that file in before the checkout step has even run.
+      - name: Enable pgvector extension
+        run: PGPASSWORD=postgres psql -h localhost -U postgres -d relic_safari_ci -c "CREATE EXTENSION IF NOT EXISTS vector;"
+
+      - name: Build shared/database
+        run: npm run build --workspace shared/database
+
+      - name: Build shared/constants
+        run: npm run build --workspace shared/constants
+
+      # db:push --force is fine here (unlike prod's versioned
+      # db:migrate:prod) - this Postgres is thrown away at the end of the
+      # run. db:seed:dev seeds the admin user from ADMIN_EMAIL/PASSWORD/
+      # USERNAME above.
+      - name: Push schema + seed the CI database
+        run: |
+          npm run db:push --workspace shared/database
+          npm run db:seed:dev --workspace shared/database
+
+      - name: Start anvil
+        run: |
+          nohup anvil --mnemonic "test test test test test test test test test test test junk" --port 8545 --silent > anvil.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null -X POST -H "Content-Type: application/json" \
+              --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+              http://127.0.0.1:8545; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "anvil did not become ready" >&2
+          cat anvil.log
+          exit 1
+
+      # deploy/00_deploy_diamond.ts imports generated artifact bindings
+      # (#rocketh, backed by hardhat/generated/) - `hardhat deploy` doesn't
+      # compile as a side effect early enough for that import to resolve,
+      # so this has to run first on a fresh checkout. generated/ and
+      # artifacts/ are gitignored build output, not committed.
+      - name: Compile contracts
+        working-directory: hardhat
+        run: npx hardhat compile
+
+      - name: Deploy JaccardSwap diamond to anvil
+        working-directory: hardhat
+        run: npx hardhat deploy --network localhost --skip-prompts
+
+      - name: Build api
+        run: npm run build:ts --workspace api
+
+      # api/test/**/*.ts are e2e tests that hit a live running API over
+      # HTTP (see api/test/helper.ts's own comment) - they don't boot the
+      # server themselves, so CI has to start one first, same as a
+      # developer running the dev stack locally would.
+      - name: Start api server
+        working-directory: api
+        run: |
+          nohup npx fastify start -l info -a 0.0.0.0 dist/app.js > ../api.log 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://localhost:3000/; then
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "api server did not become ready" >&2
+          cat ../api.log
+          exit 1
+
+      # Full `test` (not `test:e2e`) so the test files themselves get
+      # typechecked too, not just the app - `build:ts` re-running here is
+      # redundant with the step above but harmless.
+      - name: api - typecheck + test
+        run: npm test --workspace api
+
+      - name: hardhat - test
+        working-directory: hardhat
+        run: npx hardhat test
+
+      - name: web - typecheck
+        run: npm run typecheck --workspace web

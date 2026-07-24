@@ -1,22 +1,72 @@
-FROM node:24-alpine AS development-dependencies-env
-COPY . /app
+# ---- build: full workspace install (incl. devDependencies: vite, tailwind, tsc) ----
+FROM node:25-alpine AS builder
+
 WORKDIR /app
+
+# Copy workspace configuration files first for better layer caching
+COPY package.json package-lock.json ./
+
+# Only the package.jsons web actually depends on - the previous version of
+# this file did `COPY . /app` + a root `npm ci`, pulling in every other
+# workspace's deps (fastify, hardhat's toolbox, farcaster's tanstack stack,
+# ...) for no reason. Neither web/ nor shared/constants/ nor
+# shared/contracts/ has its own package-lock.json (only api/ and
+# shared/database/ do) - all three resolve against the root lockfile, same
+# as api/Dockerfile.prod already does for shared/constants/shared/contracts.
+COPY web/package.json ./web/
+COPY shared/constants/package.json ./shared/constants/
+COPY shared/contracts/package.json ./shared/contracts/
+
 RUN npm ci
 
-FROM node:24-alpine AS production-dependencies-env
-COPY ./package.json package-lock.json /app/
-WORKDIR /app
-RUN npm ci --omit=dev
+# Copy source
+COPY tsconfig.base.json ./
+COPY shared/constants ./shared/constants
+COPY shared/contracts ./shared/contracts
 
-FROM node:24-alpine AS build-env
-COPY . /app/
-COPY --from=development-dependencies-env /app/node_modules /app/node_modules
-WORKDIR /app
+# Build shared/constants first (web depends on its types)
+WORKDIR /app/shared/constants
 RUN npm run build
 
-FROM node:24-alpine
-COPY ./package.json package-lock.json /app/
-COPY --from=production-dependencies-env /app/node_modules /app/node_modules
-COPY --from=build-env /app/build /app/build
+# Build the production bundle (build/server + build/client)
 WORKDIR /app
+COPY web ./web
+
+# Baked into the client (and SSR) bundle at build time by Vite - not read at
+# container runtime. Currently a no-op for actual request routing:
+# web/app/lib/api.ts hardcodes API_BASE="/api" (relative, same-origin,
+# proxied by whatever reverse proxy sits in front of this container) and
+# nothing in web/app reads VITE_SEPOLIA_RPC_URL yet. Threaded through here
+# for parity with what docker-compose.dev.yaml already passes, and so
+# CI/deploy.yml has a place to supply real values once that's wired up.
+ARG VITE_API_URL
+ARG VITE_SEPOLIA_RPC_URL
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_SEPOLIA_RPC_URL=${VITE_SEPOLIA_RPC_URL}
+
+WORKDIR /app/web
+RUN npm run build
+
+# ---- runtime: production-only deps, no vite/tailwind/tsc/source ----
+FROM node:25-alpine
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+COPY web/package.json ./web/
+COPY shared/constants/package.json ./shared/constants/
+COPY shared/contracts/package.json ./shared/contracts/
+
+RUN npm ci --omit=dev
+
+# shared/contracts is plain JSON (no build step), read at runtime by web's
+# server bundle for chain/address lookups.
+COPY --from=builder /app/shared/contracts ./shared/contracts
+COPY --from=builder /app/web/build ./web/build
+
+WORKDIR /app/web
+
+# react-router-serve's default port
+EXPOSE 3000
+
 CMD ["npm", "run", "start"]

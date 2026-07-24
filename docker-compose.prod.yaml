@@ -1,4 +1,21 @@
-
+# Production stack. Postgres runs locally in this compose file (unlike
+# scamstaker's external Neon setup) - everything else only ever pulls
+# prebuilt GHCR images, never builds locally (see .github/workflows/
+# deploy.yml, which builds+pushes on CI success and then SSHes in here to
+# `pull` + `up -d`).
+#
+# Secrets/config: each service reads real values from .env.production,
+# which you manage directly on the box (never committed - see .gitignore).
+# GHCR_OWNER (your GitHub username/org, used in the image: lines below)
+# needs to be set in there too. Compose itself only auto-loads a file
+# literally named `.env` for the ${GHCR_OWNER}/${IMAGE_TAG} substitution
+# below - on the box, symlink `.env -> .env.production` once. IMAGE_TAG
+# isn't stored anywhere - the deploy workflow passes it inline per-run
+# (defaults to `latest` otherwise).
+#
+# api and web sit behind an existing host-level nginx (outside this repo,
+# not managed by this compose file) - hence both are bound to 127.0.0.1
+# only rather than getting their own Caddy/nginx service here.
 services:
   postgres:
     image: pgvector/pgvector:pg17
@@ -18,10 +35,11 @@ services:
       timeout: 5s
       retries: 5
 
+  # Runs once per deploy, applies migrations + seeds the admin user
+  # (db:setup:prod = build && db:migrate && db:seed:dev - see
+  # shared/database/package.json).
   db-setup:
-    build:
-      context: .
-      dockerfile: shared/database/Dockerfile.prod
+    image: ghcr.io/${GHCR_OWNER}/relic-safari-db-setup:${IMAGE_TAG:-latest}
     environment:
       DATABASE_URL: ${DATABASE_URL}
       ADMIN_EMAIL: ${ADMIN_EMAIL}
@@ -33,9 +51,7 @@ services:
     restart: "no"
 
   api:
-    build:
-      context: .
-      dockerfile: api/Dockerfile.prod
+    image: ghcr.io/${GHCR_OWNER}/relic-safari-api:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
       - "127.0.0.1:${API_PORT:-3000}:3000"
@@ -54,13 +70,23 @@ services:
       db-setup:
         condition: service_completed_successfully
 
-  farcaster-build:
-    build:
-      context: .
-      dockerfile: farcaster/Dockerfile.prod
-    volumes:
-      - /var/www/relic-safari:/output
-    restart: "no"
+  # React Router SSR frontend. VITE_API_URL/VITE_SEPOLIA_RPC_URL are NOT
+  # listed here - they're Vite build-time envs baked into the image itself
+  # (see web/Dockerfile.prod's ARG/ENV bridge and deploy.yml's build-args),
+  # not something the running container reads. web/app/lib/api.ts hardcodes
+  # API_BASE="/api" (relative, same-origin) - the host nginx in front of
+  # this container is expected to route /api/* to the api service above and
+  # everything else to this one.
+  web:
+    image: ghcr.io/${GHCR_OWNER}/relic-safari-web:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_PORT:-3001}:3000"
+    environment:
+      NODE_ENV: production
+    depends_on:
+      db-setup:
+        condition: service_completed_successfully
 
 volumes:
   postgres_data:
