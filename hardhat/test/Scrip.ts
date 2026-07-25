@@ -121,3 +121,31 @@ describe('Scrip ECDSA permit', () => {
     );
   });
 });
+
+// This repo's every local/CI network (hardhatMainnet's edr-simulated default
+// and Anvil via LOCALHOST_RPC_URL, see hardhat.config.ts) runs at chainId
+// 31337, so only the bypass branch of faucet()'s cooldown is exercisable
+// here - the enforced 12h cooldown only ever applies on a real deployed
+// chain (e.g. Sepolia) and isn't covered by this suite.
+describe('Scrip faucet cooldown', () => {
+  it('bypasses the cooldown on the local network (chainId 31337)', async () => {
+    const { env, Scrip, unnamedAccounts } = await networkHelpers.loadFixture(deployAll);
+    const claimant = unnamedAccounts[2];
+
+    const { viem } = await network.connect();
+    const publicClient = await viem.getPublicClient();
+    const chainId = await publicClient.getChainId();
+    assert.equal(chainId, 31337, 'this test only proves the intended bypass on the local dev/test chain');
+
+    const before = await env.read(Scrip, { functionName: 'balanceOf', args: [claimant] }) as bigint;
+
+    await env.execute(Scrip, { functionName: 'faucet', args: [], account: claimant });
+    await env.execute(Scrip, { functionName: 'faucet', args: [], account: claimant });
+
+    const after = await env.read(Scrip, { functionName: 'balanceOf', args: [claimant] }) as bigint;
+    assert.equal(after - before, 2n * 5236067977499789696n, 'two back-to-back claims should both succeed with no cooldown revert on the local chain');
+
+    const lastClaim = await env.read(Scrip, { functionName: 'lastFaucetClaim', args: [claimant] }) as bigint;
+    assert.equal(lastClaim, 0n, 'cooldown tracking should be skipped entirely on the bypass chain');
+  });
+});

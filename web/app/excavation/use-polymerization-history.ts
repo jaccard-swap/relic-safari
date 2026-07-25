@@ -1,7 +1,6 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { apiJson } from "../lib/api";
-import { useInvalidateNfts } from "../lib/use-nfts";
 
 export interface PolymerizationRecord {
   id: string;
@@ -34,19 +33,23 @@ interface FuseParams {
   consumedTokenId: string;
 }
 
-interface FuseResult {
+export interface FuseResult {
   success: boolean;
+  requestId: string;
   txHash: string;
+  chainId: number;
   targetTokenId: string;
   newMetadata: Record<string, unknown>;
   upgradedTraits: Record<string, { from: string; to: string }>;
   essenceYield: number;
 }
 
+// Resolves as soon as the fusion tx is submitted (hash in hand), not once
+// it's confirmed - the caller should track requestId via useFuseRoom to
+// find out when the fusion actually lands, and invalidate nfts/history from
+// there (see api/src/routes/faucet/index.ts's POST /polymerase split).
 export function useFuse() {
   const { address, chainId } = useAccount();
-  const queryClient = useQueryClient();
-  const invalidateNfts = useInvalidateNfts();
 
   return useMutation({
     mutationFn: async ({ targetTokenId, consumedTokenId }: FuseParams) => {
@@ -55,10 +58,6 @@ export function useFuse() {
         method: "POST",
         body: JSON.stringify({ owner: address, targetTokenId, consumedTokenId, chainId }),
       });
-    },
-    onSuccess: () => {
-      invalidateNfts();
-      void queryClient.invalidateQueries({ queryKey: ["polymerization-history"] });
     },
   });
 }

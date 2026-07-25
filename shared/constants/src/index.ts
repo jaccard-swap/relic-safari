@@ -218,8 +218,10 @@ export const WS_MSG = {
   AUCTIONS_LIST: 'auctions_list',
   NEW_AUCTION: 'new_auction',
 
-  // Quarry dig room - terminal status of a sponsored mint (see api/src/lib/digRooms.ts)
+  // Quarry dig room - terminal status of a sponsored mint (see api/src/lib/requestRooms.ts)
   DIG_STATUS: 'dig_status',
+  // Polymerase fuse room - terminal status of a fusion (see api/src/lib/requestRooms.ts)
+  POLYMERASE_STATUS: 'polymerase_status',
 } as const
 
 export type WsMsgType = typeof WS_MSG[keyof typeof WS_MSG]

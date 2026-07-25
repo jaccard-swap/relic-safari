@@ -3,7 +3,7 @@ import type { WebSocket } from '@fastify/websocket'
 import * as dbSchema from '@shared/database'
 import { computeMinHash, countMinHashMatches, MINHASH_BANDS, TRAIT_POOLS, WS_MSG, type TraitPool } from '@shared/constants'
 import { computePolymerizationResult, generateArtifactName, POLYMERASE_MIN_MATCHES } from '../../lib/polymerase'
-import { joinDigRoom, leaveDigRoom, broadcastDigStatus } from '../../lib/digRooms'
+import { joinRequestRoom, leaveRequestRoom, broadcastRequestStatus } from '../../lib/requestRooms'
 import { and, eq, gte, sql } from 'drizzle-orm'
 import { parseEther } from 'viem'
 import type { SupportedChainId } from '../../plugins/web3'
@@ -558,35 +558,65 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
         ],
       } as any)
 
-      // Wait for confirmation
-      await publicClient.waitForTransactionReceipt({ hash })
+      fastify.log.info({ hash, chainId }, 'Polymerization submitted')
 
-      // Update target NFT with new metadata
-      await fastify.db
-        .update(nfts)
-        .set({
-          metadata: newMetadata,
-          minHash: newMinHash,
-        } as any)
-        .where(eq(nfts.id, targetNft.id))
+      // Confirmation happens off the request/response lifecycle - the
+      // client already has the hash and can jump to Etherscan immediately,
+      // then picks up the terminal result over the
+      // /polymerase/:requestId/room websocket (see below) instead of
+      // blocking the HTTP response on waitForTransactionReceipt.
+      void (async () => {
+        try {
+          await publicClient.waitForTransactionReceipt({ hash })
 
-      // Mark consumed NFT as consumed (burned on-chain)
-      await fastify.db
-        .update(nfts)
-        .set({ status: 'consumed' } as any)
-        .where(eq(nfts.id, consumedNft.id))
+          // Update target NFT with new metadata
+          await fastify.db
+            .update(nfts)
+            .set({
+              metadata: newMetadata,
+              minHash: newMinHash,
+            } as any)
+            .where(eq(nfts.id, targetNft.id))
 
-      // Update polymerization record
-      await fastify.db
-        .update(polymerizations)
-        .set({ status: 'success', txHash: hash })
-        .where(eq(polymerizations.id, polyRecord.id))
+          // Mark consumed NFT as consumed (burned on-chain)
+          await fastify.db
+            .update(nfts)
+            .set({ status: 'consumed' } as any)
+            .where(eq(nfts.id, consumedNft.id))
 
-      fastify.log.info({ hash, chainId }, 'Polymerization complete')
+          // Update polymerization record
+          await fastify.db
+            .update(polymerizations)
+            .set({ status: 'success', txHash: hash })
+            .where(eq(polymerizations.id, polyRecord.id))
+
+          fastify.log.info({ hash, chainId }, 'Polymerization complete')
+          broadcastRequestStatus(polyRecord.id, {
+            type: WS_MSG.POLYMERASE_STATUS,
+            status: 'success',
+            txHash: hash,
+            targetTokenId: body.targetTokenId,
+            newMetadata,
+            upgradedTraits,
+            essenceYield,
+          })
+        } catch (error) {
+          // Update polymerization record with failure
+          await fastify.db
+            .update(polymerizations)
+            .set({ status: 'failed', errorMessage: (error as Error).message })
+            .where(eq(polymerizations.id, polyRecord.id))
+
+          fastify.log.error({ error }, 'Polymerization failed')
+          broadcastRequestStatus(polyRecord.id, { type: WS_MSG.POLYMERASE_STATUS, status: 'failed', error: (error as Error).message })
+        }
+      })()
 
       return {
         success: true,
+        requestId: polyRecord.id,
         txHash: hash,
+        chainId,
         targetTokenId: body.targetTokenId,
         newMetadata,
         upgradedTraits,
@@ -741,7 +771,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
             .where(eq(sponsorshipRequests.id, sponsorshipRequest.id))
 
           fastify.log.info({ tokenId: tokenId.toString(), hash, chainId }, 'NFT minted')
-          broadcastDigStatus(sponsorshipRequest.id, { type: WS_MSG.DIG_STATUS, status: 'success', nft })
+          broadcastRequestStatus(sponsorshipRequest.id, { type: WS_MSG.DIG_STATUS, status: 'success', nft })
         } catch (error) {
           await fastify.db
             .update(sponsorshipRequests)
@@ -749,7 +779,7 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
             .where(eq(sponsorshipRequests.id, sponsorshipRequest.id))
 
           fastify.log.error({ error }, 'Faucet mint failed')
-          broadcastDigStatus(sponsorshipRequest.id, { type: WS_MSG.DIG_STATUS, status: 'failed', error: (error as Error).message })
+          broadcastRequestStatus(sponsorshipRequest.id, { type: WS_MSG.DIG_STATUS, status: 'failed', error: (error as Error).message })
         }
       })()
 
@@ -808,14 +838,67 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
         return
       }
 
-      joinDigRoom(requestId, socket)
+      joinRequestRoom(requestId, socket)
 
       socket.on('close', () => {
-        leaveDigRoom(requestId, socket)
+        leaveRequestRoom(requestId, socket)
       })
 
       socket.on('error', (error: Error) => {
         fastify.log.error({ error, requestId }, 'Dig room WebSocket error')
+      })
+    }
+  })
+
+  // ============================================================================
+  // WebSocket: GET /polymerase/:requestId/room - terminal status of a fusion
+  // ============================================================================
+  fastify.route({
+    method: 'GET',
+    url: '/polymerase/:requestId/room',
+    handler: () => {
+      // Non-websocket requests - wsHandler takes over for upgrades
+    },
+    // @ts-expect-error - wsHandler is added by @fastify/websocket plugin
+    wsHandler: async (socket: WebSocket, req: FastifyRequest) => {
+      const { requestId } = req.params as { requestId: string }
+
+      // Race guard: the fusion may already have resolved (success/failed)
+      // before this socket connects - send the terminal status immediately
+      // instead of registering into a room that'll never receive a broadcast.
+      const [existing] = await fastify.db
+        .select()
+        .from(polymerizations)
+        .where(eq(polymerizations.id, requestId))
+        .limit(1)
+
+      if (existing && existing.status !== 'pending') {
+        if (existing.status === 'success') {
+          const [targetNft] = await fastify.db.select().from(nfts).where(eq(nfts.id, existing.targetNftId)).limit(1)
+          socket.send(JSON.stringify({
+            type: WS_MSG.POLYMERASE_STATUS,
+            status: 'success',
+            txHash: existing.txHash,
+            targetTokenId: targetNft?.tokenId,
+            newMetadata: targetNft?.metadata,
+            upgradedTraits: existing.upgradedTraits,
+            essenceYield: existing.essenceYield,
+          }))
+        } else {
+          socket.send(JSON.stringify({ type: WS_MSG.POLYMERASE_STATUS, status: 'failed', error: existing.errorMessage ?? 'Fusion failed' }))
+        }
+        socket.close()
+        return
+      }
+
+      joinRequestRoom(requestId, socket)
+
+      socket.on('close', () => {
+        leaveRequestRoom(requestId, socket)
+      })
+
+      socket.on('error', (error: Error) => {
+        fastify.log.error({ error, requestId }, 'Polymerase room WebSocket error')
       })
     }
   })

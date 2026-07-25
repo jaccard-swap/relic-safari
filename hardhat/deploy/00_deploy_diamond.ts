@@ -32,13 +32,6 @@ export default deployScript(
     const chainId = await hre.network.provider.request({ method: 'eth_chainId' }) as string;
     const chainIdNum = parseInt(chainId, 16);
 
-    // Deploy the SCRIP payment token
-    const scrip = await deploy('Scrip', {
-      account: deployer,
-      artifact: artifacts.Scrip,
-      args: [],
-    });
-
     // Deploy shared EIP-712 library
     const libEIP712 = await deploy('LibEIP712', {
       account: deployer,
@@ -77,7 +70,6 @@ export default deployScript(
     );
 
     console.log('JaccardDiamond deployed to:', result.address);
-    console.log('Scrip deployed to:', scrip.address);
 
     // Save deployments for frontend consumption
     // Each file has diamond proxy address + that facet's ABI only
@@ -87,7 +79,6 @@ export default deployScript(
     await saveDeployment(chainIdNum, 'JaccardSwap', diamondAddr, artifacts.JaccardSwapFacet.abi);
     await saveDeployment(chainIdNum, 'JaccardERC1155', diamondAddr, artifacts.JaccardERC1155Facet.abi);
     await saveDeployment(chainIdNum, 'Essence', diamondAddr, artifacts.EssenceFacet.abi);
-    await saveDeployment(chainIdNum, 'Scrip', scrip.address, artifacts.Scrip.abi);
   },
   { tags: ['JaccardDiamond', 'JaccardDiamond_deploy'] },
 );

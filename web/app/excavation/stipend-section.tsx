@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useAccount } from "wagmi";
 import { useBalances } from "../lib/use-balances";
 import { useFaucetHistory, useRecordClaim } from "./use-faucet-history";
 import { useErc20Faucet } from "./use-erc20-faucet";
 import { CollapsibleSection } from "../components/collapsible-section";
 import { Toast } from "../components/toast";
-import { getExplorerUrlForChain } from "../lib/explorer";
+import { getExplorerTxUrl, getExplorerUrlForChain } from "../lib/explorer";
 
 function formatTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -27,6 +28,7 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const toastShown = useRef(false);
 
+  const { chainId } = useAccount();
   const { scripBalance, refetchScrip, isConnected } = useBalances();
   const { data: history = [] } = useFaucetHistory();
   const recordClaim = useRecordClaim();
@@ -37,6 +39,8 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
   const handleClaim = useCallback(() => {
     claimFaucetErc20();
   }, [claimFaucetErc20]);
+
+  const claimExplorerUrl = chainId && claimHash ? getExplorerTxUrl(chainId, claimHash) : null;
 
   useEffect(() => {
     if (claimConfirmed && claimHash && mintedAmount && !toastShown.current) {
@@ -56,8 +60,7 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
 
   useEffect(() => {
     if (claimError) {
-      const msg = claimError.message?.includes("Rate limited") ? "Rate limited: wait 12 hours" : claimError.message || "Claim failed";
-      setToast({ message: msg, type: "error" });
+      setToast({ message: claimError.message || "Claim failed", type: "error" });
     }
   }, [claimError]);
 
@@ -96,17 +99,19 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
             </div>
             <div className="text-sm text-amber-400">{claimPending ? "Signing…" : "Inscribing your claim…"}</div>
             <div className="text-xs text-stone-400">{claimPending ? "Confirm in your wallet" : "Waiting for confirmation"}</div>
+            {claimExplorerUrl && (
+              <a href={claimExplorerUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[11px] text-amber-300 underline hover:text-amber-200">
+                View pending transaction ↗
+              </a>
+            )}
           </div>
         )}
 
         <div className="mt-3 space-y-1 rounded border border-stone-700/50 bg-stone-800/50 px-2 py-2 text-xs text-stone-500">
           <div>
-            <span className="text-amber-400">1st claim:</span> ~5.24 SCRIP (φ²)
+            <span className="text-amber-400">Each claim:</span> 5 SCRIP
           </div>
-          <div>
-            <span className="text-amber-400">Next 3:</span> ~1.62 SCRIP each (φ)
-          </div>
-          <div className="text-stone-600">Resets every 12 hours</div>
+          <div className="text-stone-600">No cooldown - claim as often as you like</div>
         </div>
         <div className="mb-1.5 mt-3 text-xs text-stone-500">Recent Claims</div>
         <div className="space-y-1">

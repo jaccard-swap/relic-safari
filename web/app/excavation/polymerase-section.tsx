@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAccount } from "wagmi";
-import { useNfts } from "../lib/use-nfts";
+import { useQueryClient } from "@tanstack/react-query";
+import { useInvalidateNfts, useNfts } from "../lib/use-nfts";
 import { useBalances } from "../lib/use-balances";
 import { usePolymeraseSimulation } from "./use-polymerase-simulation";
 import { usePolymerizationHistory, useFuse, type PolymerizationRecord } from "./use-polymerization-history";
+import { useFuseRoom } from "./use-fuse-room";
+import { getExplorerTxUrl } from "../lib/explorer";
 import { CollapsibleSection } from "../components/collapsible-section";
 import { MiniNftCard } from "./mini-nft-card";
 import { TradingCard } from "./trading-card";
@@ -31,6 +34,8 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
   const { chainId } = useAccount();
   const { essenceBalance, refetchEssence } = useBalances();
   const { data: reactions = [], isLoading: reactionsLoading } = usePolymerizationHistory();
+  const invalidateNfts = useInvalidateNfts();
+  const queryClient = useQueryClient();
 
   const targetNftId = selectedNfts[0] || null;
   const consumedNftId = selectedNfts[1] || null;
@@ -40,6 +45,9 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
 
   const { data: simulation, isLoading: simLoading, error: simError } = usePolymeraseSimulation(targetNftId, consumedNftId);
   const fuse = useFuse();
+  const fuseRoom = useFuseRoom(fuse.data?.requestId ?? null);
+  const confirming = !!fuse.data && fuseRoom.state === "pending";
+  const explorerUrl = fuse.data ? getExplorerTxUrl(fuse.data.chainId, fuse.data.txHash) : null;
 
   const toggleNftSelection = (id: string) => {
     setSelectedNfts((prev) => {
@@ -62,17 +70,29 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
     if (!targetNft || !consumedNft || simulation?.eligible !== true) return;
 
     try {
-      const data = await fuse.mutateAsync({ targetTokenId: targetNft.tokenId, consumedTokenId: consumedNft.tokenId });
-      const essenceMsg = data.essenceYield > 0 ? ` +${data.essenceYield} ✨` : "";
-      setToast({ message: `Fusion complete!${essenceMsg}`, type: "success" });
-      void refetchEssence();
-      setTimeout(clearSelection, 2000);
+      await fuse.mutateAsync({ targetTokenId: targetNft.tokenId, consumedTokenId: consumedNft.tokenId });
     } catch (err) {
       setToast({ message: `Fusion failed: ${err instanceof Error ? err.message : "Unknown error"}`, type: "error" });
     }
-  }, [targetNft, consumedNft, simulation?.eligible, fuse, refetchEssence, clearSelection]);
+  }, [targetNft, consumedNft, simulation?.eligible, fuse]);
 
-  const canFuse = selectedNfts.length === 2 && simulation?.eligible === true && !fuse.isPending;
+  // The mutation above only resolves once the tx hash is in hand - the
+  // actual confirmation arrives over the fuse room websocket, so that's
+  // what drives the toast/invalidation/auto-clear, not fuse.onSuccess.
+  useEffect(() => {
+    if (fuseRoom.state === "success") {
+      const essenceMsg = fuseRoom.essenceYield > 0 ? ` +${fuseRoom.essenceYield} ✨` : "";
+      setToast({ message: `Fusion complete!${essenceMsg}`, type: "success" });
+      invalidateNfts();
+      void queryClient.invalidateQueries({ queryKey: ["polymerization-history"] });
+      void refetchEssence();
+      setTimeout(clearSelection, 2000);
+    } else if (fuseRoom.state === "failed") {
+      setToast({ message: `Fusion failed: ${fuseRoom.error}`, type: "error" });
+    }
+  }, [fuseRoom, invalidateNfts, queryClient, refetchEssence, clearSelection]);
+
+  const canFuse = selectedNfts.length === 2 && simulation?.eligible === true && !fuse.isPending && !confirming;
 
   return (
     <>
@@ -97,8 +117,8 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
               canFuse ? "bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:from-purple-500 hover:to-violet-600" : "cursor-not-allowed bg-stone-700 text-stone-400"
             }`}
           >
-            {fuse.isPending ? "⏳" : fuse.isError ? "✗" : "Fuse"}
-            {fuse.isSuccess && <span className="absolute -right-1 -top-1.5 text-[13px] text-green-400">✓</span>}
+            {fuse.isPending || confirming ? "⏳" : fuse.isError ? "✗" : "Fuse"}
+            {fuseRoom.state === "success" && <span className="absolute -right-1 -top-1.5 text-[13px] text-green-400">✓</span>}
           </button>
         }
       >
@@ -142,18 +162,30 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
               </div>
             )}
 
-            {fuse.isSuccess && (
+            {fuseRoom.state === "success" && (
               <div className="mt-3 rounded border border-emerald-500/50 bg-emerald-950/40 p-3 text-center">
                 <div className="text-sm text-emerald-400">✨ Fusion Complete!</div>
                 <div className="text-xs text-stone-400">Artifact upgraded successfully</div>
+                {explorerUrl && (
+                  <a href={explorerUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[11px] text-emerald-300 underline hover:text-emerald-200">
+                    View transaction ↗
+                  </a>
+                )}
               </div>
             )}
-            {fuse.isError && (
+            {(fuse.isError || fuseRoom.state === "failed") && (
               <div className="mt-3 rounded border border-red-500/50 bg-red-950/40 p-3 text-center">
-                <div className="text-[13px] text-red-400">⚠️ {fuse.error instanceof Error ? fuse.error.message : "Fusion failed"}</div>
+                <div className="text-[13px] text-red-400">
+                  ⚠️ {fuse.isError ? (fuse.error instanceof Error ? fuse.error.message : "Fusion failed") : fuseRoom.state === "failed" ? fuseRoom.error : ""}
+                </div>
+                {explorerUrl && (
+                  <a href={explorerUrl} target="_blank" rel="noopener noreferrer" className="mt-1 inline-block text-[11px] text-red-300 underline hover:text-red-200">
+                    View transaction ↗
+                  </a>
+                )}
               </div>
             )}
-            {fuse.isPending && (
+            {(fuse.isPending || confirming) && (
               <div className="mt-3 rounded border border-purple-500/50 bg-purple-950/40 p-3 text-center">
                 <div className="relative mx-auto mb-1 h-16 w-16">
                   <span className="absolute inset-0 flex items-center justify-center text-3xl [animation:alchemy-glow_1.6s_ease-in-out_infinite]">⚗️</span>
@@ -161,8 +193,13 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
                   <span className="absolute inset-0 flex items-center justify-center text-sm [animation:alchemy-orbit_2.4s_linear_infinite] [animation-delay:-0.8s]">✨</span>
                   <span className="absolute inset-0 flex items-center justify-center text-sm [animation:alchemy-orbit_2.4s_linear_infinite] [animation-delay:-1.6s]">✨</span>
                 </div>
-                <div className="text-sm text-purple-400">Fusing...</div>
-                <div className="text-xs text-stone-400">Waiting for confirmation</div>
+                <div className="text-sm text-purple-400">{confirming ? "Fusing..." : "Requesting fusion..."}</div>
+                <div className="text-xs text-stone-400">{confirming ? "Waiting for confirmation" : "Submitting transaction"}</div>
+                {confirming && explorerUrl && (
+                  <a href={explorerUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[11px] text-purple-300 underline hover:text-purple-200">
+                    View pending transaction ↗
+                  </a>
+                )}
               </div>
             )}
 
