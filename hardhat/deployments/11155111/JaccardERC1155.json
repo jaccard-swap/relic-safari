@@ -1,5 +1,5 @@
 {
-  "address": "0x56d1e85b76ac861feefe8db8b39c3a083e1a9ccb",
+  "address": "0x5f8ff545879a4147dae26b9a0792ded557a243c3",
   "abi": [
     {
       "inputs": [],
@@ -136,44 +136,6 @@
       "type": "error"
     },
     {
-      "inputs": [],
-      "name": "InvalidShortString",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "owner",
-          "type": "address"
-        }
-      ],
-      "name": "OwnableInvalidOwner",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "address",
-          "name": "account",
-          "type": "address"
-        }
-      ],
-      "name": "OwnableUnauthorizedAccount",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "str",
-          "type": "string"
-        }
-      ],
-      "name": "StringTooLong",
-      "type": "error"
-    },
-    {
       "anonymous": false,
       "inputs": [
         {
@@ -196,12 +158,6 @@
         }
       ],
       "name": "ApprovalForAll",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [],
-      "name": "EIP712DomainChanged",
       "type": "event"
     },
     {
@@ -259,25 +215,6 @@
         {
           "indexed": true,
           "internalType": "address",
-          "name": "previousOwner",
-          "type": "address"
-        },
-        {
-          "indexed": true,
-          "internalType": "address",
-          "name": "newOwner",
-          "type": "address"
-        }
-      ],
-      "name": "OwnershipTransferred",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [
-        {
-          "indexed": true,
-          "internalType": "address",
           "name": "owner",
           "type": "address"
         },
@@ -301,12 +238,37 @@
         },
         {
           "indexed": false,
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "newMinHash",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         }
       ],
       "name": "Polymerized",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "value",
+          "type": "uint256"
+        }
+      ],
+      "name": "Transfer",
       "type": "event"
     },
     {
@@ -404,38 +366,12 @@
     },
     {
       "inputs": [],
-      "name": "ESSENCE_TOKEN_ID",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
       "name": "FAUCET_PREFIX",
       "outputs": [
         {
           "internalType": "bytes3",
           "name": "",
           "type": "bytes3"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "JACCARD_ERC1155_PERMIT_TYPE",
-      "outputs": [
-        {
-          "internalType": "bytes",
-          "name": "",
-          "type": "bytes"
         }
       ],
       "stateMutability": "view",
@@ -503,49 +439,6 @@
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "eip712Domain",
-      "outputs": [
-        {
-          "internalType": "bytes1",
-          "name": "fields",
-          "type": "bytes1"
-        },
-        {
-          "internalType": "string",
-          "name": "name",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "version",
-          "type": "string"
-        },
-        {
-          "internalType": "uint256",
-          "name": "chainId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "address",
-          "name": "verifyingContract",
-          "type": "address"
-        },
-        {
-          "internalType": "bytes32",
-          "name": "salt",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "uint256[]",
-          "name": "extensions",
-          "type": "uint256[]"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
       "inputs": [
         {
           "internalType": "address",
@@ -558,9 +451,9 @@
           "type": "uint256"
         },
         {
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "minHash",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         }
       ],
       "name": "faucet",
@@ -575,19 +468,6 @@
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "faucetIdCounter",
-      "outputs": [
-        {
-          "internalType": "uint232",
-          "name": "",
-          "type": "uint232"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
       "inputs": [
         {
           "internalType": "uint256",
@@ -598,9 +478,9 @@
       "name": "getMinHashByTokenId",
       "outputs": [
         {
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         }
       ],
       "stateMutability": "view",
@@ -642,7 +522,7 @@
             }
           ],
           "internalType": "struct JaccardERC1155Permit",
-          "name": "jaccardERC1155Permit",
+          "name": "permit",
           "type": "tuple"
         }
       ],
@@ -655,6 +535,19 @@
         }
       ],
       "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "uri_",
+          "type": "string"
+        }
+      ],
+      "name": "initializeERC1155",
+      "outputs": [],
+      "stateMutability": "nonpayable",
       "type": "function"
     },
     {
@@ -713,19 +606,6 @@
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "owner",
-      "outputs": [
-        {
-          "internalType": "address",
-          "name": "",
-          "type": "address"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
       "inputs": [
         {
           "internalType": "uint256",
@@ -748,9 +628,9 @@
           "type": "uint256"
         },
         {
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "newMinHash",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         },
         {
           "internalType": "uint256",
@@ -766,13 +646,6 @@
           "type": "uint256"
         }
       ],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "renounceOwnership",
-      "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
     },
@@ -863,6 +736,19 @@
     {
       "inputs": [
         {
+          "internalType": "string",
+          "name": "newuri",
+          "type": "string"
+        }
+      ],
+      "name": "setURI",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
           "internalType": "bytes4",
           "name": "interfaceId",
           "type": "bytes4"
@@ -937,19 +823,6 @@
     {
       "inputs": [
         {
-          "internalType": "address",
-          "name": "newOwner",
-          "type": "address"
-        }
-      ],
-      "name": "transferOwnership",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
           "internalType": "uint256",
           "name": "",
           "type": "uint256"
@@ -961,25 +834,6 @@
           "internalType": "string",
           "name": "",
           "type": "string"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "bytes32",
-          "name": "",
-          "type": "bytes32"
-        }
-      ],
-      "name": "usedJaccardERC1155Permits",
-      "outputs": [
-        {
-          "internalType": "bool",
-          "name": "",
-          "type": "bool"
         }
       ],
       "stateMutability": "view",

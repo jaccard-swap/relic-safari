@@ -1,0 +1,54 @@
+{
+  "address": "0xc2ac8a3c6b77894e4123641caed504f511f8cc6c",
+  "abi": [],
+  "contractName": "LibEIP712",
+  "sourceName": "contracts/diamond/libraries/LibEIP712.sol",
+  "bytecode": "0x60556032600b8282823980515f1a607314602657634e487b7160e01b5f525f60045260245ffd5b305f52607381538281f3fe730000000000000000000000000000000000000000301460806040525f5ffdfea2646970667358221220d109b6fbe902e1897f4c4bca2fc234d540910dcd25ce4163afd8e0aafd5e2c3564736f6c634300081e0033",
+  "deployedBytecode": "0x730000000000000000000000000000000000000000301460806040525f5ffdfea2646970667358221220d109b6fbe902e1897f4c4bca2fc234d540910dcd25ce4163afd8e0aafd5e2c3564736f6c634300081e0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "immutableReferences": {},
+  "inputSourceName": "project/contracts/diamond/libraries/LibEIP712.sol",
+  "devdoc": {
+    "details": "All facets use this single domain - verifyingContract is the diamond address",
+    "kind": "dev",
+    "methods": {},
+    "title": "LibEIP712",
+    "version": 1
+  },
+  "evm": {
+    "gasEstimates": {
+      "creation": {
+        "codeDepositCost": "17000",
+        "executionCost": "96",
+        "totalCost": "17096"
+      },
+      "internal": {
+        "domainSeparatorV4()": "infinite",
+        "hashTypedDataV4(bytes32)": "infinite"
+      }
+    }
+  },
+  "metadata": "{\"compiler\":{\"version\":\"0.8.30+commit.73712a01\"},\"language\":\"Solidity\",\"output\":{\"abi\":[],\"devdoc\":{\"details\":\"All facets use this single domain - verifyingContract is the diamond address\",\"kind\":\"dev\",\"methods\":{},\"title\":\"LibEIP712\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"notice\":\"Shared EIP-712 domain separator for the JaccardDiamond\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"project/contracts/diamond/libraries/LibEIP712.sol\":\"LibEIP712\"},\"evmVersion\":\"prague\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\"project/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@5.6.1/\"]},\"sources\":{\"project/contracts/diamond/libraries/LibEIP712.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.30;\\n\\n/// @title LibEIP712\\n/// @notice Shared EIP-712 domain separator for the JaccardDiamond\\n/// @dev All facets use this single domain - verifyingContract is the diamond address\\nlibrary LibEIP712 {\\n    bytes32 constant EIP712_DOMAIN_TYPEHASH = keccak256(\\n        \\\"EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)\\\"\\n    );\\n\\n    /// @notice Compute the domain separator for this diamond\\n    /// @dev Uses address(this) which resolves to diamond address in delegatecall context\\n    function domainSeparatorV4() internal view returns (bytes32) {\\n        return keccak256(\\n            abi.encode(\\n                EIP712_DOMAIN_TYPEHASH,\\n                keccak256(\\\"JaccardDiamond\\\"),\\n                keccak256(\\\"1\\\"),\\n                block.chainid,\\n                address(this)\\n            )\\n        );\\n    }\\n\\n    /// @notice Hash typed data with EIP-712 prefix\\n    function hashTypedDataV4(bytes32 structHash) internal view returns (bytes32) {\\n        return keccak256(abi.encodePacked(\\\"\\\\x19\\\\x01\\\", domainSeparatorV4(), structHash));\\n    }\\n}\\n\\n\",\"keccak256\":\"0xda0b5ffef382e558220b60d5dd85373dc268532eb0cb39d55684114d32448604\",\"license\":\"MIT\"}},\"version\":1}",
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "notice": "Shared EIP-712 domain separator for the JaccardDiamond",
+    "version": 1
+  },
+  "argsData": "0x",
+  "transaction": {
+    "hash": "0x482c044267c94391bde72ec0f7826405eea0d39768c66cd77dc07d1881121d9c",
+    "nonce": "0x12f",
+    "origin": "0x788ced731764cf1bdbf0da8acedaca7cae4c9997"
+  },
+  "receipt": {
+    "blockHash": "0xc6aa8c39a4930fa3cb4c7527391538f51f04a67c24e10bbd520ca85ef8510225",
+    "blockNumber": "0xad18c7",
+    "transactionIndex": "0x55"
+  }
+}

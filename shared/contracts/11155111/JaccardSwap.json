@@ -1,11 +1,6 @@
 {
-  "address": "0x07652ca3e61ba50401a6797efcafc171f113c4a6",
+  "address": "0x5f8ff545879a4147dae26b9a0792ded557a243c3",
   "abi": [
-    {
-      "inputs": [],
-      "stateMutability": "nonpayable",
-      "type": "constructor"
-    },
     {
       "inputs": [],
       "name": "ECDSAInvalidSignature",
@@ -34,19 +29,14 @@
       "type": "error"
     },
     {
-      "inputs": [],
-      "name": "InvalidShortString",
-      "type": "error"
-    },
-    {
       "inputs": [
         {
-          "internalType": "string",
-          "name": "str",
-          "type": "string"
+          "internalType": "enum JaccardSwapFacet.BidRejectReason",
+          "name": "topBidRejectReason",
+          "type": "uint8"
         }
       ],
-      "name": "StringTooLong",
+      "name": "NoValidBids",
       "type": "error"
     },
     {
@@ -99,12 +89,6 @@
       "type": "event"
     },
     {
-      "anonymous": false,
-      "inputs": [],
-      "name": "EIP712DomainChanged",
-      "type": "event"
-    },
-    {
       "inputs": [],
       "name": "AUCTION_TYPEHASH",
       "outputs": [
@@ -120,19 +104,6 @@
     {
       "inputs": [],
       "name": "BID_TYPEHASH",
-      "outputs": [
-        {
-          "internalType": "bytes32",
-          "name": "",
-          "type": "bytes32"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "DOMAIN_SEPARATOR",
       "outputs": [
         {
           "internalType": "bytes32",
@@ -253,9 +224,9 @@
                   "type": "uint256"
                 },
                 {
-                  "internalType": "bytes32[5]",
+                  "internalType": "bytes8[20]",
                   "name": "targetMinHash",
-                  "type": "bytes32[5]"
+                  "type": "bytes8[20]"
                 },
                 {
                   "internalType": "uint8",
@@ -333,14 +304,14 @@
     {
       "inputs": [
         {
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "targetMinHash",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         },
         {
-          "internalType": "bytes32[5]",
+          "internalType": "bytes8[20]",
           "name": "nftMinHash",
-          "type": "bytes32[5]"
+          "type": "bytes8[20]"
         }
       ],
       "name": "countMatches",
@@ -352,49 +323,6 @@
         }
       ],
       "stateMutability": "pure",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "eip712Domain",
-      "outputs": [
-        {
-          "internalType": "bytes1",
-          "name": "fields",
-          "type": "bytes1"
-        },
-        {
-          "internalType": "string",
-          "name": "name",
-          "type": "string"
-        },
-        {
-          "internalType": "string",
-          "name": "version",
-          "type": "string"
-        },
-        {
-          "internalType": "uint256",
-          "name": "chainId",
-          "type": "uint256"
-        },
-        {
-          "internalType": "address",
-          "name": "verifyingContract",
-          "type": "address"
-        },
-        {
-          "internalType": "bytes32",
-          "name": "salt",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "uint256[]",
-          "name": "extensions",
-          "type": "uint256[]"
-        }
-      ],
-      "stateMutability": "view",
       "type": "function"
     },
     {
@@ -481,9 +409,9 @@
                   "type": "uint256"
                 },
                 {
-                  "internalType": "bytes32[5]",
+                  "internalType": "bytes8[20]",
                   "name": "targetMinHash",
-                  "type": "bytes32[5]"
+                  "type": "bytes8[20]"
                 },
                 {
                   "internalType": "uint8",
@@ -574,9 +502,9 @@
               "type": "uint256"
             },
             {
-              "internalType": "bytes32[5]",
+              "internalType": "bytes8[20]",
               "name": "targetMinHash",
-              "type": "bytes32[5]"
+              "type": "bytes8[20]"
             },
             {
               "internalType": "uint8",
@@ -753,7 +681,7 @@
       "inputs": [
         {
           "internalType": "bytes32",
-          "name": "",
+          "name": "auctionHash",
           "type": "bytes32"
         }
       ],
@@ -772,7 +700,7 @@
       "inputs": [
         {
           "internalType": "bytes32",
-          "name": "",
+          "name": "bidHash",
           "type": "bytes32"
         }
       ],
@@ -802,9 +730,9 @@
               "type": "uint256"
             },
             {
-              "internalType": "bytes32[5]",
+              "internalType": "bytes8[20]",
               "name": "targetMinHash",
-              "type": "bytes32[5]"
+              "type": "bytes8[20]"
             },
             {
               "internalType": "uint8",

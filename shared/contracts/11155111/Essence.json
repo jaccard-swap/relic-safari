@@ -1,5 +1,5 @@
 {
-  "address": "0xb24c1da97231bd20bae2f1ac7b55e89e8eff8b38",
+  "address": "0x5f8ff545879a4147dae26b9a0792ded557a243c3",
   "abi": [
     {
       "inputs": [],
@@ -163,22 +163,6 @@
       "type": "error"
     },
     {
-      "inputs": [],
-      "name": "InvalidShortString",
-      "type": "error"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "string",
-          "name": "str",
-          "type": "string"
-        }
-      ],
-      "name": "StringTooLong",
-      "type": "error"
-    },
-    {
       "anonymous": false,
       "inputs": [
         {
@@ -201,12 +185,6 @@
         }
       ],
       "name": "Approval",
-      "type": "event"
-    },
-    {
-      "anonymous": false,
-      "inputs": [],
-      "name": "EIP712DomainChanged",
       "type": "event"
     },
     {
@@ -315,6 +293,24 @@
       "type": "function"
     },
     {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "burn",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
       "inputs": [],
       "name": "decimals",
       "outputs": [
@@ -324,55 +320,41 @@
           "type": "uint8"
         }
       ],
-      "stateMutability": "view",
+      "stateMutability": "pure",
       "type": "function"
     },
     {
-      "inputs": [],
-      "name": "eip712Domain",
-      "outputs": [
-        {
-          "internalType": "bytes1",
-          "name": "fields",
-          "type": "bytes1"
-        },
+      "inputs": [
         {
           "internalType": "string",
-          "name": "name",
+          "name": "name_",
           "type": "string"
         },
         {
           "internalType": "string",
-          "name": "version",
+          "name": "symbol_",
           "type": "string"
-        },
-        {
-          "internalType": "uint256",
-          "name": "chainId",
-          "type": "uint256"
-        },
+        }
+      ],
+      "name": "initializeEssence",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
         {
           "internalType": "address",
-          "name": "verifyingContract",
+          "name": "to",
           "type": "address"
         },
         {
-          "internalType": "bytes32",
-          "name": "salt",
-          "type": "bytes32"
-        },
-        {
-          "internalType": "uint256[]",
-          "name": "extensions",
-          "type": "uint256[]"
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
         }
       ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [],
-      "name": "faucet",
+      "name": "mint",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"
