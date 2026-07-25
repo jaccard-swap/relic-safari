@@ -39,24 +39,23 @@ function loadJaccardNftArtifact(chainId: SupportedChainId): ContractArtifact | u
 }
 
 export default fp(async (fastify: FastifyInstance) => {
-  // Real chains sign with the sponsor/relayer account; the local anvil chain
-  // has its own throwaway funded account under MNEMONIC_LOCALHOST (see
-  // hardhat.config.ts) - reusing the real signer there would sign with an
-  // address that has no balance on a fresh anvil chain. In production the
-  // signer comes from a plain private key (SPONSOR_PRIVATE_KEY) rather than
-  // a mnemonic - one fewer derivation step, and there's no reason to hold a
-  // whole HD wallet for an account that's always index 0 anyway.
-  const account =
-    process.env.NODE_ENV === 'production'
-      ? process.env.SPONSOR_PRIVATE_KEY
-        ? privateKeyToAccount(process.env.SPONSOR_PRIVATE_KEY as `0x${string}`)
-        : null
-      : process.env.MNEMONIC
-        ? mnemonicToAccount(process.env.MNEMONIC, { accountIndex: 0 })
-        : null
+  const isProduction = process.env.NODE_ENV === 'production'
 
-  const localMnemonic = process.env.MNEMONIC_LOCALHOST
-  const localAccount = localMnemonic ? mnemonicToAccount(localMnemonic, { accountIndex: 0 }) : null
+  // Each environment only ever builds the signer for its own chain -
+  // production signs sepolia with the sponsor/relayer account
+  // (SPONSOR_PRIVATE_KEY), everything else signs the local anvil chain with
+  // its own throwaway funded account (MNEMONIC_LOCALHOST, see
+  // hardhat.config.ts). Strictly gated on NODE_ENV rather than "whichever
+  // credential happens to be set" - a stray SPONSOR_PRIVATE_KEY left in a
+  // dev .env, or MNEMONIC_LOCALHOST leaking into .env.production, must not
+  // let either environment sign against the other's chain.
+  const account = isProduction && process.env.SPONSOR_PRIVATE_KEY
+    ? privateKeyToAccount(process.env.SPONSOR_PRIVATE_KEY as `0x${string}`)
+    : null
+
+  const localAccount = !isProduction && process.env.MNEMONIC_LOCALHOST
+    ? mnemonicToAccount(process.env.MNEMONIC_LOCALHOST, { accountIndex: 0 })
+    : null
 
   const publicClients = {
     11155111: createPublicClient({
@@ -69,10 +68,8 @@ export default fp(async (fastify: FastifyInstance) => {
     })
   } as const
 
-  // Each chain's wallet client is independently gated on its own account
-  // being configured, rather than an all-or-nothing single account - a dev
-  // box can easily have MNEMONIC_LOCALHOST (anvil) without a real MNEMONIC,
-  // or vice versa in a deployed environment with no local chain at all.
+  // account and localAccount are mutually exclusive (see isProduction gate
+  // above), so at most one of these ever populates in a given process.
   const walletClients: Partial<Record<SupportedChainId, ReturnType<typeof createWalletClient>>> = {}
   if (account) {
     walletClients[11155111] = createWalletClient({
@@ -93,11 +90,10 @@ export default fp(async (fastify: FastifyInstance) => {
   fastify.decorate('walletClients', walletClients as any)
   fastify.decorate('getJaccardNft', loadJaccardNftArtifact)
 
-  if (!account) {
-    const missingVar = process.env.NODE_ENV === 'production' ? 'SPONSOR_PRIVATE_KEY' : 'MNEMONIC'
-    fastify.log.warn(`${missingVar} not configured - sponsored transactions on sepolia disabled`)
+  if (isProduction && !account) {
+    fastify.log.warn('SPONSOR_PRIVATE_KEY not configured - sponsored transactions on sepolia disabled')
   }
-  if (!localAccount) {
+  if (!isProduction && !localAccount) {
     fastify.log.warn('MNEMONIC_LOCALHOST not configured - sponsored transactions on localhost disabled')
   }
 })
