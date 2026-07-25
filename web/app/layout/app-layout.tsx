@@ -1,4 +1,6 @@
 import { Link, Outlet, useLocation } from "react-router";
+import { FaGithub, FaDiscord } from "react-icons/fa";
+import { SiEthereum } from "react-icons/si";
 import { WalletMenu } from "../auth/wallet-menu";
 
 const NAV_ITEMS = [
@@ -6,6 +8,15 @@ const NAV_ITEMS = [
   { to: "/bazaar", icon: "⚖️", label: "Bazaar" },
   { to: "/excavation", icon: "⛏️", label: "Excavation" },
   { to: "/help", icon: "📜", label: "Help" },
+] as const;
+
+// JaccardDiamond on Sepolia - shared/contracts/11155111/JaccardDiamond.json
+const CONTRACT_ADDRESS = "0x5f8ff545879a4147dae26b9a0792ded557a243c3";
+
+const SOCIAL_LINKS = [
+  { href: "https://github.com/jaccard-swap/relic-safari", label: "GitHub", Icon: FaGithub },
+  { href: `https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}`, label: "Contract on Etherscan", Icon: SiEthereum },
+  { href: "https://discord.gg/uDSmzjrK9N", label: "Discord", Icon: FaDiscord },
 ] as const;
 
 // Persistent tabs, not the old app's click-to-reveal dropdown menu - the
@@ -35,7 +46,22 @@ export function AppLayout() {
               );
             })}
           </div>
-          <WalletMenu />
+          <div className="flex items-center gap-3">
+            {SOCIAL_LINKS.map(({ href, label, Icon }) => (
+              <a
+                key={href}
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={label}
+                title={label}
+                className="text-amber-200/60 transition-colors hover:text-amber-200"
+              >
+                <Icon className="h-4 w-4" />
+              </a>
+            ))}
+            <WalletMenu />
+          </div>
         </div>
       </nav>
 
