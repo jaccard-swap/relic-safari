@@ -217,6 +217,9 @@ export const WS_MSG = {
   // Auction feed
   AUCTIONS_LIST: 'auctions_list',
   NEW_AUCTION: 'new_auction',
+
+  // Quarry dig room - terminal status of a sponsored mint (see api/src/lib/digRooms.ts)
+  DIG_STATUS: 'dig_status',
 } as const
 
 export type WsMsgType = typeof WS_MSG[keyof typeof WS_MSG]

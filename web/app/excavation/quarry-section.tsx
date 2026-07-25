@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNfts } from "../lib/use-nfts";
 import { useErc1155Faucet } from "./use-erc1155-faucet";
+import { DigModal } from "./dig-modal";
 import { CollapsibleSection } from "../components/collapsible-section";
 import { MiniNftCard } from "./mini-nft-card";
 import { TradingCard } from "./trading-card";
@@ -22,20 +23,13 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
   const [detailNft, setDetailNft] = useState<Nft | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [view, setView] = useState<CardView>("list");
-  const toastShown = useRef(false);
 
   const dig = useErc1155Faucet();
 
-  useEffect(() => {
-    if (dig.isSuccess && !toastShown.current) {
-      toastShown.current = true;
-      setToast({ message: "New artifact discovered! Check below ⛏️", type: "success" });
-    }
-    if (!dig.isSuccess) {
-      toastShown.current = false;
-    }
-  }, [dig.isSuccess]);
-
+  // The mint's own success/failure is now DigModal's job (it only opens once
+  // dig.data exists) - this covers the earlier failure mode where the
+  // initial POST itself never returns a hash at all (rate limited, wallet
+  // not connected, network error), so the modal never gets a chance to open.
   useEffect(() => {
     if (dig.isError) {
       setToast({ message: dig.error instanceof Error ? dig.error.message : "Excavation failed", type: "error" });
@@ -63,8 +57,7 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
             disabled={!isConnected || dig.isPending}
             className="relative w-14 rounded bg-gradient-to-r from-stone-600 to-amber-800 py-2 text-center text-xs font-medium text-white transition-all hover:from-stone-500 hover:to-amber-700 disabled:opacity-50"
           >
-            {dig.isPending ? "⏳" : dig.isError ? "✗" : "Dig"}
-            {dig.isSuccess && <span className="absolute -right-1 -top-1.5 text-[13px] text-green-400">✓</span>}
+            {dig.isPending ? "⏳" : "Dig"}
           </button>
         }
       >
@@ -90,6 +83,8 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
       </CollapsibleSection>
 
       <NftDetailModal nft={detailNft} onClose={() => setDetailNft(null)} />
+
+      <DigModal result={dig.data ?? null} onClose={() => dig.reset()} />
 
       {toast && <Toast message={toast.message} type={toast.type} duration={4000} onClose={() => setToast(null)} />}
     </>

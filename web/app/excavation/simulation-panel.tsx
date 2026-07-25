@@ -69,7 +69,7 @@ export function SimulationPanel({ simulation, loading, error }: SimulationPanelP
         <div className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-3">
           <div>
             <div className="mb-1 text-[11px] uppercase tracking-wider text-stone-500">Trait Analysis</div>
-            <div className="max-h-32 space-y-1 overflow-y-auto">
+            <div className="space-y-1">
               {Object.entries(traitBreakdown).map(([key, info]) => {
                 if (!info.target && !info.consumed) return null;
                 return (

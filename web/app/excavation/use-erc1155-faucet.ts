@@ -1,23 +1,25 @@
 import { useMutation } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { apiJson } from "../lib/api";
-import { useInvalidateNfts } from "../lib/use-nfts";
-import { useBalances } from "../lib/use-balances";
 
-interface Erc1155FaucetResult {
+export interface Erc1155FaucetResult {
   success: boolean;
-  tokenId?: string;
-  hash?: string;
-  chainId?: number;
-  metadata?: Record<string, string | number>;
+  requestId: string;
+  tokenId: string;
+  hash: string;
+  chainId: number;
+  metadata: Record<string, string | number>;
+  minHash: string[];
 }
 
-// Server-mediated: the API mints and waits for confirmation before
-// responding, so the client never touches the chain directly here.
+// Server-mediated and fast: the API signs and submits the mint, then
+// responds as soon as it has a transaction hash - it does not wait for
+// confirmation. The caller tracks the rest of the lifecycle via
+// useDigRoom(requestId), which is also where the post-confirmation
+// nfts/balances invalidation happens (the mint isn't actually done yet at
+// this point).
 export function useErc1155Faucet() {
   const { address, chainId } = useAccount();
-  const invalidateNfts = useInvalidateNfts();
-  const { refetchBalances } = useBalances();
 
   return useMutation({
     mutationFn: async () => {
@@ -26,10 +28,6 @@ export function useErc1155Faucet() {
         method: "POST",
         body: JSON.stringify({ recipient: address, chainId }),
       });
-    },
-    onSuccess: () => {
-      invalidateNfts();
-      refetchBalances();
     },
   });
 }

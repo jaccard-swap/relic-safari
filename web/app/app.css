@@ -13,3 +13,144 @@ body {
     color-scheme: dark;
   }
 }
+
+/* Dig modal (web/app/excavation/dig-modal.tsx): pickaxe swings and strikes
+   the rock on a loop while a mint is pending, then a one-shot glow+scale-in
+   plays when the artifact is revealed. */
+@keyframes dig-strike {
+  0%,
+  40% {
+    transform: rotate(-50deg);
+  }
+  55%,
+  65% {
+    transform: rotate(12deg);
+  }
+  100% {
+    transform: rotate(-50deg);
+  }
+}
+
+@keyframes dig-impact {
+  0%,
+  50%,
+  62%,
+  100% {
+    transform: translate(0, 0);
+  }
+  53% {
+    transform: translate(-2px, 1px);
+  }
+  56% {
+    transform: translate(2px, -1px);
+  }
+  59% {
+    transform: translate(-1px, 0);
+  }
+}
+
+@keyframes dig-spark {
+  0%,
+  52%,
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  58% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  70% {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+}
+
+@keyframes treasure-glow {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  40% {
+    opacity: 0.9;
+    transform: scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.2);
+  }
+}
+
+@keyframes treasure-reveal {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+    filter: brightness(2) blur(4px);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+    filter: brightness(1.6) blur(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1);
+  }
+}
+
+/* Stipend claim (web/app/excavation/stipend-section.tsx): a pencil scribbles
+   back and forth while an ink line beneath it grows and resets on a loop. */
+@keyframes pencil-write {
+  0%,
+  100% {
+    transform: translateX(-8px) rotate(-10deg);
+  }
+  50% {
+    transform: translateX(8px) rotate(-4deg);
+  }
+}
+
+@keyframes ink-line {
+  0%,
+  8% {
+    width: 0%;
+  }
+  45%,
+  55% {
+    width: 100%;
+  }
+  92%,
+  100% {
+    width: 0%;
+  }
+}
+
+/* Polymerase fuse (web/app/excavation/polymerase-section.tsx): sparkles
+   orbit a pulsing/glowing flask - staggered animation-delay on the same
+   keyframe spaces multiple sparkles evenly around the circle. */
+@keyframes alchemy-glow {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1) drop-shadow(0 0 0 rgba(168, 85, 247, 0));
+  }
+  50% {
+    transform: scale(1.12);
+    filter: brightness(1.3) drop-shadow(0 0 6px rgba(168, 85, 247, 0.6));
+  }
+}
+
+@keyframes alchemy-orbit {
+  from {
+    transform: rotate(0deg) translateX(26px) rotate(0deg);
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
+  to {
+    transform: rotate(360deg) translateX(26px) rotate(-360deg);
+    opacity: 0.9;
+  }
+}

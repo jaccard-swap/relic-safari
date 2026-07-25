@@ -47,10 +47,17 @@ export function NftCard({ nft, isExpanded, onToggle, onAuction, onShowDetails }:
 
   return (
     <div className="rounded overflow-hidden">
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={onToggle}
-        className={`w-full flex items-center gap-2 p-2 border transition-all text-left ${cardStyles} ${isExpanded ? "rounded-t border-b-0" : "rounded"}`}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onToggle();
+          }
+        }}
+        className={`w-full flex items-center gap-2 p-2 border transition-all text-left cursor-pointer ${cardStyles} ${isExpanded ? "rounded-t border-b-0" : "rounded"}`}
       >
         <div className="w-6 h-6 flex items-center justify-center bg-black/30 rounded text-sm shrink-0">{form ? FORM_EMOJI[form] || "⚱️" : "⚱️"}</div>
 
@@ -74,7 +81,7 @@ export function NftCard({ nft, isExpanded, onToggle, onAuction, onShowDetails }:
         <svg className={`w-2.5 h-2.5 text-white/30 shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M19 9l-7 7-7-7" />
         </svg>
-      </button>
+      </div>
 
       <div className={`grid transition-all duration-200 ${isExpanded ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}>
         <div className="overflow-hidden">

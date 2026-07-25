@@ -87,6 +87,18 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
           </button>
         }
       >
+        {(claimPending || claimConfirming) && (
+          <div className="mt-3 rounded border border-amber-500/50 bg-amber-950/40 p-3 text-center">
+            <div className="relative mx-auto mb-1 h-10 w-20">
+              <span className="absolute inset-x-0 bottom-1 text-2xl">📜</span>
+              <span className="absolute left-1/2 top-0 -translate-x-1/2 text-xl [animation:pencil-write_1.1s_ease-in-out_infinite]">✏️</span>
+              <span className="absolute bottom-2 left-1/2 h-0.5 -translate-x-1/2 bg-amber-400/70 [animation:ink-line_1.1s_ease-in-out_infinite]" />
+            </div>
+            <div className="text-sm text-amber-400">{claimPending ? "Signing…" : "Inscribing your claim…"}</div>
+            <div className="text-xs text-stone-400">{claimPending ? "Confirm in your wallet" : "Waiting for confirmation"}</div>
+          </div>
+        )}
+
         <div className="mt-3 space-y-1 rounded border border-stone-700/50 bg-stone-800/50 px-2 py-2 text-xs text-stone-500">
           <div>
             <span className="text-amber-400">1st claim:</span> ~5.24 SCRIP (φ²)

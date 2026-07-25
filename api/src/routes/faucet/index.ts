@@ -1,7 +1,9 @@
-import { FastifyPluginAsync } from 'fastify'
+import { FastifyPluginAsync, FastifyRequest } from 'fastify'
+import type { WebSocket } from '@fastify/websocket'
 import * as dbSchema from '@shared/database'
-import { computeMinHash, countMinHashMatches, MINHASH_BANDS, TRAIT_POOLS, type TraitPool } from '@shared/constants'
+import { computeMinHash, countMinHashMatches, MINHASH_BANDS, TRAIT_POOLS, WS_MSG, type TraitPool } from '@shared/constants'
 import { computePolymerizationResult, generateArtifactName, POLYMERASE_MIN_MATCHES } from '../../lib/polymerase'
+import { joinDigRoom, leaveDigRoom, broadcastDigStatus } from '../../lib/digRooms'
 import { and, eq, gte, sql } from 'drizzle-orm'
 import { parseEther } from 'viem'
 import type { SupportedChainId } from '../../plugins/web3'
@@ -709,33 +711,51 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
         args: [recipient as `0x${string}`, 1n, minHash],
       } as any)
 
-      // Wait for confirmation
-      await publicClient.waitForTransactionReceipt({ hash })
+      fastify.log.info({ tokenId: tokenId.toString(), hash, chainId }, 'NFT mint submitted')
 
-      // Record NFT
-      const [nft] = await fastify.db
-        .insert(nfts)
-        .values({
-          tokenId: tokenId.toString(),
-          chainId,
-          contractAddress: artifact.address.toLowerCase(),
-          recipient,
-          txHash: hash,
-          metadata,
-          minHash,
-        })
-        .returning()
+      // Confirmation happens off the request/response lifecycle - the
+      // client already has the hash and can jump to Etherscan immediately,
+      // then picks up the terminal result over the /:requestId/room
+      // websocket (see below) instead of blocking the HTTP response on
+      // waitForTransactionReceipt.
+      void (async () => {
+        try {
+          await publicClient.waitForTransactionReceipt({ hash })
 
-      // Update sponsorship request
-      await fastify.db
-        .update(sponsorshipRequests)
-        .set({ status: 'success', nftId: nft.id })
-        .where(eq(sponsorshipRequests.id, sponsorshipRequest.id))
+          const [nft] = await fastify.db
+            .insert(nfts)
+            .values({
+              tokenId: tokenId.toString(),
+              chainId,
+              contractAddress: artifact.address.toLowerCase(),
+              recipient,
+              txHash: hash,
+              metadata,
+              minHash,
+            })
+            .returning()
 
-      fastify.log.info({ tokenId: tokenId.toString(), hash, chainId }, 'NFT minted')
+          await fastify.db
+            .update(sponsorshipRequests)
+            .set({ status: 'success', nftId: nft.id })
+            .where(eq(sponsorshipRequests.id, sponsorshipRequest.id))
+
+          fastify.log.info({ tokenId: tokenId.toString(), hash, chainId }, 'NFT minted')
+          broadcastDigStatus(sponsorshipRequest.id, { type: WS_MSG.DIG_STATUS, status: 'success', nft })
+        } catch (error) {
+          await fastify.db
+            .update(sponsorshipRequests)
+            .set({ status: 'failed', errorMessage: (error as Error).message })
+            .where(eq(sponsorshipRequests.id, sponsorshipRequest.id))
+
+          fastify.log.error({ error }, 'Faucet mint failed')
+          broadcastDigStatus(sponsorshipRequest.id, { type: WS_MSG.DIG_STATUS, status: 'failed', error: (error as Error).message })
+        }
+      })()
 
       return {
         success: true,
+        requestId: sponsorshipRequest.id,
         tokenId: tokenId.toString(),
         hash,
         chainId,
@@ -752,6 +772,51 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
       fastify.log.error({ error }, 'Faucet mint failed')
       reply.code(500)
       return { error: 'Mint failed', details: (error as Error).message }
+    }
+  })
+
+  // ============================================================================
+  // WebSocket: GET /:requestId/room - terminal status of a sponsored mint
+  // ============================================================================
+  fastify.route({
+    method: 'GET',
+    url: '/:requestId/room',
+    handler: () => {
+      // Non-websocket requests - wsHandler takes over for upgrades
+    },
+    // @ts-expect-error - wsHandler is added by @fastify/websocket plugin
+    wsHandler: async (socket: WebSocket, req: FastifyRequest) => {
+      const { requestId } = req.params as { requestId: string }
+
+      // Race guard: the mint may already have resolved (success/failed)
+      // before this socket connects - send the terminal status immediately
+      // instead of registering into a room that'll never receive a broadcast.
+      const [existing] = await fastify.db
+        .select()
+        .from(sponsorshipRequests)
+        .where(eq(sponsorshipRequests.id, requestId))
+        .limit(1)
+
+      if (existing && existing.status !== 'pending') {
+        if (existing.status === 'success' && existing.nftId) {
+          const [nft] = await fastify.db.select().from(nfts).where(eq(nfts.id, existing.nftId)).limit(1)
+          socket.send(JSON.stringify({ type: WS_MSG.DIG_STATUS, status: 'success', nft }))
+        } else {
+          socket.send(JSON.stringify({ type: WS_MSG.DIG_STATUS, status: 'failed', error: existing.errorMessage ?? 'Mint failed' }))
+        }
+        socket.close()
+        return
+      }
+
+      joinDigRoom(requestId, socket)
+
+      socket.on('close', () => {
+        leaveDigRoom(requestId, socket)
+      })
+
+      socket.on('error', (error: Error) => {
+        fastify.log.error({ error, requestId }, 'Dig room WebSocket error')
+      })
     }
   })
 }

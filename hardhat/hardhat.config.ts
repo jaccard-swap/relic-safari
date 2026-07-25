@@ -3,7 +3,7 @@ import { config as loadEnv } from "dotenv";
 // shared root .env instead of expecting a separate one nested in here.
 loadEnv({ path: `${import.meta.dirname}/../.env` });
 import HardhatDeploy from 'hardhat-deploy';
-import { deployAuctionTask } from "./tasks/index.js";
+import { changeOwnershipTask } from "./tasks/index.js";
 import type { HardhatUserConfig } from "hardhat/config";
 import hardhatVerify from "@nomicfoundation/hardhat-verify";
 import hardhatToolboxViemPlugin from "@nomicfoundation/hardhat-toolbox-viem";
@@ -29,7 +29,7 @@ if (!process.env.MNEMONIC_LOCALHOST) {
 }
 
 const config: HardhatUserConfig = {
-  tasks: [deployAuctionTask],
+  tasks: [changeOwnershipTask],
   plugins: [hardhatToolboxViemPlugin, hardhatVerify, HardhatDeploy],
   solidity: {
     compilers: [

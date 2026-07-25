@@ -155,7 +155,13 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
             )}
             {fuse.isPending && (
               <div className="mt-3 rounded border border-purple-500/50 bg-purple-950/40 p-3 text-center">
-                <div className="animate-pulse text-sm text-purple-400">⚗️ Fusing...</div>
+                <div className="relative mx-auto mb-1 h-16 w-16">
+                  <span className="absolute inset-0 flex items-center justify-center text-3xl [animation:alchemy-glow_1.6s_ease-in-out_infinite]">⚗️</span>
+                  <span className="absolute inset-0 flex items-center justify-center text-sm [animation:alchemy-orbit_2.4s_linear_infinite]">✨</span>
+                  <span className="absolute inset-0 flex items-center justify-center text-sm [animation:alchemy-orbit_2.4s_linear_infinite] [animation-delay:-0.8s]">✨</span>
+                  <span className="absolute inset-0 flex items-center justify-center text-sm [animation:alchemy-orbit_2.4s_linear_infinite] [animation-delay:-1.6s]">✨</span>
+                </div>
+                <div className="text-sm text-purple-400">Fusing...</div>
                 <div className="text-xs text-stone-400">Waiting for confirmation</div>
               </div>
             )}

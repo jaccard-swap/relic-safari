@@ -1,7 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router";
 import { useAccount } from "wagmi";
 import { ViewToggle, type CardView } from "../components/view-toggle";
-import { CreateAuctionModal } from "../components/create-auction-modal";
 import { NftDetailModal } from "../components/nft-detail-modal";
 import { useBalances } from "../lib/use-balances";
 import { useNfts, type Nft } from "../lib/use-nfts";
@@ -10,11 +10,11 @@ import { TradingCard } from "../excavation/trading-card";
 
 export function VaultPage() {
   const { isConnected } = useAccount();
+  const navigate = useNavigate();
   const { scripBalance, essenceBalance } = useBalances();
   const { data: nfts, isLoading, isError, refetch } = useNfts();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [auctionNft, setAuctionNft] = useState<Nft | null>(null);
   const [detailNft, setDetailNft] = useState<Nft | null>(null);
   const [view, setView] = useState<CardView>("list");
 
@@ -78,7 +78,7 @@ export function VaultPage() {
                   nft={nft}
                   isExpanded={expandedId === nft.id}
                   onToggle={() => toggleExpand(nft.id)}
-                  onAuction={() => setAuctionNft(nft)}
+                  onAuction={() => navigate(`/bazaar/create/${nft.id}`)}
                   onShowDetails={() => setDetailNft(nft)}
                 />
               ))}
@@ -90,7 +90,7 @@ export function VaultPage() {
                   <TradingCard nft={nft} onClick={() => setDetailNft(nft)} />
                   <button
                     type="button"
-                    onClick={() => setAuctionNft(nft)}
+                    onClick={() => navigate(`/bazaar/create/${nft.id}`)}
                     title="Auction"
                     className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-700/80 text-xs text-white transition-colors hover:bg-amber-600"
                   >
@@ -103,7 +103,6 @@ export function VaultPage() {
         </div>
       )}
 
-      <CreateAuctionModal nft={auctionNft} onClose={() => setAuctionNft(null)} />
       <NftDetailModal nft={detailNft} onClose={() => setDetailNft(null)} />
     </div>
   );

@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
-import { FORM_EMOJI } from "../lib/artifact-styles";
+import { Link, useNavigate, useParams } from "react-router";
+import { ArtifactPanel } from "../auction/artifact-panel";
 import { useCreateAuction } from "../lib/use-create-auction";
-import type { Nft } from "../lib/use-nfts";
-
-interface CreateAuctionModalProps {
-  nft: Nft | null;
-  onClose: () => void;
-}
+import { useNfts } from "../lib/use-nfts";
 
 const DURATION_OPTIONS = [
   { label: "1 hour", hours: 1 },
@@ -17,9 +12,18 @@ const DURATION_OPTIONS = [
   { label: "7 days", hours: 168 },
 ];
 
-export function CreateAuctionModal({ nft, onClose }: CreateAuctionModalProps) {
+// Full-page counterpart to the old CreateAuctionModal - a route (not a
+// modal) so it can be reached from anywhere an artifact is shown (Vault,
+// the dig reveal) without stacking on top of whatever UI got us here, and so
+// there's room for ArtifactPanel's full showcase (same component the
+// auction room itself uses) alongside the form.
+export function CreateAuctionPage() {
+  const { nftId } = useParams();
   const navigate = useNavigate();
+  const { data: nfts, isLoading } = useNfts();
   const { mutateAsync, isPending, error } = useCreateAuction();
+
+  const nft = nfts?.find((n) => n.id === nftId) ?? null;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -27,48 +31,46 @@ export function CreateAuctionModal({ nft, onClose }: CreateAuctionModalProps) {
   const [durationHours, setDurationHours] = useState(24);
 
   useEffect(() => {
-    if (nft) {
-      setTitle(nft.metadata.name || `Artifact #${nft.tokenId.slice(-6)}`);
-      setDescription("");
-      setStartingBid("1");
-      setDurationHours(24);
-    }
+    if (nft) setTitle(nft.metadata.name || `Artifact #${nft.tokenId.slice(-6)}`);
   }, [nft]);
 
-  useEffect(() => {
-    document.body.style.overflow = nft ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [nft]);
+  if (isLoading) {
+    return <div className="rounded bg-stone-800/30 p-4 text-center text-[13px] text-stone-400">Loading artifact…</div>;
+  }
 
-  if (!nft) return null;
+  if (!nft) {
+    return (
+      <div className="rounded bg-red-900/20 p-4 text-center text-[13px] text-red-400">
+        Artifact not found.{" "}
+        <Link to="/" className="underline hover:text-red-300">
+          Back to Vault
+        </Link>
+      </div>
+    );
+  }
 
-  const form = nft.metadata.form as string | undefined;
   const bidValid = /^\d*\.?\d+$/.test(startingBid) && parseFloat(startingBid) > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!nft || !bidValid) return;
     const result = await mutateAsync({ nft, title: title.trim() || nft.metadata.name || "Untitled artifact", description, startingBid, durationHours });
-    onClose();
     void navigate(`/auction/${result.auction.id}`);
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-5 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-lg border border-amber-900/50 bg-stone-800 shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between border-b border-amber-900/30 px-5 py-4">
-          <div className="flex items-center gap-3">
-            <span className="text-xl">{form ? FORM_EMOJI[form] || "⚱️" : "⚱️"}</span>
-            <h3 className="font-semibold text-amber-200">List for Auction</h3>
-          </div>
-          <button type="button" onClick={onClose} className="text-lg text-stone-400 transition-colors hover:text-amber-200">
+    <div className="grid gap-3 md:grid-cols-[minmax(260px,380px)_1fr] md:items-start">
+      <ArtifactPanel nft={nft} />
+
+      <div className="min-w-0 space-y-3 rounded-lg border border-amber-900/30 bg-stone-800/50 p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold text-amber-200">List for Auction</h2>
+          <button type="button" onClick={() => navigate(-1)} className="text-lg text-stone-400 transition-colors hover:text-amber-200">
             ✕
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 p-5">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-[13px] text-stone-400">Title</label>
             <input
@@ -86,7 +88,7 @@ export function CreateAuctionModal({ nft, onClose }: CreateAuctionModalProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={280}
-              rows={2}
+              rows={3}
               className="w-full resize-none rounded border border-stone-700 bg-stone-900 px-3 py-2 text-sm text-stone-200 focus:border-amber-600 focus:outline-none"
             />
           </div>
@@ -105,7 +107,7 @@ export function CreateAuctionModal({ nft, onClose }: CreateAuctionModalProps) {
 
           <div>
             <label className="mb-1.5 block text-[13px] text-stone-400">Duration</label>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {DURATION_OPTIONS.map((opt) => (
                 <button
                   key={opt.hours}
