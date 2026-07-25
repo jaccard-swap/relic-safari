@@ -11,7 +11,6 @@ import { WagmiProvider } from "wagmi";
 
 import type { Route } from "./+types/root";
 import { wagmiConfig } from "./lib/wagmi";
-import { TransactionToaster } from "./components/transaction-toaster";
 import "./app.css";
 
 const queryClient = new QueryClient();
@@ -46,7 +45,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <WagmiProvider config={wagmiConfig}>
           <QueryClientProvider client={queryClient}>
             {children}
-            <TransactionToaster />
           </QueryClientProvider>
         </WagmiProvider>
         <ScrollRestoration />

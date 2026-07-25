@@ -6,7 +6,6 @@ import { waitForTransactionReceipt, writeContract } from "wagmi/actions";
 import { apiJson } from "./api";
 import { getContract } from "./contracts";
 import { asMinHashTuple } from "./use-auction-signature";
-import { notifyTransaction, resolveTransaction } from "./transaction-toasts";
 import { wagmiConfig } from "./wagmi";
 
 type Status = "idle" | "loading" | "confirming" | "recording" | "error";
@@ -56,7 +55,6 @@ export function useConsumeAuction(auctionId: string) {
   async function consume(): Promise<ConsumeResult | null> {
     setStatus("loading");
     setError(null);
-    let toastId: string | null = null;
     try {
       if (!address || !chainId) throw new Error("Wallet not connected");
       const jaccardSwap = getContract(chainId, "JaccardSwap");
@@ -118,11 +116,9 @@ export function useConsumeAuction(auctionId: string) {
         chainId: chainId as 11155111 | 31337,
       });
 
-      toastId = notifyTransaction({ chainId, hash, label: "Settle auction" });
       setStatus("confirming");
       const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: chainId as 11155111 | 31337 });
       if (receipt.status !== "success") throw new Error("Transaction reverted on-chain.");
-      resolveTransaction(toastId, "success");
 
       // Read the real winner/amount off the emitted event rather than
       // assuming the top-ranked bid is who actually won - the contract
@@ -154,7 +150,6 @@ export function useConsumeAuction(auctionId: string) {
       return { txHash: hash, winner, winningBid: amount.toString() };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Settlement failed";
-      if (toastId) resolveTransaction(toastId, "error", message);
       setStatus("error");
       setError(message);
       return null;

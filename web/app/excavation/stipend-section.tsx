@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useAccount } from "wagmi";
 import { useBalances } from "../lib/use-balances";
-import { useFaucetHistory, useRecordClaim } from "./use-faucet-history";
+import { useFaucetHistory } from "./use-faucet-history";
 import { useErc20Faucet } from "./use-erc20-faucet";
+import { ClaimModal } from "./claim-modal";
 import { CollapsibleSection } from "../components/collapsible-section";
-import { Toast } from "../components/toast";
-import { getExplorerTxUrl, getExplorerUrlForChain } from "../lib/explorer";
+import { getExplorerUrlForChain } from "../lib/explorer";
 
 function formatTimeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -25,44 +25,19 @@ interface StipendSectionProps {
 }
 
 export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionProps) {
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const toastShown = useRef(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   const { chainId } = useAccount();
-  const { scripBalance, refetchScrip, isConnected } = useBalances();
+  const { scripBalance, isConnected, refetchScrip } = useBalances();
   const { data: history = [] } = useFaucetHistory();
-  const recordClaim = useRecordClaim();
 
   const { claimFaucetErc20, hash: claimHash, mintedAmount, isPending: claimPending, isConfirming: claimConfirming, isConfirmed: claimConfirmed, error: claimError } =
     useErc20Faucet();
 
   const handleClaim = useCallback(() => {
+    setModalOpen(true);
     claimFaucetErc20();
   }, [claimFaucetErc20]);
-
-  const claimExplorerUrl = chainId && claimHash ? getExplorerTxUrl(chainId, claimHash) : null;
-
-  useEffect(() => {
-    if (claimConfirmed && claimHash && mintedAmount && !toastShown.current) {
-      toastShown.current = true;
-      const formatted = (Number(mintedAmount) / 1e18).toFixed(2);
-      setToast({ message: `Claimed ${formatted} SCRIP!`, type: "success" });
-      recordClaim.mutate({ txHash: claimHash, amount: mintedAmount });
-      void refetchScrip();
-    }
-    if (!claimConfirmed) {
-      toastShown.current = false;
-    }
-    // recordClaim intentionally omitted - it's a stable mutate() reference and
-    // including the mutation object would re-fire this effect on every status change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [claimConfirmed, claimHash, mintedAmount, refetchScrip]);
-
-  useEffect(() => {
-    if (claimError) {
-      setToast({ message: claimError.message || "Claim failed", type: "error" });
-    }
-  }, [claimError]);
 
   return (
     <>
@@ -85,33 +60,17 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
             disabled={!isConnected || claimPending || claimConfirming}
             className="relative w-14 rounded bg-gradient-to-r from-amber-600 to-yellow-700 py-2 text-center text-xs font-medium text-white transition-all hover:from-amber-500 hover:to-yellow-600 disabled:opacity-50"
           >
-            {claimPending ? "✍️" : claimConfirming ? "⏳" : claimError ? "✗" : "Claim"}
-            {claimConfirmed && <span className="absolute -right-1 -top-1.5 text-[13px] text-green-400">✓</span>}
+            {claimPending || claimConfirming ? "⏳" : "Claim"}
           </button>
         }
       >
-        {(claimPending || claimConfirming) && (
-          <div className="mt-3 rounded border border-amber-500/50 bg-amber-950/40 p-3 text-center">
-            <div className="relative mx-auto mb-1 h-10 w-20">
-              <span className="absolute inset-x-0 bottom-1 text-2xl">📜</span>
-              <span className="absolute left-1/2 top-0 -translate-x-1/2 text-xl [animation:pencil-write_1.1s_ease-in-out_infinite]">✏️</span>
-              <span className="absolute bottom-2 left-1/2 h-0.5 -translate-x-1/2 bg-amber-400/70 [animation:ink-line_1.1s_ease-in-out_infinite]" />
-            </div>
-            <div className="text-sm text-amber-400">{claimPending ? "Signing…" : "Inscribing your claim…"}</div>
-            <div className="text-xs text-stone-400">{claimPending ? "Confirm in your wallet" : "Waiting for confirmation"}</div>
-            {claimExplorerUrl && (
-              <a href={claimExplorerUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[11px] text-amber-300 underline hover:text-amber-200">
-                View pending transaction ↗
-              </a>
-            )}
-          </div>
-        )}
-
         <div className="mt-3 space-y-1 rounded border border-stone-700/50 bg-stone-800/50 px-2 py-2 text-xs text-stone-500">
           <div>
-            <span className="text-amber-400">Each claim:</span> 5 SCRIP
+            <span className="text-amber-400">Each claim:</span> ~5.236 SCRIP (2φ²)
           </div>
-          <div className="text-stone-600">No cooldown - claim as often as you like</div>
+          <div className="text-stone-600">
+            {chainId === 31337 ? "Unlimited - claim as often as you like" : "12 hour cooldown per address"}
+          </div>
         </div>
         <div className="mb-1.5 mt-3 text-xs text-stone-500">Recent Claims</div>
         <div className="space-y-1">
@@ -143,7 +102,18 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
         </div>
       </CollapsibleSection>
 
-      {toast && <Toast message={toast.message} type={toast.type} duration={4000} onClose={() => setToast(null)} />}
+      <ClaimModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        chainId={chainId}
+        hash={claimHash}
+        mintedAmount={mintedAmount}
+        isPending={claimPending}
+        isConfirming={claimConfirming}
+        isConfirmed={claimConfirmed}
+        error={claimError}
+        refetchScrip={refetchScrip}
+      />
     </>
   );
 }
