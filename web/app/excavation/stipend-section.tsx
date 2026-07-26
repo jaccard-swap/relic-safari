@@ -3,6 +3,7 @@ import { useAccount } from "wagmi";
 import { useBalances } from "../lib/use-balances";
 import { useFaucetHistory } from "./use-faucet-history";
 import { useErc20Faucet } from "./use-erc20-faucet";
+import { useFaucetEligibility, formatCooldown } from "./use-faucet-eligibility";
 import { ClaimModal } from "./claim-modal";
 import { CollapsibleSection } from "../components/collapsible-section";
 import { getExplorerUrlForChain } from "../lib/explorer";
@@ -30,14 +31,16 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
   const { chainId } = useAccount();
   const { scripBalance, isConnected, refetchScrip } = useBalances();
   const { data: history = [] } = useFaucetHistory();
+  const { eligible, msRemaining, refetchLastClaim } = useFaucetEligibility();
 
   const { claimFaucetErc20, hash: claimHash, mintedAmount, isPending: claimPending, isConfirming: claimConfirming, isConfirmed: claimConfirmed, error: claimError } =
     useErc20Faucet();
 
   const handleClaim = useCallback(() => {
+    if (!eligible) return;
     setModalOpen(true);
     claimFaucetErc20();
-  }, [claimFaucetErc20]);
+  }, [claimFaucetErc20, eligible]);
 
   return (
     <>
@@ -57,10 +60,11 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
           <button
             type="button"
             onClick={handleClaim}
-            disabled={!isConnected || claimPending || claimConfirming}
+            disabled={!isConnected || claimPending || claimConfirming || !eligible}
+            title={!eligible ? `Available in ${formatCooldown(msRemaining)}` : undefined}
             className="relative w-14 rounded bg-gradient-to-r from-amber-600 to-yellow-700 py-2 text-center text-xs font-medium text-white transition-all hover:from-amber-500 hover:to-yellow-600 disabled:opacity-50"
           >
-            {claimPending || claimConfirming ? "⏳" : "Claim"}
+            {claimPending || claimConfirming ? "⏳" : !eligible ? "🔒" : "Claim"}
           </button>
         }
       >
@@ -68,8 +72,12 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
           <div>
             <span className="text-amber-400">Each claim:</span> ~5.236 SCRIP (2φ²)
           </div>
-          <div className="text-stone-600">
-            {chainId === 31337 ? "Unlimited - claim as often as you like" : "12 hour cooldown per address"}
+          <div className={eligible ? "text-stone-600" : "text-amber-500"}>
+            {chainId === 31337
+              ? "Unlimited - claim as often as you like"
+              : eligible
+                ? "12 hour cooldown per address"
+                : `Next claim available in ${formatCooldown(msRemaining)}`}
           </div>
         </div>
         <div className="mb-1.5 mt-3 text-xs text-stone-500">Recent Claims</div>
@@ -113,6 +121,7 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
         isConfirmed={claimConfirmed}
         error={claimError}
         refetchScrip={refetchScrip}
+        refetchLastClaim={refetchLastClaim}
       />
     </>
   );

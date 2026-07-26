@@ -14,6 +14,7 @@ interface ClaimModalProps {
   isConfirmed: boolean;
   error: Error | null;
   refetchScrip: () => void;
+  refetchLastClaim: () => void;
 }
 
 // Mirrors DigModal/FuseModal's popover treatment for the client-side SCRIP
@@ -23,7 +24,7 @@ interface ClaimModalProps {
 // second useBalances() instance here, so the refetch lands on the exact
 // query observer feeding the visible balance instead of relying on a
 // separate hook instance to share cache updates.
-export function ClaimModal({ open, onClose, chainId, hash, mintedAmount, isPending, isConfirming, isConfirmed, error, refetchScrip }: ClaimModalProps) {
+export function ClaimModal({ open, onClose, chainId, hash, mintedAmount, isPending, isConfirming, isConfirmed, error, refetchScrip, refetchLastClaim }: ClaimModalProps) {
   const recordClaim = useRecordClaim();
   const recordedHash = useRef<string | null>(null);
 
@@ -37,6 +38,15 @@ export function ClaimModal({ open, onClose, chainId, hash, mintedAmount, isPendi
     // and including them would re-fire this on every unrelated status change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConfirmed, hash, mintedAmount]);
+
+  useEffect(() => {
+    // A revert here means the on-chain cooldown state moved out from under
+    // the proactive eligibility check (e.g. a second tab claimed first) -
+    // refresh it so the Claim button's disabled/countdown state catches up
+    // instead of staying stale and clickable.
+    if (error) void refetchLastClaim();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [error]);
 
   if (!open) return null;
 

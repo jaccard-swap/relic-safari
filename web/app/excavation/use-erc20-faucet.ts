@@ -16,7 +16,14 @@ export function useErc20Faucet() {
   const [awaitingMint, setAwaitingMint] = useState(false);
 
   const { data: hash, isPending, writeContract, error: writeError, reset } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed, error: receiptError } = useWaitForTransactionReceipt({ hash });
+  // useWaitForTransactionReceipt's isSuccess only means "a receipt arrived",
+  // not "the tx succeeded" - viem doesn't throw on a reverted receipt, so a
+  // cooldown revert would otherwise leave the modal spinning forever
+  // (isConfirmed true, but mintedAmount never arrives since no Transfer
+  // event fired). Read status off the receipt itself instead.
+  const { data: receipt, isLoading: isConfirming, error: receiptError } = useWaitForTransactionReceipt({ hash });
+  const isConfirmed = receipt?.status === "success";
+  const isReverted = receipt?.status === "reverted";
 
   useWatchContractEvent({
     address: scrip?.address,
@@ -41,10 +48,13 @@ export function useErc20Faucet() {
     if (isConfirmed) {
       setAwaitingMint(false);
       setMintedAmount((prev) => prev ?? FAUCET_AMOUNT_WEI);
+    } else if (isReverted) {
+      // No Transfer event is ever coming for a reverted tx - stop watching.
+      setAwaitingMint(false);
     }
-  }, [isConfirmed]);
+  }, [isConfirmed, isReverted]);
 
-  const error = writeError || receiptError;
+  const error = writeError || receiptError || (isReverted ? new Error("Transaction reverted on-chain — you're likely still on the faucet cooldown.") : null);
 
   const claimFaucetErc20 = useCallback(() => {
     if (!address || !scrip) return;
