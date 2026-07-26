@@ -567,7 +567,12 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
       // blocking the HTTP response on waitForTransactionReceipt.
       void (async () => {
         try {
-          await publicClient.waitForTransactionReceipt({ hash })
+          const receipt = await publicClient.waitForTransactionReceipt({ hash })
+          // waitForTransactionReceipt resolves once a receipt exists, not
+          // once the tx succeeded - viem doesn't throw on a reverted receipt,
+          // so without this a reverted fusion would still get recorded as
+          // 'success' below.
+          if (receipt.status !== 'success') throw new Error('Transaction reverted on-chain')
 
           // Update target NFT with new metadata
           await fastify.db
@@ -782,7 +787,11 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
       // waitForTransactionReceipt.
       void (async () => {
         try {
-          await publicClient.waitForTransactionReceipt({ hash })
+          const receipt = await publicClient.waitForTransactionReceipt({ hash })
+          // See the identical check in the polymerase confirmation block
+          // above - without it, a reverted mint gets recorded as 'success'
+          // and wrongly counts against the 5/day dig limit.
+          if (receipt.status !== 'success') throw new Error('Transaction reverted on-chain')
 
           const [nft] = await fastify.db
             .insert(nfts)

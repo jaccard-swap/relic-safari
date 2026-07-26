@@ -1,7 +1,7 @@
 import { Link, Outlet, useLocation } from "react-router";
 import { FaGithub, FaDiscord } from "react-icons/fa";
-import { SiEthereum } from "react-icons/si";
 import { WalletMenu } from "../auth/wallet-menu";
+import { ContractsMenu } from "./contracts-menu";
 
 const NAV_ITEMS = [
   { to: "/", icon: "🏛️", label: "Vault" },
@@ -10,12 +10,8 @@ const NAV_ITEMS = [
   { to: "/help", icon: "📜", label: "Help" },
 ] as const;
 
-// JaccardDiamond on Sepolia - shared/contracts/11155111/JaccardDiamond.json
-const CONTRACT_ADDRESS = "0x5f8ff545879a4147dae26b9a0792ded557a243c3";
-
 const SOCIAL_LINKS = [
   { href: "https://github.com/jaccard-swap/relic-safari", label: "GitHub", Icon: FaGithub },
-  { href: `https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}`, label: "Contract on Etherscan", Icon: SiEthereum },
   { href: "https://discord.gg/uDSmzjrK9N", label: "Discord", Icon: FaDiscord },
 ] as const;
 
@@ -60,6 +56,7 @@ export function AppLayout() {
                 <Icon className="h-4 w-4" />
               </a>
             ))}
+            <ContractsMenu />
             <WalletMenu />
           </div>
         </div>
