@@ -1,8 +1,11 @@
 services:
   # Local Ethereum node for chainId 31337 - see
-  # https://www.getfoundry.sh/guides/docker#docker-compose-setup. Not part of
-  # the default dependency graph (api/web don't depend on it); start it
-  # explicitly with `docker compose up anvil` or `docker compose up deploy`.
+  # https://www.getfoundry.sh/guides/docker#docker-compose-setup. Starts by
+  # default alongside everything else - dev has no real use for the stack
+  # without a chain behind it. The deploy service below used to redeploy
+  # fresh contracts on every single `up` regardless of anvil's persisted
+  # state; that's now fixed at the deploy-script level (see the comment on
+  # `deploy`) rather than by hiding this service from the default `up`.
   anvil:
     image: ghcr.io/foundry-rs/foundry:latest
     entrypoint: ["anvil"]
@@ -45,12 +48,17 @@ services:
 
   # Deploys the JaccardSwap diamond to the anvil node above and writes fresh
   # ABIs/addresses to shared/contracts/31337, the single source both api and
-  # web import from. Run on demand with `docker compose up deploy` after
-  # anvil is healthy - not a default dependency of api/web, so it stays
-  # opt-in rather than a boot-time requirement. Safe to run repeatedly:
-  # --skip-prompts just answers the gas price confirmation non-interactively,
-  # and with anvil's chain state now persisted, whether anything actually
-  # redeploys is up to the deploy script's own on-chain staleness checks.
+  # web import from. Runs on every `up` alongside anvil - --skip-prompts
+  # just answers the gas price confirmation non-interactively, and it's now
+  # genuinely safe to run every time: hardhat/deploy/00_deploy_diamond.ts and
+  # 01_deploy_scrip.ts pass skipIfAlreadyDeployed: true, so this is a no-op
+  # (a few "reusing ... at 0x..." log lines, no txs) whenever anvil's
+  # persisted state already has a live deployment. Previously that flag was
+  # missing, so LibEIP712/Scrip (and transitively the diamond proxy, since
+  # its address is derived partly from LibEIP712's) got a fresh address on
+  # every run, silently orphaning all prior on-chain state (minted NFTs,
+  # MinHashes, auctions, SCRIP balances) while Postgres kept referencing it
+  # as live.
   deploy:
     build:
       context: .

@@ -36,10 +36,15 @@ export default deployScript(
     const chainId = await hre.network.provider.request({ method: 'eth_chainId' }) as string;
     const chainIdNum = parseInt(chainId, 16);
 
+    // skipIfAlreadyDeployed: true - see the identical note on LibEIP712 in
+    // 00_deploy_diamond.ts. Without it, Scrip (a real stateful ERC20 with
+    // live balances/faucet cooldowns) got a fresh address - and empty state
+    // - on every `docker compose up`.
     const scrip = await deploy('Scrip', {
       account: deployer,
       artifact: artifacts.Scrip,
       args: [],
+      skipIfAlreadyDeployed: true,
     });
 
     console.log('Scrip deployed to:', scrip.address);

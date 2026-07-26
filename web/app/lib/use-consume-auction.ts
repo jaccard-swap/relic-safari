@@ -8,7 +8,7 @@ import { getContract } from "./contracts";
 import { asMinHashTuple } from "./use-auction-signature";
 import { wagmiConfig } from "./wagmi";
 
-type Status = "idle" | "loading" | "confirming" | "recording" | "error";
+type Status = "idle" | "loading" | "confirming" | "recording" | "success" | "error";
 
 export interface ConsumeResult {
   txHash: `0x${string}`;
@@ -46,15 +46,24 @@ interface ConsumeApiResponse {
 // not the bids array, so a fresh signature over the same fields would be
 // byte-for-byte identical anyway. The old app re-signed on every settle
 // attempt for no functional benefit (and an extra, needless wallet prompt).
+//
+// Exposes hash/result as reactive state (not just consume()'s return value)
+// so a ConsumeModal (web/app/auction/consume-modal.tsx) can show a hash - and
+// the eventual winner/amount - the moment each becomes available, mirroring
+// how use-erc20-faucet.ts drives ClaimModal.
 export function useConsumeAuction(auctionId: string) {
   const { address, chainId } = useAccount();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [hash, setHash] = useState<`0x${string}` | undefined>(undefined);
+  const [result, setResult] = useState<ConsumeResult | null>(null);
 
   async function consume(): Promise<ConsumeResult | null> {
     setStatus("loading");
     setError(null);
+    setHash(undefined);
+    setResult(null);
     try {
       if (!address || !chainId) throw new Error("Wallet not connected");
       const jaccardSwap = getContract(chainId, "JaccardSwap");
@@ -108,16 +117,17 @@ export function useConsumeAuction(auctionId: string) {
         bidSignatures: sortedBids.map((bid) => bid.signature),
       };
 
-      const hash = await writeContract(wagmiConfig, {
+      const txHash = await writeContract(wagmiConfig, {
         address: jaccardSwap.address,
         abi: jaccardSwap.abi,
         functionName: "consumeAuction",
         args: [auctionStruct, auction.signature],
         chainId: chainId as 11155111 | 31337,
       });
+      setHash(txHash);
 
       setStatus("confirming");
-      const receipt = await waitForTransactionReceipt(wagmiConfig, { hash, chainId: chainId as 11155111 | 31337 });
+      const receipt = await waitForTransactionReceipt(wagmiConfig, { hash: txHash, chainId: chainId as 11155111 | 31337 });
       if (receipt.status !== "success") throw new Error("Transaction reverted on-chain.");
 
       // Read the real winner/amount off the emitted event rather than
@@ -132,7 +142,7 @@ export function useConsumeAuction(auctionId: string) {
       setStatus("recording");
       await apiJson(`/auction/${auctionId}/settle`, {
         method: "POST",
-        body: JSON.stringify({ auctioneer: address, txHash: hash, winner, winningBid: amount.toString() }),
+        body: JSON.stringify({ auctioneer: address, txHash, winner, winningBid: amount.toString() }),
       });
       if (nft?.id) {
         await apiJson("/nft/sync-ownership", {
@@ -146,8 +156,10 @@ export function useConsumeAuction(auctionId: string) {
       void queryClient.invalidateQueries({ queryKey: ["auction", auctionId] });
       void queryClient.invalidateQueries({ queryKey: ["nfts"] });
 
-      setStatus("idle");
-      return { txHash: hash, winner, winningBid: amount.toString() };
+      const settled = { txHash, winner, winningBid: amount.toString() };
+      setResult(settled);
+      setStatus("success");
+      return settled;
     } catch (err) {
       const message = err instanceof Error ? err.message : "Settlement failed";
       setStatus("error");
@@ -156,5 +168,5 @@ export function useConsumeAuction(auctionId: string) {
     }
   }
 
-  return { consume, status, error };
+  return { consume, status, error, hash, result };
 }

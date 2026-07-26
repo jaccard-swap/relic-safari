@@ -32,11 +32,22 @@ export default deployScript(
     const chainId = await hre.network.provider.request({ method: 'eth_chainId' }) as string;
     const chainIdNum = parseInt(chainId, 16);
 
-    // Deploy shared EIP-712 library
+    // Deploy shared EIP-712 library. skipIfAlreadyDeployed is required, not
+    // optional, here - without it @rocketh/deploy broadcasts a fresh deploy
+    // tx on every single run (it's the only opt-in idempotency check the
+    // library offers; there's no default). That gave this library a new
+    // address on every `docker compose up`, which diamond() below then took
+    // as its `libraries` arg changing - even though diamond()'s own
+    // skipIfAlreadyDeployed defaults to true for the proxy itself, a
+    // "different" library address made it treat the whole diamond as stale
+    // and cut a brand new proxy, orphaning every on-chain record (minted
+    // NFTs, MinHashes, auctions) tied to the previous proxy address while
+    // Postgres kept referencing them as if they still resolved.
     const libEIP712 = await deploy('LibEIP712', {
       account: deployer,
       artifact: artifacts.LibEIP712,
       args: [],
+      skipIfAlreadyDeployed: true,
     });
 
     // Deploy the JaccardSwap Diamond

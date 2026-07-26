@@ -16,7 +16,10 @@ body {
 
 /* Dig modal (web/app/excavation/dig-modal.tsx): pickaxe swings and strikes
    the rock on a loop while a mint is pending, then a one-shot glow+scale-in
-   plays when the artifact is revealed. */
+   plays when the artifact is revealed. dig-strike/dig-spark are reused as a
+   generic swing+sparkle for the auction settle hammer (consume-modal.tsx);
+   treasure-glow/treasure-reveal are reused by every "reveal" moment in the
+   app (claim, fuse, dig, settle) as the shared confirmed-tx flourish. */
 @keyframes dig-strike {
   0%,
   40% {
