@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { InfoModal } from "../components/info-modal";
 import { useInvalidateNfts } from "../lib/use-nfts";
-import { useBalances } from "../lib/use-balances";
 import { getExplorerTxUrl } from "../lib/explorer";
 import { useFuseRoom } from "./use-fuse-room";
 import type { FuseResult } from "./use-polymerization-history";
@@ -10,14 +9,17 @@ import type { FuseResult } from "./use-polymerization-history";
 interface FuseModalProps {
   result: FuseResult | null;
   onClose: () => void;
+  refetchEssence: () => void;
 }
 
 // Tracks a fusion from "hash in hand" through to the confirmed reveal (or a
 // failure) via useFuseRoom - mirrors DigModal's shape for the quarry dig.
-export function FuseModal({ result, onClose }: FuseModalProps) {
+// refetchEssence is passed down from PolymeraseSection's own useBalances()
+// instance rather than a second instance here, same fix as ClaimModal/Scrip -
+// lands the refetch on the exact query observer feeding the visible balance.
+export function FuseModal({ result, onClose, refetchEssence }: FuseModalProps) {
   const status = useFuseRoom(result?.requestId ?? null);
   const invalidateNfts = useInvalidateNfts();
-  const { refetchEssence } = useBalances();
   const queryClient = useQueryClient();
 
   useEffect(() => {

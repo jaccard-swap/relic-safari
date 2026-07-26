@@ -30,7 +30,7 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
   const [view, setView] = useState<CardView>("list");
 
   const { chainId } = useAccount();
-  const { essenceBalance } = useBalances();
+  const { essenceBalance, refetchEssence } = useBalances();
   const { data: reactions = [], isLoading: reactionsLoading } = usePolymerizationHistory();
 
   const targetNftId = selectedNfts[0] || null;
@@ -208,7 +208,7 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
 
       <ReactionDetailModal reaction={detailReaction} onClose={() => setDetailReaction(null)} chainId={chainId} />
 
-      <FuseModal result={fuse.data ?? null} onClose={clearSelection} />
+      <FuseModal result={fuse.data ?? null} onClose={clearSelection} refetchEssence={refetchEssence} />
 
       {toast && <Toast message={toast.message} type={toast.type} duration={4000} onClose={() => setToast(null)} />}
     </>
