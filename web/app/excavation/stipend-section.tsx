@@ -52,8 +52,11 @@ export function StipendSection({ expanded, onToggle, onHelp }: StipendSectionPro
         onHelp={onHelp}
         summary={
           <>
-            <span className="font-mono text-sm text-amber-200">{scripBalance?.formatted?.toFixed(2) ?? "0.00"}</span>
-            <span className="text-xs text-stone-500">SCRIP</span>
+            <span className="flex items-baseline gap-1">
+              <span className="font-mono text-sm text-amber-200">{scripBalance?.formatted?.toFixed(2) ?? "0.00"}</span>
+              <span className="text-xs text-stone-500">SCRIP</span>
+            </span>
+            {!eligible && <span className="text-xs text-amber-500">{formatCooldown(msRemaining)}</span>}
           </>
         }
         action={

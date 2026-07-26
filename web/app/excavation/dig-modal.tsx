@@ -11,13 +11,14 @@ import type { Erc1155FaucetResult } from "./use-erc1155-faucet";
 interface DigModalProps {
   result: Erc1155FaucetResult | null;
   onClose: () => void;
+  refetchDigStatus: () => void;
 }
 
 // Tracks a dig from "hash in hand" through to the confirmed reveal (or a
 // failure) via useDigRoom - see api/src/routes/faucet/index.ts for the
 // server side of this split. Shares InfoModal's shell (backdrop, header,
 // close button) rather than reinventing a modal wrapper.
-export function DigModal({ result, onClose }: DigModalProps) {
+export function DigModal({ result, onClose, refetchDigStatus }: DigModalProps) {
   const navigate = useNavigate();
   const status = useDigRoom(result?.requestId ?? null);
   const invalidateNfts = useInvalidateNfts();
@@ -27,8 +28,9 @@ export function DigModal({ result, onClose }: DigModalProps) {
     if (status.state === "success") {
       invalidateNfts();
       refetchBalances();
+      refetchDigStatus();
     }
-  }, [status.state, invalidateNfts, refetchBalances]);
+  }, [status.state, invalidateNfts, refetchBalances, refetchDigStatus]);
 
   if (!result) return null;
 

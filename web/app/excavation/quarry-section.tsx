@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNfts } from "../lib/use-nfts";
 import { useErc1155Faucet } from "./use-erc1155-faucet";
+import { useDigEligibility } from "./use-dig-eligibility";
+import { formatCooldown } from "./use-faucet-eligibility";
 import { DigModal } from "./dig-modal";
 import { CollapsibleSection } from "../components/collapsible-section";
 import { MiniNftCard } from "./mini-nft-card";
@@ -25,6 +27,7 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
   const [view, setView] = useState<CardView>("list");
 
   const dig = useErc1155Faucet();
+  const { count, max, bypassed, eligible, msRemaining, refetchDigStatus } = useDigEligibility();
 
   // The mint's own success/failure is now DigModal's job (it only opens once
   // dig.data exists) - this covers the earlier failure mode where the
@@ -33,8 +36,12 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
   useEffect(() => {
     if (dig.isError) {
       setToast({ message: dig.error instanceof Error ? dig.error.message : "Excavation failed", type: "error" });
+      // A 429 here means the rolling window moved out from under the
+      // proactive eligibility check (e.g. a second tab dug first) - refresh
+      // it so the button's disabled/countdown state catches up.
+      void refetchDigStatus();
     }
-  }, [dig.isError, dig.error]);
+  }, [dig.isError, dig.error, refetchDigStatus]);
 
   return (
     <>
@@ -47,17 +54,21 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
         summary={
           <>
             <span className="text-[13px] text-stone-400">{nfts.length} artifacts found</span>
-            <span className="text-xs text-stone-500">5/day</span>
+            <span className="flex items-baseline gap-1.5">
+              <span className="text-xs text-stone-500">{bypassed ? "∞/day" : `${count}/${max}`}</span>
+              {!eligible && <span className="text-xs text-amber-500">{formatCooldown(msRemaining)}</span>}
+            </span>
           </>
         }
         action={
           <button
             type="button"
             onClick={() => dig.mutate()}
-            disabled={!isConnected || dig.isPending}
+            disabled={!isConnected || dig.isPending || !eligible}
+            title={!eligible ? `Available in ${formatCooldown(msRemaining)}` : undefined}
             className="relative w-14 rounded bg-gradient-to-r from-stone-600 to-amber-800 py-2 text-center text-xs font-medium text-white transition-all hover:from-stone-500 hover:to-amber-700 disabled:opacity-50"
           >
-            {dig.isPending ? "⏳" : "Dig"}
+            {dig.isPending ? "⏳" : !eligible ? "🔒" : "Dig"}
           </button>
         }
       >
@@ -84,7 +95,7 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
 
       <NftDetailModal nft={detailNft} onClose={() => setDetailNft(null)} />
 
-      <DigModal result={dig.data ?? null} onClose={() => dig.reset()} />
+      <DigModal result={dig.data ?? null} onClose={() => dig.reset()} refetchDigStatus={refetchDigStatus} />
 
       {toast && <Toast message={toast.message} type={toast.type} duration={4000} onClose={() => setToast(null)} />}
     </>

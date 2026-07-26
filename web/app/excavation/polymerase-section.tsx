@@ -80,10 +80,10 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
         onToggle={onToggle}
         onHelp={onHelp}
         summary={
-          <>
+          <span className="flex items-baseline gap-1">
             <span className="font-mono text-sm text-purple-300">{essenceBalance?.count ?? 0}</span>
             <span className="text-xs text-stone-500">✨ Essence</span>
-          </>
+          </span>
         }
         action={
           <button

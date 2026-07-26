@@ -637,6 +637,38 @@ const faucet: FastifyPluginAsync = async (fastify): Promise<void> => {
   })
 
   // ============================================================================
+  // GET /status - Current dig rate-limit usage for the authenticated session
+  // ============================================================================
+  fastify.get('/status', { preHandler: [fastify.requireAuth] }, async function (request) {
+    const sessionAddress = request.session!.address.toLowerCase()
+    // Mirrors the exact bypass in POST / below - keeps the displayed status
+    // truthful about whether a dig will actually be blocked.
+    const bypassed = process.env.NODE_ENV === 'development'
+
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS)
+    const recent = await fastify.db
+      .select({ createdAt: sponsorshipRequests.createdAt })
+      .from(sponsorshipRequests)
+      .where(and(
+        eq(sponsorshipRequests.recipient, sessionAddress),
+        eq(sponsorshipRequests.requestType, 'nft_faucet'),
+        eq(sponsorshipRequests.status, 'success'),
+        gte(sponsorshipRequests.createdAt, windowStart)
+      ))
+      .orderBy(sql`${sponsorshipRequests.createdAt} ASC`)
+
+    const count = recent.length
+    // The window is rolling, not a fixed daily reset - the count only drops
+    // once the oldest request within it ages out, so that's what "available
+    // again" actually depends on.
+    const nextAvailableAt = !bypassed && count >= RATE_LIMIT_MAX
+      ? new Date(recent[0].createdAt.getTime() + RATE_LIMIT_WINDOW_MS).toISOString()
+      : null
+
+    return { count, max: RATE_LIMIT_MAX, windowMs: RATE_LIMIT_WINDOW_MS, nextAvailableAt, bypassed }
+  })
+
+  // ============================================================================
   // POST / - Faucet mint new artifact
   // ============================================================================
   fastify.post('/', { preHandler: [fastify.requireAuth] }, async function (request, reply) {
