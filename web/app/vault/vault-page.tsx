@@ -5,6 +5,7 @@ import { ViewToggle, type CardView } from "../components/view-toggle";
 import { NftDetailModal } from "../components/nft-detail-modal";
 import { useBalances } from "../lib/use-balances";
 import { useNfts, type Nft } from "../lib/use-nfts";
+import { HeroLanding } from "../landing/hero-landing";
 import { NftCard } from "./nft-card";
 import { TradingCard } from "../excavation/trading-card";
 
@@ -21,11 +22,7 @@ export function VaultPage() {
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
 
   if (!isConnected) {
-    return (
-      <div className="rounded border border-stone-700/50 bg-stone-800/30 p-4 text-center">
-        <div className="text-[13px] text-stone-400">Connect a wallet to see your vault</div>
-      </div>
-    );
+    return <HeroLanding />;
   }
 
   return (
