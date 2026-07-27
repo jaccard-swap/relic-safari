@@ -6,6 +6,8 @@ export default [
     route("bazaar", "routes/bazaar.tsx"),
     route("bazaar/create/:nftId", "routes/bazaar-create.tsx"),
     route("excavation", "routes/excavation.tsx"),
+    route("forge", "routes/forge.tsx"),
+    route("exchange", "routes/exchange.tsx"),
     route("auction/:auctionId", "routes/auction.tsx"),
     route("help", "routes/help.tsx"),
   ]),

@@ -1,5 +1,5 @@
 {
-  "address": "0x5f8ff545879a4147dae26b9a0792ded557a243c3",
+  "address": "0x1c4ce4c1893bc148d847e186bb21e669b2e0f938",
   "abi": [
     {
       "inputs": [
@@ -297,6 +297,37 @@
         }
       ],
       "name": "Polymerized",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "essenceCost",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes8[20]",
+          "name": "newMinHash",
+          "type": "bytes8[20]"
+        }
+      ],
+      "name": "TraitUpgraded",
       "type": "event"
     },
     {
@@ -850,6 +881,34 @@
         }
       ],
       "name": "transferFromWithPermit",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes8[20]",
+          "name": "newMinHash",
+          "type": "bytes8[20]"
+        },
+        {
+          "internalType": "uint256",
+          "name": "essenceCost",
+          "type": "uint256"
+        }
+      ],
+      "name": "upgradeTrait",
       "outputs": [],
       "stateMutability": "nonpayable",
       "type": "function"

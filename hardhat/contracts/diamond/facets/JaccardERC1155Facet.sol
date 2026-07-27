@@ -52,6 +52,13 @@ contract JaccardERC1155Facet is ERC1155 {
         bytes8[20] newMinHash
     );
 
+    event TraitUpgraded(
+        address indexed owner,
+        uint256 indexed tokenId,
+        uint256 essenceCost,
+        bytes8[20] newMinHash
+    );
+
     // ============ Constructor ============
     
     constructor() ERC1155("") {}
@@ -161,6 +168,32 @@ contract JaccardERC1155Facet is ERC1155 {
         return targetTokenId;
     }
 
+    // ============ Direct Essence Upgrade (Forge) ============
+
+    // Spend Essence directly on one artifact - no second NFT consumed.
+    // Eligibility (is this trait upgradeable, is it already maxed, what's
+    // the correct cost) is decided off-chain by the trusted API, same as
+    // polymerase above. For an Overflow spend (all real traits maxed), the
+    // API passes the artifact's unchanged minHash through - Overflow isn't a
+    // Jaccard-relevant trait, so this function has no opinion on whether
+    // newMinHash actually differs from the current one.
+    function upgradeTrait(
+        uint256 tokenId,
+        address owner,
+        bytes8[20] calldata newMinHash,
+        uint256 essenceCost
+    ) external {
+        LibDiamond.enforceIsContractOwner();
+        AppStorage storage s = LibAppStorage.diamondStorage();
+
+        require(balanceOf(owner, tokenId) >= 1, "Upgrade: not owner");
+
+        _burnEssenceERC20(owner, essenceCost);
+        s.minHashes[tokenId] = newMinHash;
+
+        emit TraitUpgraded(owner, tokenId, essenceCost, newMinHash);
+    }
+
     // ============ EIP-712 (shared diamond domain via LibEIP712) ============
     // Note: DOMAIN_SEPARATOR() exposed via EssenceFacet (ERC20Permit)
 
@@ -230,6 +263,22 @@ contract JaccardERC1155Facet is ERC1155 {
             s._erc20balances[to] += amount;
         }
         emit Transfer(address(0), to, amount);
+    }
+
+    /// @dev Burn Essence ERC20 directly via AppStorage. Deliberately not a
+    /// call into EssenceFacet.burn() - a self-call (address(this).call(...))
+    /// would make msg.sender the diamond's own address inside EssenceFacet's
+    /// enforceIsContractOwner(), breaking that check. Same reasoning as
+    /// _mintEssenceERC20 above: write shared AppStorage directly instead.
+    function _burnEssenceERC20(address from, uint256 amount) internal {
+        AppStorage storage s = LibAppStorage.diamondStorage();
+        uint256 balance = s._erc20balances[from];
+        require(balance >= amount, "Upgrade: insufficient essence");
+        unchecked {
+            s._erc20balances[from] = balance - amount;
+        }
+        s._erc20totalSupply -= amount;
+        emit Transfer(from, address(0), amount);
     }
 
     // ============ ERC1155 Internal Overrides (use LibAppStorage) ============

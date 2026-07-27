@@ -25,6 +25,9 @@ export const nfts = pgTable('nfts', {
   // Trait upgrade tracking - level index for each upgradeable trait
   // e.g. { rarity: 2, quality: 1, inscription: 0 } = rare, worn, unmarked
   traitLevels: jsonb('trait_levels').default('{}'),
+  // Uncapped Forge sink, unlocked once every upgradeable trait above is
+  // maxed - a pure prestige counter, not one of the named TRAIT_POOLS traits
+  overflowLevel: integer('overflow_level').notNull().default(0),
   // Polymerization history
   polymerizationCount: integer('polymerization_count').notNull().default(0),
   // Status: 'active' = owned, 'consumed' = polymerized into another
@@ -62,6 +65,28 @@ export const polymerizations = pgTable('polymerizations', {
   index('polymerizations_target_idx').on(table.targetNftId),
   index('polymerizations_owner_idx').on(table.owner),
   index('polymerizations_status_idx').on(table.status),
+]);
+
+// Direct Essence trait-upgrade events (Forge) - history of spending Essence
+// on one artifact without consuming a second one. Overflow spends (once
+// every real trait is maxed) log here too with traitKey: 'overflow' and
+// fromValue/toValue as stringified counter values.
+export const traitUpgrades = pgTable('trait_upgrades', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  nftId: text('nft_id').notNull().references(() => nfts.id),
+  owner: text('owner').notNull(),
+  chainId: integer('chain_id').notNull(),
+  traitKey: text('trait_key').notNull(), // real TRAIT_POOLS key, or 'overflow'
+  fromValue: text('from_value').notNull(),
+  toValue: text('to_value').notNull(),
+  essenceCost: integer('essence_cost').notNull(),
+  txHash: text('tx_hash'),
+  status: text('status').notNull().default('pending'), // 'pending', 'success', 'failed'
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('trait_upgrades_nft_idx').on(table.nftId),
+  index('trait_upgrades_owner_idx').on(table.owner),
 ]);
 
 // Sponsorship requests for rate limiting

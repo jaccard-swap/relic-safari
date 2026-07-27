@@ -775,6 +775,6 @@
   "solcInputHash": "3fe12e823553336a8d0f950a5a792ac9",
   "argsData": "0x",
   "libraries": {
-    "LibEIP712": "0xc2ac8a3c6b77894e4123641caed504f511f8cc6c"
+    "LibEIP712": "0xe61d176b09f7bec4d43ab26ee7f512bb86d459f3"
   }
 }

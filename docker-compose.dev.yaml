@@ -21,8 +21,23 @@ services:
     # fresh chain on every restart goes out of sync with both the recorded
     # deployment (hardhat/deployments/localhost/) and any off-chain state
     # (indexed bids, etc.) that reference on-chain data that no longer
-    # exists. --block-time trades away instant-mining for something closer
-    # to real network timing.
+    # exists. No --block-time: that switches anvil to interval mining, which
+    # ticks a new (possibly empty) block every interval forever, even while
+    # totally idle - bloating the persisted state dump over a long dev
+    # session for no reason. Omitting it keeps anvil's default auto-mine
+    # instead: mines instantly the moment a tx arrives (faster than any
+    # fixed interval) and produces zero blocks when nothing's happening.
+    # --fork-url forks Sepolia (reusing the same RPC already configured for
+    # real Sepolia deploys) so real, live contracts - specifically Uniswap
+    # V2's actual Sepolia Factory/Router - exist locally too, at the same
+    # addresses real Sepolia deploys hit. --chain-id still overrides the
+    # reported chain id to 31337 on top of the forked state; that's cosmetic
+    # only and doesn't affect the forked contracts' bytecode or addresses.
+    # --fork-block-number pins the fork to a fixed point (Sepolia's tip at
+    # the time this was set up) rather than "latest" - keeps local dev
+    # deterministic across future anvil_state wipes and lets anvil cache the
+    # forked state instead of re-fetching from a moving tip on every
+    # restart. Bump it manually if this ever needs newer Sepolia state.
     command:
       [
         "--host",
@@ -33,8 +48,10 @@ services:
         "${MNEMONIC_LOCALHOST}",
         "--state",
         "/anvil-state/state.json",
-        "--block-time",
-        "10",
+        "--fork-url",
+        "${SEPOLIA_RPC_URL}",
+        "--fork-block-number",
+        "11362407",
       ]
     ports:
       - "8545:8545"

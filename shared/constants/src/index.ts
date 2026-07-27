@@ -222,6 +222,8 @@ export const WS_MSG = {
   DIG_STATUS: 'dig_status',
   // Polymerase fuse room - terminal status of a fusion (see api/src/lib/requestRooms.ts)
   POLYMERASE_STATUS: 'polymerase_status',
+  // Forge upgrade room - terminal status of a direct Essence trait/overflow upgrade (see api/src/lib/requestRooms.ts)
+  UPGRADE_STATUS: 'upgrade_status',
 } as const
 
 export type WsMsgType = typeof WS_MSG[keyof typeof WS_MSG]

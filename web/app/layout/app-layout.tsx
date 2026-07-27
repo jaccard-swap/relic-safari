@@ -7,6 +7,8 @@ const NAV_ITEMS = [
   { to: "/", icon: "🏛️", label: "Vault" },
   { to: "/bazaar", icon: "⚖️", label: "Bazaar" },
   { to: "/excavation", icon: "⛏️", label: "Excavation" },
+  { to: "/forge", icon: "🔨", label: "Forge" },
+  { to: "/exchange", icon: "⚖️", label: "Exchange" },
   { to: "/help", icon: "📜", label: "Help" },
 ] as const;
 

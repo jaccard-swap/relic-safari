@@ -19,16 +19,21 @@ export type ContractArtifact = {
 // the process lifetime) but re-reading the file contents on every call keeps
 // this correct across both the initial deploy-vs-boot race and any
 // mid-session redeploy, without requiring an api restart either way.
-const artifactPaths: Record<SupportedChainId, string> = {
+const jaccardNftArtifactPaths: Record<SupportedChainId, string> = {
   11155111: require.resolve('@shared/contracts/11155111/JaccardERC1155.json'),
   31337: require.resolve('@shared/contracts/31337/JaccardERC1155.json')
 }
 
-function loadJaccardNftArtifact(chainId: SupportedChainId): ContractArtifact | undefined {
+const essenceArtifactPaths: Record<SupportedChainId, string> = {
+  11155111: require.resolve('@shared/contracts/11155111/Essence.json'),
+  31337: require.resolve('@shared/contracts/31337/Essence.json')
+}
+
+function loadArtifact(paths: Record<SupportedChainId, string>, chainId: SupportedChainId): ContractArtifact | undefined {
   // chainId is often just a cast of unvalidated request input (see callers),
   // so an unsupported value must fall through to undefined here rather than
   // throw - callers rely on this to produce a clean 400 instead of a 500.
-  const filePath = artifactPaths[chainId]
+  const filePath = paths[chainId]
   if (!filePath) return undefined
 
   const data = JSON.parse(readFileSync(filePath, 'utf-8')) as {
@@ -36,6 +41,14 @@ function loadJaccardNftArtifact(chainId: SupportedChainId): ContractArtifact | u
     abi: readonly unknown[]
   }
   return { address: data.address, abi: data.abi }
+}
+
+function loadJaccardNftArtifact(chainId: SupportedChainId): ContractArtifact | undefined {
+  return loadArtifact(jaccardNftArtifactPaths, chainId)
+}
+
+function loadEssenceArtifact(chainId: SupportedChainId): ContractArtifact | undefined {
+  return loadArtifact(essenceArtifactPaths, chainId)
 }
 
 export default fp(async (fastify: FastifyInstance) => {
@@ -89,6 +102,7 @@ export default fp(async (fastify: FastifyInstance) => {
   fastify.decorate('publicClients', publicClients as any)
   fastify.decorate('walletClients', walletClients as any)
   fastify.decorate('getJaccardNft', loadJaccardNftArtifact)
+  fastify.decorate('getEssence', loadEssenceArtifact)
 
   if (isProduction && !account) {
     fastify.log.warn('SPONSOR_PRIVATE_KEY not configured - sponsored transactions on sepolia disabled')
@@ -107,5 +121,6 @@ declare module 'fastify' {
     }
     walletClients: Partial<Record<SupportedChainId, ReturnType<typeof createWalletClient>>>
     getJaccardNft: (chainId: SupportedChainId) => ContractArtifact | undefined
+    getEssence: (chainId: SupportedChainId) => ContractArtifact | undefined
   }
 }

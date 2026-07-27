@@ -1,4 +1,5 @@
 import { TRAIT_POOLS } from '@shared/constants'
+import { getNextUpgradeLevel, getTraitEssenceValue } from './traitUpgrades'
 
 // Below this floor a fusion isn't attempted at all. The on-chain contract
 // used to enforce a hardcoded 8-match floor itself (a flat
@@ -38,37 +39,9 @@ export function getResonanceTier(matches: number): { tier: ResonanceTier; multip
   return found ? { tier: found.tier, multiplier: found.multiplier } : { tier: 'insufficient', multiplier: 0 }
 }
 
-// Essence value of a trait at its current level.
-const BASE_ESSENCE_VALUE = 5
 // Minimum essence yield for any polymerization (consuming an NFT should
 // always yield something), applied before tier scaling.
 export const MIN_POLYMERIZATION_ESSENCE = 15
-
-function getTraitEssenceValue(traitKey: string, value: string): number {
-  const pool = TRAIT_POOLS[traitKey]
-  if (!pool) return 0
-
-  if (!pool.upgradeable) {
-    // Non-upgradeable traits yield base essence
-    return BASE_ESSENCE_VALUE
-  }
-
-  const level = pool.values.find((v) => v.value === value)
-  // Upgradeable traits yield their levelUpCost as essence
-  return level?.levelUpCost || BASE_ESSENCE_VALUE
-}
-
-// Get next upgrade level for a trait (returns null if maxed)
-function getNextUpgradeLevel(traitKey: string, currentValue: string): { value: string; cost: number } | null {
-  const pool = TRAIT_POOLS[traitKey]
-  if (!pool || !pool.upgradeable) return null
-
-  const currentIdx = pool.values.findIndex((v) => v.value === currentValue)
-  if (currentIdx < 0 || currentIdx >= pool.values.length - 1) return null
-
-  const nextLevel = pool.values[currentIdx + 1]
-  return { value: nextLevel.value, cost: nextLevel.levelUpCost || 0 }
-}
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 

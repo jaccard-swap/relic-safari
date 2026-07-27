@@ -14,11 +14,12 @@ contract Scrip is ERC20Permit {
   error FaucetCooldown(uint256 availableAt);
 
   constructor() ERC20("Scrip", "SCRIP") ERC20Permit("Scrip") {
-    // Seed supply is only useful for local testing/seeding - a real deploy
-    // has no reason to pre-mint a million tokens to the deployer.
-    if (block.chainid == HARDHAT_CHAIN_ID) {
-      _mint(msg.sender, 1000000000000000000000000);
-    }
+    // Unconditional on every chain (including real deploys) - this is the
+    // deployer's only fast source of Scrip to seed the Scrip/Essence
+    // Uniswap pool with (see scripts/create-uniswap-pool.ts), since the
+    // faucet's per-account cap and 12h cooldown make reaching a meaningful
+    // seed amount that way impractical.
+    _mint(msg.sender, 1000000000000000000000000);
   }
 
   function faucet() external {
