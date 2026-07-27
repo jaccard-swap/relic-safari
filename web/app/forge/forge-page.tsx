@@ -5,6 +5,7 @@ import { useForgeSimulation } from "./use-forge-simulation";
 import { useUpgradeTrait } from "./use-upgrade-trait";
 import { UpgradeModal } from "./upgrade-modal";
 import { MiniNftCard } from "../excavation/mini-nft-card";
+import { CollapsibleSection } from "../components/collapsible-section";
 import { Toast } from "../components/toast";
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -12,6 +13,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 export function ForgePage() {
   const { data: nfts = [] } = useNfts();
   const [selectedNftId, setSelectedNftId] = useState<string | null>(null);
+  const [pickerExpanded, setPickerExpanded] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   const { essenceBalance, refetchEssence } = useBalances();
@@ -40,26 +42,38 @@ export function ForgePage() {
       </div>
 
       <p className="text-[13px] leading-relaxed text-stone-400">
-        Spend Essence directly on one artifact - no second artifact consumed. Once every trait is maxed, Overflow unlocks as an uncapped sink.
+        Spend Essence directly on one artifact - no second artifact consumed. Once every trait is maxed, Energy Infusion unlocks as an uncapped sink.
       </p>
 
-      <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-3">
-        <div className="mb-1.5 text-xs text-stone-500">Select an artifact</div>
+      <CollapsibleSection
+        title="Select an artifact"
+        icon="🗂️"
+        expanded={pickerExpanded}
+        onToggle={() => setPickerExpanded((v) => !v)}
+        summary={
+          <span className="text-[13px] text-stone-400">
+            {selectedNft ? (selectedNft.metadata.name as string) ?? `Artifact #${selectedNft.tokenId.slice(-6)}` : "None selected"}
+          </span>
+        }
+      >
         {nfts.length === 0 ? (
           <div className="py-3 text-center text-xs text-stone-500">No artifacts yet</div>
         ) : (
-          <div className="scrollbar-thin scrollbar-thumb-stone-700 max-h-40 space-y-1 overflow-y-auto">
+          <div className="scrollbar-thin scrollbar-thumb-stone-700 max-h-40 space-y-1 overflow-y-auto pt-2">
             {nfts.map((nft) => (
               <MiniNftCard
                 key={nft.id}
                 nft={nft}
                 selected={nft.id === selectedNftId}
-                onSelect={() => setSelectedNftId((prev) => (prev === nft.id ? null : nft.id))}
+                onSelect={() => {
+                  setSelectedNftId((prev) => (prev === nft.id ? null : nft.id));
+                  setPickerExpanded(false);
+                }}
               />
             ))}
           </div>
         )}
-      </div>
+      </CollapsibleSection>
 
       {selectedNft && (
         <div className="rounded-lg border border-purple-500/20 bg-gradient-to-br from-stone-900 via-purple-950/20 to-stone-900 p-3">
@@ -101,9 +115,9 @@ export function ForgePage() {
                 ))}
 
               {simulation.overflow && (
-                <div className="mt-3 flex items-center justify-between rounded border border-amber-600/40 bg-gradient-to-r from-amber-950/40 to-purple-950/30 p-2 [animation:alchemy-glow_2.4s_ease-in-out_infinite]">
+                <div className="mt-3 flex items-center justify-between rounded border border-amber-600/40 bg-gradient-to-r from-amber-950/40 to-purple-950/30 p-2">
                   <div>
-                    <div className="text-[13px] font-semibold text-amber-300">⚡ Overflow</div>
+                    <div className="text-[13px] font-semibold text-amber-300">⚡ Energy Infusion</div>
                     <div className="flex items-center gap-1.5 text-xs">
                       <span className="text-stone-500">{simulation.overflow.currentLevel}</span>
                       <span className="text-amber-400">→</span>

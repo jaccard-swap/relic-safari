@@ -5,7 +5,15 @@ import { TRAIT_POOLS } from '@shared/constants'
 // traits) and Forge (nothing currently reads this for cost - upgrade cost
 // comes from getNextUpgradeLevel below - but it lives here since it's the
 // same TRAIT_POOLS-walking concern).
-const BASE_ESSENCE_VALUE = 5
+const BASE_ESSENCE_VALUE = 50
+
+// Forge (direct Essence spend, no second artifact) charges this multiple of
+// a trait level's raw levelUpCost - polymerase (fusing two artifacts) grants
+// that same raw amount for free (matching traits) or as yield (non-matching
+// traits) with no multiplier. This gap is deliberate: fusing artifacts is
+// meant to be the efficient way to level up traits, Forge is the convenience
+// premium for players who don't want to burn a second artifact.
+const FORGE_COST_MULTIPLIER = 4
 
 export function getTraitEssenceValue(traitKey: string, value: string): number {
   const pool = TRAIT_POOLS[traitKey]
@@ -21,7 +29,10 @@ export function getTraitEssenceValue(traitKey: string, value: string): number {
   return level?.levelUpCost || BASE_ESSENCE_VALUE
 }
 
-// Get next upgrade level for a trait (returns null if maxed or not upgradeable)
+// Get next upgrade level for a trait, and Forge's cost to buy it directly
+// (returns null if maxed or not upgradeable). Also used by polymerase for
+// the free match-upgrade path, which reads only `.value`, never `.cost` -
+// safe to keep FORGE_COST_MULTIPLIER folded into this single cost figure.
 export function getNextUpgradeLevel(traitKey: string, currentValue: string): { value: string; cost: number } | null {
   const pool = TRAIT_POOLS[traitKey]
   if (!pool || !pool.upgradeable) return null
@@ -30,7 +41,7 @@ export function getNextUpgradeLevel(traitKey: string, currentValue: string): { v
   if (currentIdx < 0 || currentIdx >= pool.values.length - 1) return null
 
   const nextLevel = pool.values[currentIdx + 1]
-  return { value: nextLevel.value, cost: nextLevel.levelUpCost || 0 }
+  return { value: nextLevel.value, cost: (nextLevel.levelUpCost || 0) * FORGE_COST_MULTIPLIER }
 }
 
 // Every upgradeable trait on this artifact is at its max level - Overflow
@@ -43,9 +54,12 @@ export function isFullyMaxed(metadata: Record<string, any>): boolean {
 
 // Uncapped counter, cost grows linearly so it stays a real Essence sink
 // rather than a flat-price infinite dump. Tune BASE/STEP as the economy
-// needs; this is intentionally simple to start.
-const OVERFLOW_BASE_COST = 20
-const OVERFLOW_COST_STEP = 5
+// needs; this is intentionally simple to start. No polymerase equivalent
+// exists for Overflow (it's Forge-only, unlocked only once every real trait
+// is maxed) so FORGE_COST_MULTIPLIER doesn't apply here - these are already
+// the full cost.
+const OVERFLOW_BASE_COST = 200
+const OVERFLOW_COST_STEP = 50
 
 export function getOverflowCost(currentLevel: number): number {
   return OVERFLOW_BASE_COST + currentLevel * OVERFLOW_COST_STEP

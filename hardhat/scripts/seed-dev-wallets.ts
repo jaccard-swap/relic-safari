@@ -18,8 +18,11 @@ const SEED_AMOUNT_WEI = parseEther("100");
 // Dev-convenience starting balance - Essence has no public faucet by design
 // (earned via Forge/Polymerase), so this mints directly via the deployer's
 // diamond-owner privileges, same mechanism create-uniswap-pool.ts already
-// uses to mint Essence for seeding.
-const DEV_ESSENCE_AMOUNT = parseEther("500");
+// uses to mint Essence for seeding. Sized to comfortably cover Forge's
+// steep direct-upgrade costs (api/src/lib/traitUpgrades.ts's
+// FORGE_COST_MULTIPLIER) during manual testing, not just Polymerase's
+// cheaper fuse-yield economy.
+const DEV_ESSENCE_AMOUNT = parseEther("20000");
 
 const { viem } = await hre.network.create();
 const [deployer] = await viem.getWalletClients();

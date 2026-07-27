@@ -107,10 +107,10 @@ export const TRAIT_POOLS: Record<string, TraitPool> = {
     upgradeable: true,
     values: [
       { value: 'common', weight: 50 },
-      { value: 'uncommon', weight: 30, levelUpCost: 10 },
-      { value: 'rare', weight: 15, levelUpCost: 25 },
-      { value: 'epic', weight: 4, levelUpCost: 50 },
-      { value: 'legendary', weight: 1, levelUpCost: 100 },
+      { value: 'uncommon', weight: 30, levelUpCost: 100 },
+      { value: 'rare', weight: 15, levelUpCost: 250 },
+      { value: 'epic', weight: 4, levelUpCost: 500 },
+      { value: 'legendary', weight: 1, levelUpCost: 1000 },
     ],
   },
   age: {
@@ -128,10 +128,10 @@ export const TRAIT_POOLS: Record<string, TraitPool> = {
     upgradeable: true,
     values: [
       { value: 'fragmented', weight: 40 },
-      { value: 'worn', weight: 30, levelUpCost: 5 },
-      { value: 'intact', weight: 20, levelUpCost: 15 },
-      { value: 'pristine', weight: 8, levelUpCost: 30 },
-      { value: 'immaculate', weight: 2, levelUpCost: 60 },
+      { value: 'worn', weight: 30, levelUpCost: 50 },
+      { value: 'intact', weight: 20, levelUpCost: 150 },
+      { value: 'pristine', weight: 8, levelUpCost: 300 },
+      { value: 'immaculate', weight: 2, levelUpCost: 600 },
     ],
   },
   material: {
@@ -176,10 +176,10 @@ export const TRAIT_POOLS: Record<string, TraitPool> = {
     upgradeable: true,
     values: [
       { value: 'unmarked', weight: 10 },
-      { value: 'faded', weight: 5, levelUpCost: 8 },
-      { value: 'partial', weight: 3, levelUpCost: 20 },
-      { value: 'legible', weight: 2, levelUpCost: 40 },
-      { value: 'glowing', weight: 1, levelUpCost: 80 },
+      { value: 'faded', weight: 5, levelUpCost: 80 },
+      { value: 'partial', weight: 3, levelUpCost: 200 },
+      { value: 'legible', weight: 2, levelUpCost: 400 },
+      { value: 'glowing', weight: 1, levelUpCost: 800 },
     ],
   },
 }

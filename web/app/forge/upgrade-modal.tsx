@@ -60,7 +60,7 @@ export function UpgradeModal({ result, onClose, refetchEssence }: UpgradeModalPr
       {status.state === "success" && (
         <div className="flex flex-col items-center gap-4 py-2">
           <div className="w-full rounded-lg border border-purple-700/30 bg-purple-950/30 p-3 text-center [animation:treasure-reveal_0.6s_ease-out]">
-            <div className="text-sm font-medium text-purple-200">{isOverflow ? "Overflow" : cap(status.traitKey)}</div>
+            <div className="text-sm font-medium text-purple-200">{isOverflow ? "Energy Infusion" : cap(status.traitKey)}</div>
             <div className="mt-1 flex items-center justify-center gap-2 text-[13px]">
               <span className="text-stone-500">{status.fromValue}</span>
               <span className="text-emerald-400">→</span>

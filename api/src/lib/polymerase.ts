@@ -40,8 +40,9 @@ export function getResonanceTier(matches: number): { tier: ResonanceTier; multip
 }
 
 // Minimum essence yield for any polymerization (consuming an NFT should
-// always yield something), applied before tier scaling.
-export const MIN_POLYMERIZATION_ESSENCE = 15
+// always yield something), applied before tier scaling. 3x BASE_ESSENCE_VALUE
+// (traitUpgrades.ts), same ratio as before its order-of-magnitude bump.
+export const MIN_POLYMERIZATION_ESSENCE = 150
 
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
