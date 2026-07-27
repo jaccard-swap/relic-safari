@@ -5,10 +5,24 @@ WORKDIR /app
 # Copy root package.json for workspace setup
 COPY package.json package-lock.json ./
 COPY hardhat/package.json ./hardhat/
+# scripts/seed-dev-wallets.ts imports @shared/constants (TRAIT_POOLS,
+# computeMinHash) as a real npm-workspace package, not a bind-mounted JSON
+# file like @shared/contracts is - its package.json has to exist before
+# `npm install` for the workspace symlink to resolve at all, same pattern
+# api/Dockerfile.dev already uses for its own shared/* deps.
+COPY shared/constants/package.json ./shared/constants/
 
 # Install all dependencies from root (workspace linking)
 RUN npm install
 
+# shared/contracts is read directly via bind-mounted JSON files at runtime
+# (see docker-compose.dev.yaml), never imported as an npm package, so unlike
+# shared/constants below it doesn't need copying/building here.
+COPY shared/constants ./shared/constants
+WORKDIR /app/shared/constants
+RUN npm run build
+
+WORKDIR /app
 # Copy source files
 COPY hardhat ./hardhat
 

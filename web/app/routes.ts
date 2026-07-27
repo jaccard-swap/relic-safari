@@ -9,6 +9,7 @@ export default [
     route("forge", "routes/forge.tsx"),
     route("exchange", "routes/exchange.tsx"),
     route("museum", "routes/museum.tsx"),
+    route("leaderboard", "routes/leaderboard.tsx"),
     route("auction/:auctionId", "routes/auction.tsx"),
     route("help", "routes/help.tsx"),
   ]),

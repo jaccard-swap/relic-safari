@@ -12,7 +12,7 @@ import { TradingCard } from "../excavation/trading-card";
 export function VaultPage() {
   const { isConnected } = useAccount();
   const navigate = useNavigate();
-  const { scripBalance, essenceBalance } = useBalances();
+  const { scripBalance, essenceBalance, leaderboardPoints } = useBalances();
   const { data: nfts, isLoading, isError, refetch } = useNfts();
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -36,6 +36,11 @@ export function VaultPage() {
         <div className="flex items-center gap-2">
           <span className="font-mono text-sm text-purple-300">{essenceBalance?.count ?? 0}</span>
           <span className="text-xs text-stone-500">✨ Essence</span>
+        </div>
+        <div className="h-4 w-px bg-stone-700" />
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-sm text-teal-300">{leaderboardPoints ?? 0}</span>
+          <span className="text-xs text-stone-500">🏅 Points</span>
         </div>
       </div>
 

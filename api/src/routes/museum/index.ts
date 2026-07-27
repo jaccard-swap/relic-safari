@@ -4,7 +4,7 @@ import * as dbSchema from '@shared/database'
 import { TRAIT_POOLS, WS_MSG, getCupboardKey, getCupboardWeight, getCupboardPoints } from '@shared/constants'
 import { isFullyMaxed } from '../../lib/traitUpgrades'
 import { joinRequestRoom, leaveRequestRoom, broadcastRequestStatus } from '../../lib/requestRooms'
-import { and, eq, inArray, ne } from 'drizzle-orm'
+import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import { decodeEventLog, parseAbiItem, zeroAddress } from 'viem'
 import type { SupportedChainId } from '../../plugins/web3'
 
@@ -150,6 +150,53 @@ const museum: FastifyPluginAsync = async (fastify): Promise<void> => {
   })
 
   // ============================================================================
+  // GET /leaderboard - Rank wallets by total points across every cupboard
+  // they've completed. Built from cupboard_completions, not an on-chain
+  // scan: every completion is a sponsored tx this API itself submits (see
+  // POST /complete-cupboard's walletClient.writeContract below), so this
+  // table is already the complete, authoritative record of every
+  // completion that has ever happened on this chain - there's no wallet
+  // this API doesn't already know about. leaderboardPoints(address) on
+  // JaccardERC1155Facet (see CollectionFacet.completeCupboard) is still the
+  // right source for one wallet's own total (trustlessly verifiable, no API
+  // trust needed), but ranking *across* wallets would mean either indexing
+  // every LeaderboardPointsAwarded log from scratch or enumerating
+  // candidate addresses to query - unnecessary work when this table already
+  // has the answer.
+  // ============================================================================
+  fastify.get('/leaderboard', async function (request, reply) {
+    const { chainId, limit } = request.query as { chainId?: string; limit?: string }
+
+    if (!chainId) {
+      reply.code(400)
+      return { error: 'Missing chainId' }
+    }
+    const chainIdNum = parseInt(chainId, 10)
+    const limitNum = Math.min(Math.max(parseInt(limit ?? '50', 10) || 50, 1), 100)
+
+    const rows = await fastify.db
+      .select({
+        owner: cupboardCompletions.owner,
+        points: sql<number>`sum(${cupboardCompletions.points})`,
+        badgeCount: sql<number>`count(*)`,
+      })
+      .from(cupboardCompletions)
+      .where(and(eq(cupboardCompletions.chainId, chainIdNum), eq(cupboardCompletions.status, 'success')))
+      .groupBy(cupboardCompletions.owner)
+      .orderBy(sql`sum(${cupboardCompletions.points}) desc`)
+      .limit(limitNum)
+
+    return {
+      leaderboard: rows.map((row, i) => ({
+        rank: i + 1,
+        owner: row.owner,
+        points: Number(row.points),
+        badgeCount: Number(row.badgeCount),
+      })),
+    }
+  })
+
+  // ============================================================================
   // POST /complete-cupboard - Freeze a completed cupboard: burns the 7
   // matching artifacts and mints a soulbound badge. Mirrors POST /forge/upgrade.
   // ============================================================================
@@ -260,7 +307,7 @@ const museum: FastifyPluginAsync = async (fastify): Promise<void> => {
         address: collectionArtifact.address,
         abi: collectionArtifact.abi,
         functionName: 'completeCupboard',
-        args: [owner as `0x${string}`, tokenIds, cupboardKey],
+        args: [owner as `0x${string}`, tokenIds, cupboardKey, BigInt(points)],
       } as any)
 
       fastify.log.info({ hash, chainId }, 'Cupboard completion submitted')

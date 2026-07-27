@@ -21,15 +21,23 @@ contract CollectionFacet is IBadges {
     /// as IBadges.Transfer being re-declared instead of imported from OZ).
     event TransferBatch(address indexed operator, address indexed from, address indexed to, uint256[] ids, uint256[] values);
 
+    /// @dev Not part of IBadges - this is JaccardERC1155Facet's leaderboard
+    /// concept, not a badge concept, even though this function is what
+    /// mutates it (same cross-facet-storage-write reasoning as everything
+    /// else in this contract).
+    event LeaderboardPointsAwarded(address indexed owner, uint256 points, uint256 newTotal);
+
     // Eligibility (which 7 tokenIds fill this exact cupboard, and that each
-    // is fully-upgraded) is decided off-chain by the trusted API, same trust
-    // model as polymerase()/upgradeTrait() on JaccardERC1155Facet -
-    // enforceIsContractOwner means only that backend can ever reach this
-    // function.
+    // is fully-upgraded) and the points this cupboard is worth (inverse of
+    // its Site+Age+Material rarity - see shared/constants getCupboardPoints)
+    // are decided off-chain by the trusted API, same trust model as
+    // polymerase()/upgradeTrait() on JaccardERC1155Facet - enforceIsContractOwner
+    // means only that backend can ever reach this function.
     function completeCupboard(
         address owner,
         uint256[7] calldata tokenIds,
-        bytes32 cupboardKey
+        bytes32 cupboardKey,
+        uint256 points
     ) external returns (uint256 badgeId) {
         LibDiamond.enforceIsContractOwner();
         AppStorage storage s = LibAppStorage.diamondStorage();
@@ -60,5 +68,9 @@ contract CollectionFacet is IBadges {
 
         emit Transfer(address(0), owner, badgeId);
         emit Locked(badgeId);
+
+        uint256 newTotal = s.leaderboardPoints[owner] + points;
+        s.leaderboardPoints[owner] = newTotal;
+        emit LeaderboardPointsAwarded(owner, points, newTotal);
     }
 }

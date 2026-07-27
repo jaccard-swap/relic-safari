@@ -5,6 +5,31 @@
       "anonymous": false,
       "inputs": [
         {
+          "indexed": true,
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "points",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "newTotal",
+          "type": "uint256"
+        }
+      ],
+      "name": "LeaderboardPointsAwarded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
           "indexed": false,
           "internalType": "uint256",
           "name": "tokenId",
@@ -105,6 +130,11 @@
           "internalType": "bytes32",
           "name": "cupboardKey",
           "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "points",
+          "type": "uint256"
         }
       ],
       "name": "completeCupboard",

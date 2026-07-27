@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: "/forge", icon: "🔨", label: "Forge" },
   { to: "/exchange", icon: "⚖️", label: "Exchange" },
   { to: "/museum", icon: "🏺", label: "Museum" },
+  { to: "/leaderboard", icon: "🏆", label: "Leaderboard" },
   { to: "/help", icon: "📜", label: "Help" },
 ] as const;
 

@@ -101,6 +101,12 @@ struct AppStorage {
     mapping(address => uint256) ownerBadgeCount;
     uint256 nextBadgeId;
     mapping(address => mapping(bytes32 => bool)) cupboardCompleted;
+    // Cupboard completions are already fully on-chain events (burn + badge
+    // mint), so the leaderboard total lives here too rather than only in a
+    // Postgres SUM - the chain stays the source of truth for it, same as
+    // every other on-chain balance. Read via JaccardERC1155Facet's
+    // leaderboardPoints(address), written by CollectionFacet.completeCupboard.
+    mapping(address => uint256) leaderboardPoints;
 }
 
 // ============ Library ============
