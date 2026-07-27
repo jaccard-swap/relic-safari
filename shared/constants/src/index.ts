@@ -196,6 +196,45 @@ export const TRAIT_OPTIONS: Record<string, string[]> = Object.fromEntries(
 )
 
 // ============================================================================
+// Museum Cupboards - Site + Age + Material collections
+// ============================================================================
+
+/**
+ * Deterministic identity for one cupboard (a Site+Age+Material combination).
+ * Computed identically off-chain (here, by the API) and passed as the
+ * on-chain arg to CollectionFacet.completeCupboard - the contract trusts
+ * this value rather than re-deriving it from strings, same trust model as
+ * every other backend-computed argument in the diamond (minHash, essence
+ * cost, etc).
+ */
+export function getCupboardKey(site: string, age: string, material: string): `0x${string}` {
+  return keccak256(toHex(`${site}|${age}|${material}`))
+}
+
+function getTraitWeight(traitKey: string, value: string): number {
+  return TRAIT_POOLS[traitKey]?.values.find(v => v.value === value)?.weight ?? 1
+}
+
+/**
+ * Relative rarity of a cupboard - product of its Site/Age/Material weights
+ * (Form is excluded: every cupboard needs all 7 forms equally, so it never
+ * differentiates one cupboard from another). Lower weight = rarer
+ * combination = harder to have rolled during excavation.
+ */
+export function getCupboardWeight(site: string, age: string, material: string): number {
+  return getTraitWeight('site', site) * getTraitWeight('age', age) * getTraitWeight('material', material)
+}
+
+// Tunable - not tuned precisely yet, just picked so common cupboards are
+// worth a modest handful of points and rare ones scale up meaningfully.
+const CUPBOARD_POINTS_SCALE = 5000
+
+/** Leaderboard points for completing a cupboard - inverse of its rarity. */
+export function getCupboardPoints(weight: number): number {
+  return Math.round(CUPBOARD_POINTS_SCALE / weight)
+}
+
+// ============================================================================
 // WebSocket Message Types
 // ============================================================================
 
@@ -224,6 +263,8 @@ export const WS_MSG = {
   POLYMERASE_STATUS: 'polymerase_status',
   // Forge upgrade room - terminal status of a direct Essence trait/overflow upgrade (see api/src/lib/requestRooms.ts)
   UPGRADE_STATUS: 'upgrade_status',
+  // Museum room - terminal status of a cupboard completion (see api/src/lib/requestRooms.ts)
+  MUSEUM_STATUS: 'museum_status',
 } as const
 
 export type WsMsgType = typeof WS_MSG[keyof typeof WS_MSG]

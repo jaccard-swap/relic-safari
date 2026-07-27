@@ -14,11 +14,16 @@ import scrip_31337 from "@shared/contracts/31337/Scrip.json";
 import uniswapV2Factory_31337 from "@shared/contracts/31337/UniswapV2Factory.json";
 import uniswapV2Router02_31337 from "@shared/contracts/31337/UniswapV2Router02.json";
 import scripEssencePair_31337 from "@shared/contracts/31337/ScripEssencePair.json";
+import badges_31337 from "@shared/contracts/31337/Badges.json";
 
 // UniswapV2Factory/Router02/ScripEssencePair aren't deployed by us - they're
 // hardhat/scripts/create-uniswap-pool.ts pointing at Uniswap's real Sepolia
 // V2 deployment (and, locally, the same real contracts via anvil's Sepolia
 // fork - see docker-compose.dev.yaml).
+//
+// Badges is 31337-only for now - it needs a real Sepolia deploy of the new
+// CollectionFacet/BadgesFacet (shared/contracts/11155111/Badges.json)
+// before it can be wired up there too, same sequencing as Uniswap above.
 export type ContractName =
   | "JaccardERC1155"
   | "JaccardSwap"
@@ -26,7 +31,8 @@ export type ContractName =
   | "Scrip"
   | "UniswapV2Factory"
   | "UniswapV2Router02"
-  | "ScripEssencePair";
+  | "ScripEssencePair"
+  | "Badges";
 
 export interface ContractArtifact {
   address: `0x${string}`;
@@ -51,6 +57,7 @@ const REGISTRY: Record<number, Partial<Record<ContractName, ContractArtifact>>> 
     UniswapV2Factory: uniswapV2Factory_31337 as ContractArtifact,
     UniswapV2Router02: uniswapV2Router02_31337 as ContractArtifact,
     ScripEssencePair: scripEssencePair_31337 as ContractArtifact,
+    Badges: badges_31337 as ContractArtifact,
   },
 };
 

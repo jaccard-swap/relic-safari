@@ -89,6 +89,18 @@ struct AppStorage {
     string _erc20name;
     string _erc20symbol;
     mapping(address account => uint256) _erc20nonces; // for permit
+
+    // ---- Badges / Collections State ----
+    // cupboardKey = keccak256(site, age, material), computed off-chain (see
+    // shared/constants getCupboardKey) - a cupboard is complete once its
+    // owner holds one fully-upgraded artifact per Form value sharing that
+    // Site+Age+Material combination.
+    mapping(uint256 => address) badgeOwner;
+    mapping(uint256 => bool) badgeLocked;
+    mapping(uint256 => bytes32) badgeCupboard;
+    mapping(address => uint256) ownerBadgeCount;
+    uint256 nextBadgeId;
+    mapping(address => mapping(bytes32 => bool)) cupboardCompleted;
 }
 
 // ============ Library ============

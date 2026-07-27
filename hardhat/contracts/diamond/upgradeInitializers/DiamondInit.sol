@@ -27,6 +27,10 @@ contract DiamondInit {
         // ERC20 interface
         ds.supportedInterfaces[0x36372b07] = true; // IERC20
 
+        // Badges (BadgesFacet) - ERC721 + EIP-5192 soulbound
+        ds.supportedInterfaces[0x80ac58cd] = true; // IERC721
+        ds.supportedInterfaces[0xb45a3c0e] = true; // IERC5192
+
         // Initialize AppStorage
         AppStorage storage s = LibAppStorage.diamondStorage();
         s._uri = uri_;

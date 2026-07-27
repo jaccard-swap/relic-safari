@@ -62,6 +62,8 @@ export default deployScript(
           { artifact: artifacts.JaccardERC1155Facet },
           { artifact: artifacts.JaccardSwapFacet },
           { artifact: artifacts.EssenceFacet },
+          { artifact: artifacts.CollectionFacet },
+          { artifact: artifacts.BadgesFacet },
         ],
         // Exclude selectors that conflict with rocketh's default facets
         // supportsInterface: 0x01ffc9a7
@@ -90,6 +92,8 @@ export default deployScript(
     await saveDeployment(chainIdNum, 'JaccardSwap', diamondAddr, artifacts.JaccardSwapFacet.abi);
     await saveDeployment(chainIdNum, 'JaccardERC1155', diamondAddr, artifacts.JaccardERC1155Facet.abi);
     await saveDeployment(chainIdNum, 'Essence', diamondAddr, artifacts.EssenceFacet.abi);
+    await saveDeployment(chainIdNum, 'Collection', diamondAddr, artifacts.CollectionFacet.abi);
+    await saveDeployment(chainIdNum, 'Badges', diamondAddr, artifacts.BadgesFacet.abi);
   },
   { tags: ['JaccardDiamond', 'JaccardDiamond_deploy'] },
 );

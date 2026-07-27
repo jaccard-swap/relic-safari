@@ -19,6 +19,24 @@ export type ContractArtifact = {
 // the process lifetime) but re-reading the file contents on every call keeps
 // this correct across both the initial deploy-vs-boot race and any
 // mid-session redeploy, without requiring an api restart either way.
+// require.resolve throws if the target file doesn't exist yet - fine for
+// contracts that were already deployed to every supported chain before this
+// code was written (every path below except Collection/Badges), but
+// Collection/Badges are new: shared/contracts/<chainId>/{Collection,Badges}.json
+// won't exist on a given chain until someone actually runs the diamond
+// deploy with the new facets there. Resolving lazily (and only once
+// resolution succeeds) means an undeployed chain just falls through to
+// loadArtifact's existing "unsupported chain" undefined path instead of
+// crashing API boot entirely - a museum-specific 400 later, not a process
+// that won't start.
+function tryResolve(request: string): string | undefined {
+  try {
+    return require.resolve(request)
+  } catch {
+    return undefined
+  }
+}
+
 const jaccardNftArtifactPaths: Record<SupportedChainId, string> = {
   11155111: require.resolve('@shared/contracts/11155111/JaccardERC1155.json'),
   31337: require.resolve('@shared/contracts/31337/JaccardERC1155.json')
@@ -29,7 +47,17 @@ const essenceArtifactPaths: Record<SupportedChainId, string> = {
   31337: require.resolve('@shared/contracts/31337/Essence.json')
 }
 
-function loadArtifact(paths: Record<SupportedChainId, string>, chainId: SupportedChainId): ContractArtifact | undefined {
+const collectionArtifactPaths: Partial<Record<SupportedChainId, string>> = {
+  11155111: tryResolve('@shared/contracts/11155111/Collection.json'),
+  31337: tryResolve('@shared/contracts/31337/Collection.json')
+}
+
+const badgesArtifactPaths: Partial<Record<SupportedChainId, string>> = {
+  11155111: tryResolve('@shared/contracts/11155111/Badges.json'),
+  31337: tryResolve('@shared/contracts/31337/Badges.json')
+}
+
+function loadArtifact(paths: Partial<Record<SupportedChainId, string>>, chainId: SupportedChainId): ContractArtifact | undefined {
   // chainId is often just a cast of unvalidated request input (see callers),
   // so an unsupported value must fall through to undefined here rather than
   // throw - callers rely on this to produce a clean 400 instead of a 500.
@@ -49,6 +77,14 @@ function loadJaccardNftArtifact(chainId: SupportedChainId): ContractArtifact | u
 
 function loadEssenceArtifact(chainId: SupportedChainId): ContractArtifact | undefined {
   return loadArtifact(essenceArtifactPaths, chainId)
+}
+
+function loadCollectionArtifact(chainId: SupportedChainId): ContractArtifact | undefined {
+  return loadArtifact(collectionArtifactPaths, chainId)
+}
+
+function loadBadgesArtifact(chainId: SupportedChainId): ContractArtifact | undefined {
+  return loadArtifact(badgesArtifactPaths, chainId)
 }
 
 export default fp(async (fastify: FastifyInstance) => {
@@ -103,6 +139,8 @@ export default fp(async (fastify: FastifyInstance) => {
   fastify.decorate('walletClients', walletClients as any)
   fastify.decorate('getJaccardNft', loadJaccardNftArtifact)
   fastify.decorate('getEssence', loadEssenceArtifact)
+  fastify.decorate('getCollection', loadCollectionArtifact)
+  fastify.decorate('getBadges', loadBadgesArtifact)
 
   if (isProduction && !account) {
     fastify.log.warn('SPONSOR_PRIVATE_KEY not configured - sponsored transactions on sepolia disabled')
@@ -122,5 +160,7 @@ declare module 'fastify' {
     walletClients: Partial<Record<SupportedChainId, ReturnType<typeof createWalletClient>>>
     getJaccardNft: (chainId: SupportedChainId) => ContractArtifact | undefined
     getEssence: (chainId: SupportedChainId) => ContractArtifact | undefined
+    getCollection: (chainId: SupportedChainId) => ContractArtifact | undefined
+    getBadges: (chainId: SupportedChainId) => ContractArtifact | undefined
   }
 }
