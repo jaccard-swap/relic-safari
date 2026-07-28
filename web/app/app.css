@@ -157,3 +157,60 @@ body {
     opacity: 0.9;
   }
 }
+
+/* Hero mascot (web/app/landing/hero-landing.tsx): a pith-helmeted explorer
+   built entirely from positioned divs. safari-sway is the whole figure's
+   idle breathing/weight-shift; safari-point is the outstretched arm's
+   confident bob (rotation is baked into the keyframe itself since it's an
+   infinite animation, so a separate static rotate class would just be
+   fought over - the animated value wins the whole time it's running
+   anyway); monocle-glint is a rare shine sweep; safari-motion-line is the
+   pair of speed-lines trailing the pointing hand. */
+@keyframes safari-sway {
+  0%,
+  100% {
+    transform: rotate(-1.5deg);
+  }
+  50% {
+    transform: rotate(1.5deg);
+  }
+}
+
+@keyframes safari-point {
+  0%,
+  100% {
+    transform: rotate(-48deg);
+  }
+  50% {
+    transform: rotate(-53deg);
+  }
+}
+
+@keyframes monocle-glint {
+  0%,
+  82%,
+  100% {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  90% {
+    opacity: 0.85;
+    transform: translateX(0);
+  }
+  96% {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+}
+
+@keyframes safari-motion-line {
+  0%,
+  100% {
+    opacity: 0;
+    transform: translateX(-3px);
+  }
+  50% {
+    opacity: 0.85;
+    transform: translateX(3px);
+  }
+}

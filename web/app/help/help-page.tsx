@@ -29,51 +29,97 @@ function Entry({ term, accent = "text-amber-300" }: { term: string; accent?: str
 export function HelpPage() {
   return (
     <div className="space-y-3">
-      <Topic title="About" icon="🏛️">
+      <Topic title="Goal & How to Play" icon="🎯">
         <p>
-          Dig relics on-chain, fuse the good ones, sell the rest. Every artifact carries a <Entry term="MinHash" /> signature — similarity is
-          provable on-chain, not just cosmetic.
+          Become the greatest relic hunter. <Entry term="Leaderboard" accent="text-teal-300" /> points come from one place only: freezing
+          completed <Entry term="Museum" accent="text-teal-300" /> collections into soulbound badges.
         </p>
         <p className="text-stone-400">
-          Loop: <Entry term="Stipend" /> → <Entry term="Quarry" /> → <Entry term="Polymerize" accent="text-purple-300" /> → <Entry term="Bazaar" />
+          The loop: claim your <Entry term="Stipend" /> → dig in the <Entry term="Quarry" /> → grow artifacts with{" "}
+          <Entry term="Forge" accent="text-orange-300" /> or <Entry term="Polymerase" accent="text-purple-300" /> → assemble a matching set of
+          7 → freeze it in the <Entry term="Museum" accent="text-teal-300" /> for points.
+        </p>
+        <p className="text-stone-400">
+          Missing a piece? Buy it in the <Entry term="Bazaar" />, or swap currencies in the <Entry term="Exchange" />.
         </p>
       </Topic>
 
       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <Topic title="Vault" icon="🎒">
-          <p>Your balances and every artifact you own.</p>
+          <p>Your balances — SCRIP, Essence, and Leaderboard Points — plus every artifact you own, as a list or card grid.</p>
           <p>
-            Tap an artifact to expand it. <Entry term="🏛️ Auction" /> lists it in the Bazaar — Fuse and Gift are coming soon.
+            Tap an artifact to expand it. <Entry term="🏛️ Auction" /> jumps straight to listing it in the Bazaar. It's a hub, not an action
+            page — everything else happens in Excavation, Forge, or the Museum.
           </p>
         </Topic>
 
         <Topic title="Excavation" icon="⛏️">
           <p>
-            <Entry term="Stipend" />: SCRIP every 12 hours.
+            <Entry term="Stipend" />: free SCRIP every 12 hours (unlimited on the local dev network).
           </p>
           <p>
-            <Entry term="Quarry" />: 5 digs/day, each unearths 1–8 random traits.
+            <Entry term="Quarry" />: dig for a relic with 1–8 random traits. 5 digs per rolling 24 hours.
           </p>
           <p>
-            <Entry term="Polymerase" accent="text-purple-300" />: fuse two artifacts sharing{" "}
-            <Entry term={`8/${MINHASH_BANDS}`} /> bands. Matches level up on the target; the rest becomes{" "}
-            <Entry term="Essence" accent="text-purple-300" />.
+            <Entry term="Polymerase" accent="text-purple-300" />: fuse a target artifact with a catalyst sharing at least{" "}
+            <Entry term={`4/${MINHASH_BANDS}`} /> MinHash bands. Matching upgradeable traits level up on the target for free — everything else
+            (plus the catalyst itself) converts to <Entry term="Essence" accent="text-purple-300" />, more per fusion the higher the match count.
+            The catalyst is burned.
           </p>
         </Topic>
 
-        <Topic title="Bazaar & Auctions" icon="⚖️">
+        <Topic title="Forge" icon="🔨">
           <p>
-            <Entry term="List" />: pick an artifact, set a starting bid + duration. Signature-only — no gas until it sells.
+            Spend <Entry term="Essence" accent="text-purple-300" /> directly on one artifact to level up a single trait — no second artifact,
+            no chance of failure. Costs more than fusing the same trait via Polymerase; you're paying for certainty and speed.
+          </p>
+          <p className="text-stone-400">
+            Once every trait is maxed, extra Essence can still go into <Entry term="Overflow" accent="text-orange-300" /> — a pure prestige
+            sink with rising cost and no further trait effect.
+          </p>
+        </Topic>
+
+        <Topic title="Bazaar & Auctions" icon="🏪">
+          <p>
+            <Entry term="List" />: pick an artifact, a starting bid, and a duration (1h/6h/24h/3d/7d). Signature-only — no gas until it sells.
           </p>
           <p>
-            <Entry term="Bid" />: sign an SCRIP permit + bid. Nothing moves until settlement.
+            <Entry term="Bid" />: sign an SCRIP permit for more than the current highest bid. Nothing moves until settlement, so losing bids
+            just expire.
           </p>
           <p>
-            <Entry term="Settle" />: auctioneer submits the highest valid bid — payment and artifact swap atomically.
+            <Entry term="Settle" />: anyone can trigger it once the auction ends — the highest valid bid's payment and the artifact swap
+            atomically.
           </p>
           <p>
-            <Entry term="Standing bids" />: set trait thresholds ahead of time; matching auctions attach automatically.
+            <Entry term="Standing bids" />: set desired traits + a minimum band-match threshold ahead of time; matching auctions attach
+            automatically for 7 days.
           </p>
+        </Topic>
+
+        <Topic title="Exchange" icon="⚖️">
+          <p>
+            A live Uniswap V2 pool swapping <Entry term="SCRIP" /> ↔ <Entry term="Essence" accent="text-purple-300" /> directly, both
+            directions. Quotes come straight from the pool, with the standard 0.3% pool fee plus a 2% slippage buffer built in.
+          </p>
+          <p className="text-stone-400">
+            The one page that's a real signed transaction, not gasless — you're trading against the pool, not the game's backend.
+          </p>
+        </Topic>
+
+        <Topic title="Museum" icon="🏺">
+          <p>
+            Drill down Site → Age → Material to find a <Entry term="cupboard" accent="text-teal-300" />: 7 pedestal slots, one per Form. Each
+            slot only accepts a fully-maxed artifact (every upgradeable trait at max level) matching that exact combination.
+          </p>
+          <p>
+            Fill all 7 and <Entry term="Freeze Collection" accent="text-teal-300" /> burns them and mints a permanent, soulbound badge. Rarer
+            Site+Age+Material combos are worth more Leaderboard points. Each cupboard can only ever be completed once.
+          </p>
+        </Topic>
+
+        <Topic title="Leaderboard" icon="🏆">
+          <p>Ranked purely by total points from frozen Museum badges — nothing else counts. Badge count is shown alongside as a tiebreaker at a glance.</p>
         </Topic>
 
         <Topic title="MinHash Similarity" icon="🧬">

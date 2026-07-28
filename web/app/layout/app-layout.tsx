@@ -2,10 +2,11 @@ import { Link, Outlet, useLocation } from "react-router";
 import { FaGithub, FaDiscord } from "react-icons/fa";
 import { WalletMenu } from "../auth/wallet-menu";
 import { ContractsMenu } from "./contracts-menu";
+import { Footer } from "./footer";
 
 const NAV_ITEMS = [
   { to: "/", icon: "🏛️", label: "Vault" },
-  { to: "/bazaar", icon: "⚖️", label: "Bazaar" },
+  { to: "/bazaar", icon: "🏪", label: "Bazaar" },
   { to: "/excavation", icon: "⛏️", label: "Excavation" },
   { to: "/forge", icon: "🔨", label: "Forge" },
   { to: "/exchange", icon: "⚖️", label: "Exchange" },
@@ -69,6 +70,8 @@ export function AppLayout() {
       <main className="p-4">
         <Outlet />
       </main>
+
+      <Footer />
     </div>
   );
 }
