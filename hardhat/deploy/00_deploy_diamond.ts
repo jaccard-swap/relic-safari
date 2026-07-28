@@ -59,9 +59,18 @@ export default deployScript(
       {
         facets: [
           // DiamondLoupeFacet + OwnershipFacet + DiamondCutFacet provided by rocketh
-          { artifact: artifacts.JaccardERC1155Facet },
-          { artifact: artifacts.JaccardSwapFacet },
-          { artifact: artifacts.EssenceFacet },
+          // libraries is per-facet, not diamond()-wide - only pass LibEIP712
+          // to the facets that actually import it. Passing it globally to
+          // every facet works fine on-chain (an unused link is a no-op), but
+          // breaks rocketh-verify: for a facet that never references
+          // LibEIP712, the library's source file isn't in that facet's
+          // compiled metadata.sources, so verify can't figure out where to
+          // key it in the standard-json sent to Etherscan and just skips
+          // that facet ("Failed to resolve the defining source path for
+          // linked library").
+          { artifact: artifacts.JaccardERC1155Facet, libraries: { LibEIP712: libEIP712.address } },
+          { artifact: artifacts.JaccardSwapFacet, libraries: { LibEIP712: libEIP712.address } },
+          { artifact: artifacts.EssenceFacet, libraries: { LibEIP712: libEIP712.address } },
           { artifact: artifacts.CollectionFacet },
           { artifact: artifacts.BadgesFacet },
         ],
@@ -75,9 +84,6 @@ export default deployScript(
           artifact: artifacts.DiamondInit,
           functionName: 'init',
           args: ['https://api.jaccardswap.xyz/metadata/{id}.json', 'Essence', 'ESS'],
-        },
-        libraries: {
-          LibEIP712: libEIP712.address,
         },
       },
     );

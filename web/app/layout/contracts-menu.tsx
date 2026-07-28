@@ -6,13 +6,15 @@ import { getContract, type ContractName } from "../lib/contracts";
 const CONTRACTS: { name: ContractName; label: string }[] = [
   { name: "JaccardSwap", label: "JaccardSwap (Diamond)" },
   { name: "Scrip", label: "Scrip" },
+  { name: "ScripEssencePair", label: "Uniswap Pool (SCRIP/Essence)" },
 ];
 
 // Same click-outside-to-close dropdown shape as WalletMenu. JaccardSwap here
 // is one of several facet names (see lib/contracts.ts) that all resolve to
-// the same diamond proxy address - Scrip is the one genuinely separate
-// contract, which is why it needs its own explorer link rather than folding
-// into a single "Contract" link like the old single-address version did.
+// the same diamond proxy address - Scrip and ScripEssencePair (the Uniswap
+// V2 pool pairing SCRIP/Essence) are genuinely separate contracts, which is
+// why each needs its own explorer link rather than folding into a single
+// "Contract" link like the old single-address version did.
 //
 // Always links to the deployed Sepolia addresses, regardless of which chain
 // (if any) the visitor's wallet is on - a player should be able to inspect
