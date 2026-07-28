@@ -26,7 +26,7 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
   const authenticated = useAuthGate();
   const [detailNft, setDetailNft] = useState<Nft | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const [view, setView] = useState<CardView>("list");
+  const [view, setView] = useState<CardView>("grid");
 
   const dig = useErc1155Faucet();
   const { count, max, bypassed, eligible, msRemaining, refetchDigStatus } = useDigEligibility();

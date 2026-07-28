@@ -13,7 +13,7 @@ interface ActiveAuctionsSectionProps {
 
 export function ActiveAuctionsSection({ expanded, onToggle, onHelp }: ActiveAuctionsSectionProps) {
   const { data: auctions, isLoading, isError } = useActiveAuctions();
-  const [view, setView] = useState<CardView>("list");
+  const [view, setView] = useState<CardView>("grid");
 
   return (
     <CollapsibleSection

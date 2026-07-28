@@ -28,7 +28,7 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
   const [selectedNfts, setSelectedNfts] = useState<string[]>([]);
   const [detailReaction, setDetailReaction] = useState<PolymerizationRecord | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const [view, setView] = useState<CardView>("list");
+  const [view, setView] = useState<CardView>("grid");
 
   const authenticated = useAuthGate();
   const { chainId } = useAccount();

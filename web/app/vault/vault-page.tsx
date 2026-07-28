@@ -17,7 +17,7 @@ export function VaultPage() {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [detailNft, setDetailNft] = useState<Nft | null>(null);
-  const [view, setView] = useState<CardView>("list");
+  const [view, setView] = useState<CardView>("grid");
 
   const toggleExpand = (id: string) => setExpandedId((prev) => (prev === id ? null : id));
 
