@@ -14,6 +14,7 @@ import { ReactionCard } from "./reaction-card";
 import { ReactionDetailModal } from "./reaction-detail-modal";
 import { Toast } from "../components/toast";
 import { ViewToggle, type CardView } from "../components/view-toggle";
+import { useAuthGate } from "../auth/use-auth-gate";
 
 interface PolymeraseSectionProps {
   expanded: boolean;
@@ -29,6 +30,7 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [view, setView] = useState<CardView>("list");
 
+  const authenticated = useAuthGate();
   const { chainId } = useAccount();
   const { essenceBalance, refetchEssence } = useBalances();
   const { data: reactions = [], isLoading: reactionsLoading } = usePolymerizationHistory();
@@ -61,15 +63,19 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
 
   const handleFuse = useCallback(async () => {
     if (!targetNft || !consumedNft || simulation?.eligible !== true) return;
+    if (!authenticated) {
+      setToast({ message: "Sign in to fuse artifacts", type: "error" });
+      return;
+    }
 
     try {
       await fuse.mutateAsync({ targetTokenId: targetNft.tokenId, consumedTokenId: consumedNft.tokenId });
     } catch (err) {
       setToast({ message: `Fusion failed: ${err instanceof Error ? err.message : "Unknown error"}`, type: "error" });
     }
-  }, [targetNft, consumedNft, simulation?.eligible, fuse]);
+  }, [targetNft, consumedNft, simulation?.eligible, fuse, authenticated]);
 
-  const canFuse = selectedNfts.length === 2 && simulation?.eligible === true && !fuse.isPending;
+  const canFuse = selectedNfts.length === 2 && simulation?.eligible === true && (!authenticated || !fuse.isPending);
 
   return (
     <>
@@ -90,11 +96,16 @@ export function PolymeraseSection({ expanded, onToggle, onHelp, onReactionsHelp 
             type="button"
             onClick={handleFuse}
             disabled={!canFuse}
+            title={!authenticated && selectedNfts.length === 2 ? "Sign in to fuse artifacts" : undefined}
             className={`relative w-14 rounded py-2 text-center text-xs font-medium transition-all ${
-              canFuse ? "bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:from-purple-500 hover:to-violet-600" : "cursor-not-allowed bg-stone-700 text-stone-400"
+              !authenticated && selectedNfts.length === 2 && simulation?.eligible === true
+                ? "cursor-pointer bg-stone-800 text-stone-500 opacity-60 hover:opacity-80"
+                : canFuse
+                  ? "bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:from-purple-500 hover:to-violet-600"
+                  : "cursor-not-allowed bg-stone-700 text-stone-400"
             }`}
           >
-            {fuse.isPending ? "⏳" : "Fuse"}
+            {fuse.isPending ? "⏳" : !authenticated && selectedNfts.length === 2 && simulation?.eligible === true ? "🔒" : "Fuse"}
           </button>
         }
       >

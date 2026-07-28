@@ -4,6 +4,7 @@ import { useAccount } from "wagmi";
 import { CollapsibleSection } from "../components/collapsible-section";
 import { Toast } from "../components/toast";
 import { useCancelStandingBid, useCreateStandingBid, useStandingBids } from "../lib/standing-bids";
+import { useAuthGate } from "../auth/use-auth-gate";
 import { MinHashPreview } from "./minhash-preview";
 import { StandingBidCard } from "./standing-bid-card";
 import { TraitChip, TraitSelector } from "./trait-selector";
@@ -18,6 +19,7 @@ const DEFAULT_MIN_MATCHES = 8; // matches the Polymerase "8/20 band matches" con
 
 export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrdersProps) {
   const { isConnected } = useAccount();
+  const authenticated = useAuthGate();
   const { data: standingBids, isLoading } = useStandingBids();
   const createBid = useCreateStandingBid();
   const cancelBid = useCancelStandingBid();
@@ -33,6 +35,10 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
   const canSubmit = isConnected && Object.keys(traits).length > 0 && amountValid && !createBid.isPending;
 
   async function handleSubmit() {
+    if (!authenticated) {
+      setToast({ message: "Sign in to place a standing buy order", type: "error" });
+      return;
+    }
     try {
       await createBid.mutateAsync({ amount, desiredTraits: traits, minMatches });
       setToast({ message: "Standing buy order placed", type: "success" });
@@ -44,6 +50,10 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
   }
 
   async function handleCancel(id: string) {
+    if (!authenticated) {
+      setToast({ message: "Sign in to cancel a standing buy order", type: "error" });
+      return;
+    }
     setCancellingId(id);
     try {
       await cancelBid.mutateAsync(id);
@@ -122,10 +132,13 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={!canSubmit}
-                className="rounded bg-gradient-to-r from-amber-600 to-yellow-700 px-4 py-2 text-[13px] font-semibold text-white transition-opacity disabled:opacity-50"
+                disabled={authenticated ? !canSubmit : Object.keys(traits).length === 0 || !amountValid}
+                title={!authenticated ? "Sign in to place a standing buy order" : undefined}
+                className={`rounded px-4 py-2 text-[13px] font-semibold transition-opacity disabled:opacity-50 ${
+                  authenticated ? "bg-gradient-to-r from-amber-600 to-yellow-700 text-white" : "bg-stone-800 text-stone-500 hover:opacity-80"
+                }`}
               >
-                {createBid.isPending ? "Signing…" : "Place Order"}
+                {createBid.isPending ? "Signing…" : authenticated ? "Place Order" : "🔒 Sign in to place order"}
               </button>
             </div>
           </div>
@@ -138,7 +151,7 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
         {standingBids && standingBids.length > 0 && (
           <div className="scrollbar-thin scrollbar-thumb-stone-700 max-h-40 space-y-1.5 overflow-y-auto">
             {standingBids.map((bid) => (
-              <StandingBidCard key={bid.id} bid={bid} onCancel={() => handleCancel(bid.id)} isCancelling={cancellingId === bid.id} />
+              <StandingBidCard key={bid.id} bid={bid} onCancel={() => handleCancel(bid.id)} isCancelling={cancellingId === bid.id} authenticated={authenticated} />
             ))}
           </div>
         )}

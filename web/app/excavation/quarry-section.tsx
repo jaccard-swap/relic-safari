@@ -12,6 +12,7 @@ import { Toast } from "../components/toast";
 import { ViewToggle, type CardView } from "../components/view-toggle";
 import type { Nft } from "../lib/use-nfts";
 import { useAccount } from "wagmi";
+import { useAuthGate } from "../auth/use-auth-gate";
 
 interface QuarrySectionProps {
   expanded: boolean;
@@ -22,6 +23,7 @@ interface QuarrySectionProps {
 export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps) {
   const { data: nfts = [] } = useNfts();
   const { isConnected } = useAccount();
+  const authenticated = useAuthGate();
   const [detailNft, setDetailNft] = useState<Nft | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [view, setView] = useState<CardView>("list");
@@ -43,6 +45,14 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
     }
   }, [dig.isError, dig.error, refetchDigStatus]);
 
+  function handleDig() {
+    if (!authenticated) {
+      setToast({ message: "Sign in to dig", type: "error" });
+      return;
+    }
+    dig.mutate();
+  }
+
   return (
     <>
       <CollapsibleSection
@@ -63,12 +73,14 @@ export function QuarrySection({ expanded, onToggle, onHelp }: QuarrySectionProps
         action={
           <button
             type="button"
-            onClick={() => dig.mutate()}
-            disabled={!isConnected || dig.isPending || !eligible}
-            title={!eligible ? `Available in ${formatCooldown(msRemaining)}` : undefined}
-            className="relative w-14 rounded bg-gradient-to-r from-stone-600 to-amber-800 py-2 text-center text-xs font-medium text-white transition-all hover:from-stone-500 hover:to-amber-700 disabled:opacity-50"
+            onClick={handleDig}
+            disabled={!isConnected || (authenticated && (dig.isPending || !eligible))}
+            title={!authenticated ? "Sign in to dig" : !eligible ? `Available in ${formatCooldown(msRemaining)}` : undefined}
+            className={`relative w-14 rounded py-2 text-center text-xs font-medium transition-all disabled:opacity-50 ${
+              authenticated ? "bg-gradient-to-r from-stone-600 to-amber-800 text-white hover:from-stone-500 hover:to-amber-700" : "bg-stone-800 text-stone-500 opacity-60 hover:opacity-80"
+            }`}
           >
-            {dig.isPending ? "⏳" : !eligible ? "🔒" : "Dig"}
+            {dig.isPending ? "⏳" : !authenticated ? "🔒" : !eligible ? "🔒" : "Dig"}
           </button>
         }
       >

@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { SiEthereum } from "react-icons/si";
-import { useAccount } from "wagmi";
+import { sepolia } from "wagmi/chains";
 import { getContract, type ContractName } from "../lib/contracts";
-import { getExplorerAddressUrl } from "../lib/explorer";
-import { wagmiConfig } from "../lib/wagmi";
 
 const CONTRACTS: { name: ContractName; label: string }[] = [
   { name: "JaccardSwap", label: "JaccardSwap (Diamond)" },
@@ -15,14 +13,15 @@ const CONTRACTS: { name: ContractName; label: string }[] = [
 // the same diamond proxy address - Scrip is the one genuinely separate
 // contract, which is why it needs its own explorer link rather than folding
 // into a single "Contract" link like the old single-address version did.
+//
+// Always links to the deployed Sepolia addresses, regardless of which chain
+// (if any) the visitor's wallet is on - a player should be able to inspect
+// the real contracts before ever connecting a wallet, and dev's wagmiConfig
+// only knows about the local hardhat chain so it can't resolve Sepolia's
+// explorer URL anyway.
 export function ContractsMenu() {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Only one chain is ever configured at a time (see lib/wagmi.ts), so fall
-  // back to it when no wallet is connected yet rather than showing nothing.
-  const { chainId: connectedChainId } = useAccount();
-  const chainId = connectedChainId ?? wagmiConfig.chains[0]?.id;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -34,9 +33,11 @@ export function ContractsMenu() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const explorerUrl = sepolia.blockExplorers?.default.url;
+
   const links = CONTRACTS.map(({ name, label }) => {
-    const address = chainId ? getContract(chainId, name)?.address : undefined;
-    const url = address && chainId ? getExplorerAddressUrl(chainId, address) : null;
+    const address = getContract(sepolia.id, name)?.address;
+    const url = address && explorerUrl ? `${explorerUrl}/address/${address}` : null;
     return { label, url };
   }).filter((link): link is { label: string; url: string } => !!link.url);
 

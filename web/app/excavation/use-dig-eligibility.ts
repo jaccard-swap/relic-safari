@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAccount } from "wagmi";
 import { apiJson } from "../lib/api";
+import { useAuthGate } from "../auth/use-auth-gate";
 
 interface DigStatus {
   count: number;
@@ -18,13 +19,21 @@ interface DigStatus {
 // same query the mint route itself rate-limits against.
 export function useDigEligibility() {
   const { address, isConnected } = useAccount();
+  const authenticated = useAuthGate();
   const [now, setNow] = useState(() => Date.now());
   const wasEligible = useRef(true);
 
+  // /faucet/status is JWT-gated (it reads the rate-limit window off the
+  // session's own address, not a client-supplied one) - waiting on
+  // `authenticated` too avoids firing a request that's guaranteed to 401 in
+  // the gap between wallet-connect and SIWE sign-in. `eligible` below
+  // already defaults to true with no data, and the Dig button itself is
+  // separately gated on `authenticated`, so there's nothing to show here
+  // pre-sign-in anyway.
   const { data, refetch } = useQuery({
     queryKey: ["dig-status", address],
     queryFn: () => apiJson<DigStatus>("/faucet/status"),
-    enabled: isConnected,
+    enabled: isConnected && authenticated,
     // Catches the rolling window advancing (a slot freeing up) even with no
     // local dig activity to trigger a refetch off of.
     refetchInterval: 30_000,

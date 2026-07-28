@@ -1,5 +1,5 @@
 {
-  "address": "0x1c4ce4c1893bc148d847e186bb21e669b2e0f938",
+  "address": "0x2102eaa0a6f363a6186d5093b010dc0960167354",
   "abi": [
     {
       "inputs": [],
@@ -600,6 +600,25 @@
           "internalType": "bool",
           "name": "",
           "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "leaderboardPoints",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
         }
       ],
       "stateMutability": "view",

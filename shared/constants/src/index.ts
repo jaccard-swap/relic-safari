@@ -1,6 +1,20 @@
 import { keccak256, toHex } from 'viem'
 
 // ============================================================================
+// SIWE Auth Configuration
+// ============================================================================
+
+/**
+ * How long a nonce from GET /auth/nonce stays redeemable at POST /auth/login.
+ * Shared so the API's server-side expiry and the frontend's SIWE
+ * `expirationTime` field (a second, client-signed layer of the same check)
+ * can't drift apart. Short on purpose - this only needs to cover the time
+ * between fetching a nonce and signing the resulting message, not the
+ * lifetime of the session itself (that's the much longer-lived JWT).
+ */
+export const SIWE_NONCE_TTL_MS = 10 * 60 * 1000 // 10 minutes
+
+// ============================================================================
 // MinHash Configuration
 // ============================================================================
 

@@ -4,6 +4,7 @@ import { TRAIT_POOLS } from "@shared/constants";
 import { AGE_STYLES, MATERIAL_STYLES, SITE_STYLES, FORM_EMOJI } from "../lib/artifact-styles";
 import { InfoModal } from "../components/info-modal";
 import { Toast } from "../components/toast";
+import { useAuthGate } from "../auth/use-auth-gate";
 import { useMuseumProgress, type CupboardState } from "./use-museum-progress";
 import { useBadgeCount } from "../lib/use-badges";
 import { useCompleteCupboard } from "./use-complete-cupboard";
@@ -27,9 +28,10 @@ interface CupboardDetailModalProps {
   onClose: () => void;
   onFreeze: () => void;
   isFreezing: boolean;
+  authenticated: boolean;
 }
 
-function CupboardDetailModal({ site, age, material, cell, onClose, onFreeze, isFreezing }: CupboardDetailModalProps) {
+function CupboardDetailModal({ site, age, material, cell, onClose, onFreeze, isFreezing, authenticated }: CupboardDetailModalProps) {
   const label = `${cap(material)} · ${cap(age)} · ${siteLabel(site)}`;
 
   if (cell?.alreadyCompleted) {
@@ -69,10 +71,15 @@ function CupboardDetailModal({ site, age, material, cell, onClose, onFreeze, isF
       <button
         type="button"
         onClick={onFreeze}
-        disabled={!cell?.complete || isFreezing}
-        className="mt-3 w-full rounded bg-gradient-to-r from-teal-600 to-cyan-700 py-2 text-sm font-medium text-white transition-all hover:from-teal-500 hover:to-cyan-600 disabled:cursor-not-allowed disabled:from-stone-700 disabled:to-stone-700 disabled:text-stone-400"
+        disabled={!cell?.complete || (authenticated && isFreezing)}
+        title={cell?.complete && !authenticated ? "Sign in to freeze this collection" : undefined}
+        className={`mt-3 w-full rounded py-2 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:from-stone-700 disabled:to-stone-700 disabled:text-stone-400 ${
+          cell?.complete && authenticated
+            ? "bg-gradient-to-r from-teal-600 to-cyan-700 text-white hover:from-teal-500 hover:to-cyan-600"
+            : "bg-stone-800 text-stone-500"
+        }`}
       >
-        {isFreezing ? "Freezing…" : cell?.complete ? "Freeze Collection" : "Not Yet Complete"}
+        {isFreezing ? "Freezing…" : !cell?.complete ? "Not Yet Complete" : !authenticated ? "🔒 Sign in to freeze" : "Freeze Collection"}
       </button>
     </InfoModal>
   );
@@ -80,6 +87,7 @@ function CupboardDetailModal({ site, age, material, cell, onClose, onFreeze, isF
 
 export function MuseumPage() {
   const { isConnected } = useAccount();
+  const authenticated = useAuthGate();
   const [view, setView] = useState<View>({ level: "hall" });
   const [selectedCupboard, setSelectedCupboard] = useState<{ site: string; age: string; material: string } | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
@@ -89,6 +97,10 @@ export function MuseumPage() {
   const complete = useCompleteCupboard();
 
   const handleFreeze = async (site: string, age: string, material: string) => {
+    if (!authenticated) {
+      setToast({ message: "Sign in to freeze this collection", type: "error" });
+      return;
+    }
     try {
       await complete.mutateAsync({ site, age, material });
     } catch (err) {
@@ -228,6 +240,7 @@ export function MuseumPage() {
             void handleFreeze(site, age, material);
           }}
           isFreezing={complete.isPending}
+          authenticated={authenticated}
         />
       )}
 

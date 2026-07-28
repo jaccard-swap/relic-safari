@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNfts } from "../lib/use-nfts";
 import { useBalances } from "../lib/use-balances";
+import { useAuthGate } from "../auth/use-auth-gate";
 import { useForgeSimulation } from "./use-forge-simulation";
 import { useUpgradeTrait } from "./use-upgrade-trait";
 import { UpgradeModal } from "./upgrade-modal";
@@ -16,6 +17,7 @@ export function ForgePage() {
   const [pickerExpanded, setPickerExpanded] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
+  const authenticated = useAuthGate();
   const { essenceBalance, refetchEssence } = useBalances();
   const { data: simulation, isLoading: simLoading } = useForgeSimulation(selectedNftId);
   const upgrade = useUpgradeTrait();
@@ -24,6 +26,10 @@ export function ForgePage() {
 
   const handleUpgrade = async (traitKey: string) => {
     if (!selectedNft) return;
+    if (!authenticated) {
+      setToast({ message: "Sign in to forge upgrades", type: "error" });
+      return;
+    }
     try {
       await upgrade.mutateAsync({ tokenId: selectedNft.tokenId, traitKey });
     } catch (err) {
@@ -103,9 +109,15 @@ export function ForgePage() {
                       <button
                         type="button"
                         onClick={() => handleUpgrade(key)}
-                        disabled={upgrade.isPending || (essenceBalance?.count ?? 0) < trait.next.cost}
-                        className="rounded bg-gradient-to-r from-purple-600 to-violet-700 px-3 py-1.5 text-xs font-medium text-white transition-all hover:from-purple-500 hover:to-violet-600 disabled:cursor-not-allowed disabled:from-stone-700 disabled:to-stone-700 disabled:text-stone-400"
+                        disabled={authenticated && (upgrade.isPending || (essenceBalance?.count ?? 0) < trait.next.cost)}
+                        title={!authenticated ? "Sign in to forge upgrades" : undefined}
+                        className={`rounded px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:from-stone-700 disabled:to-stone-700 disabled:text-stone-400 ${
+                          authenticated
+                            ? "bg-gradient-to-r from-purple-600 to-violet-700 text-white hover:from-purple-500 hover:to-violet-600"
+                            : "bg-stone-800 text-stone-500 opacity-60 hover:opacity-80"
+                        }`}
                       >
+                        {!authenticated && "🔒 "}
                         {trait.next.cost} ✨
                       </button>
                     ) : (
@@ -127,9 +139,15 @@ export function ForgePage() {
                   <button
                     type="button"
                     onClick={() => handleUpgrade("overflow")}
-                    disabled={upgrade.isPending || (essenceBalance?.count ?? 0) < simulation.overflow.cost}
-                    className="rounded bg-gradient-to-r from-amber-600 to-yellow-700 px-3 py-1.5 text-xs font-medium text-white transition-all hover:from-amber-500 hover:to-yellow-600 disabled:cursor-not-allowed disabled:from-stone-700 disabled:to-stone-700 disabled:text-stone-400"
+                    disabled={authenticated && (upgrade.isPending || (essenceBalance?.count ?? 0) < simulation.overflow.cost)}
+                    title={!authenticated ? "Sign in to forge upgrades" : undefined}
+                    className={`rounded px-3 py-1.5 text-xs font-medium transition-all disabled:cursor-not-allowed disabled:from-stone-700 disabled:to-stone-700 disabled:text-stone-400 ${
+                      authenticated
+                        ? "bg-gradient-to-r from-amber-600 to-yellow-700 text-white hover:from-amber-500 hover:to-yellow-600"
+                        : "bg-stone-800 text-stone-500 opacity-60 hover:opacity-80"
+                    }`}
                   >
+                    {!authenticated && "🔒 "}
                     {simulation.overflow.cost} ✨
                   </button>
                 </div>

@@ -1,4 +1,5 @@
 import { createSiweMessage } from "viem/siwe";
+import { SIWE_NONCE_TTL_MS } from "@shared/constants";
 import { apiFetch, apiJson, setAuthToken } from "../lib/api";
 
 interface LoginResponse {
@@ -23,6 +24,10 @@ export function buildSiweMessage(params: { address: `0x${string}`; chainId: numb
     uri: window.location.origin,
     version: "1",
     statement: "Sign in to Relic Safari.",
+    // Second, client-signed layer of the same nonce TTL enforced server-side
+    // (api/src/routes/auth/index.ts) - viem's verifySiweMessage checks this
+    // automatically against the server's own clock, not a client-supplied one.
+    expirationTime: new Date(Date.now() + SIWE_NONCE_TTL_MS),
   });
 }
 

@@ -234,6 +234,16 @@ export const bids = pgTable('bids', {
   index('bids_amount_idx').on(table.amount),
 ]);
 
+// SIWE login nonces - issued by GET /auth/nonce, consumed (deleted) by the
+// matching POST /auth/login. Their only job is single-use replay protection:
+// a signed SIWE message is only redeemable for a JWT once, and only within
+// the short window before expiresAt.
+export const siweNonces = pgTable('siwe_nonces', {
+  nonce: text('nonce').primaryKey(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 // ERC20 faucet claims (SCRIP token)
 export const erc20Claims = pgTable('erc20_claims', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),

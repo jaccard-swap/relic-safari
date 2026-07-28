@@ -1,0 +1,224 @@
+{
+  "address": "0xAD30D43763d41fe034B2F06f4C5FB9Bf0538Fc9a",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "Locked",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "from",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "to",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "Transfer",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "Unlocked",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "badgeCount",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "cupboardOf",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "locked",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "ownerOf",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "tokenId",
+          "type": "uint256"
+        }
+      ],
+      "name": "tokenURI",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "contractName": "BadgesFacet",
+  "sourceName": "contracts/diamond/facets/BadgesFacet.sol",
+  "bytecode": "0x6080604052348015600e575f5ffd5b506103558061001c5f395ff3fe608060405234801561000f575f5ffd5b5060043610610055575f3560e01c80633cafeb99146100595780636352211e1461007f578063ab2b9036146100aa578063b45a3c0e146100bd578063c87b56dd146100e0575b5f5ffd5b61006c6100673660046102a6565b610100565b6040519081526020015b60405180910390f35b61009261008d3660046102d3565b61018d565b6040516001600160a01b039091168152602001610076565b61006c6100b83660046102d3565b610237565b6100d06100cb3660046102d3565b610273565b6040519015158152602001610076565b6100f36100ee3660046102d3565b610286565b60405161007691906102ea565b5f6001600160a01b0382166101535760405162461bcd60e51b81526020600482015260146024820152734261646765733a207a65726f206164647265737360601b60448201526064015b60405180910390fd5b506001600160a01b03165f9081527f1eb61fbeca1688d9cf647bbf1991cf75f348b2d963b13b422a269cae734855d2602052604090205490565b5f8181527f1eb61fbeca1688d9cf647bbf1991cf75f348b2d963b13b422a269cae734855cf60205260409020546001600160a01b03167f1eb61fbeca1688d9cf647bbf1991cf75f348b2d963b13b422a269cae734855c1816102315760405162461bcd60e51b815260206004820152601960248201527f4261646765733a206e6f6e6578697374656e7420626164676500000000000000604482015260640161014a565b50919050565b5f6102418261018d565b50505f9081527f1eb61fbeca1688d9cf647bbf1991cf75f348b2d963b13b422a269cae734855d1602052604090205490565b5f61027d8261018d565b50600192915050565b60606102918261018d565b505060408051602081019091525f8152919050565b5f602082840312156102b6575f5ffd5b81356001600160a01b03811681146102cc575f5ffd5b9392505050565b5f602082840312156102e3575f5ffd5b5035919050565b602081525f82518060208401528060208501604085015e5f604082850101526040601f19601f8301168401019150509291505056fea2646970667358221220abd1886c4c5e029e41d15d74181357c973844e2777cbff71178c642b7fbc5e2164736f6c634300081e0033",
+  "deployedBytecode": "0x608060405234801561000f575f5ffd5b5060043610610055575f3560e01c80633cafeb99146100595780636352211e1461007f578063ab2b9036146100aa578063b45a3c0e146100bd578063c87b56dd146100e0575b5f5ffd5b61006c6100673660046102a6565b610100565b6040519081526020015b60405180910390f35b61009261008d3660046102d3565b61018d565b6040516001600160a01b039091168152602001610076565b61006c6100b83660046102d3565b610237565b6100d06100cb3660046102d3565b610273565b6040519015158152602001610076565b6100f36100ee3660046102d3565b610286565b60405161007691906102ea565b5f6001600160a01b0382166101535760405162461bcd60e51b81526020600482015260146024820152734261646765733a207a65726f206164647265737360601b60448201526064015b60405180910390fd5b506001600160a01b03165f9081527f1eb61fbeca1688d9cf647bbf1991cf75f348b2d963b13b422a269cae734855d2602052604090205490565b5f8181527f1eb61fbeca1688d9cf647bbf1991cf75f348b2d963b13b422a269cae734855cf60205260409020546001600160a01b03167f1eb61fbeca1688d9cf647bbf1991cf75f348b2d963b13b422a269cae734855c1816102315760405162461bcd60e51b815260206004820152601960248201527f4261646765733a206e6f6e6578697374656e7420626164676500000000000000604482015260640161014a565b50919050565b5f6102418261018d565b50505f9081527f1eb61fbeca1688d9cf647bbf1991cf75f348b2d963b13b422a269cae734855d1602052604090205490565b5f61027d8261018d565b50600192915050565b60606102918261018d565b505060408051602081019091525f8152919050565b5f602082840312156102b6575f5ffd5b81356001600160a01b03811681146102cc575f5ffd5b9392505050565b5f602082840312156102e3575f5ffd5b5035919050565b602081525f82518060208401528060208501604085015e5f604082850101526040601f19601f8301168401019150509291505056fea2646970667358221220abd1886c4c5e029e41d15d74181357c973844e2777cbff71178c642b7fbc5e2164736f6c634300081e0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "immutableReferences": {},
+  "inputSourceName": "project/contracts/diamond/facets/BadgesFacet.sol",
+  "devdoc": {
+    "details": "Deliberately NOT a full ERC721 selector surface, and deliberately has no transfer or approval functions of any kind - not even ones that revert. Two reasons:   1. This diamond already hosts EssenceFacet (ERC20) and      JaccardERC1155Facet (ERC1155) at the same address. ERC721's      balanceOf(address), transferFrom(address,address,uint256),      approve(address,uint256), setApprovalForAll(address,bool) and      isApprovedForAll(address,address) all share exact selectors with      functions those facets already register - a diamond cut adding any      of them would fail outright (\"Can't add function that already      exists\"), and had one somehow landed on a different facet by      accident, a generic ERC721 client calling e.g. approve() on this      address would silently hit Essence's ERC20 approve instead.   2. Soulbound is strongest when the capability plainly doesn't exist,      not when it exists and reverts - there is no code path anywhere      that can ever move a badge out of its owner's address. balanceOf/ownerOf below are therefore renamed/kept only where their selector is actually free; supportsInterface isn't implemented here at all (ERC721/IERC5192 support is instead registered globally via DiamondInit.init()'s ds.supportedInterfaces, the same workaround JaccardERC1155Facet's own supportsInterface already needed).",
+    "kind": "dev",
+    "methods": {
+      "tokenURI(uint256)": {
+        "details": "Stubbed - badge image/metadata generation is follow-up work."
+      }
+    },
+    "title": "BadgesFacet",
+    "version": 1
+  },
+  "evm": {
+    "gasEstimates": {
+      "creation": {
+        "codeDepositCost": "170600",
+        "executionCost": "212",
+        "totalCost": "170812"
+      },
+      "external": {
+        "badgeCount(address)": "2517",
+        "cupboardOf(uint256)": "4707",
+        "locked(uint256)": "2596",
+        "ownerOf(uint256)": "2532",
+        "tokenURI(uint256)": "infinite"
+      }
+    }
+  },
+  "metadata": "{\"compiler\":{\"version\":\"0.8.30+commit.73712a01\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"Locked\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"from\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"to\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"Transfer\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"Unlocked\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"badgeCount\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"cupboardOf\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"locked\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"ownerOf\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"tokenId\",\"type\":\"uint256\"}],\"name\":\"tokenURI\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Deliberately NOT a full ERC721 selector surface, and deliberately has no transfer or approval functions of any kind - not even ones that revert. Two reasons:   1. This diamond already hosts EssenceFacet (ERC20) and      JaccardERC1155Facet (ERC1155) at the same address. ERC721's      balanceOf(address), transferFrom(address,address,uint256),      approve(address,uint256), setApprovalForAll(address,bool) and      isApprovedForAll(address,address) all share exact selectors with      functions those facets already register - a diamond cut adding any      of them would fail outright (\\\"Can't add function that already      exists\\\"), and had one somehow landed on a different facet by      accident, a generic ERC721 client calling e.g. approve() on this      address would silently hit Essence's ERC20 approve instead.   2. Soulbound is strongest when the capability plainly doesn't exist,      not when it exists and reverts - there is no code path anywhere      that can ever move a badge out of its owner's address. balanceOf/ownerOf below are therefore renamed/kept only where their selector is actually free; supportsInterface isn't implemented here at all (ERC721/IERC5192 support is instead registered globally via DiamondInit.init()'s ds.supportedInterfaces, the same workaround JaccardERC1155Facet's own supportsInterface already needed).\",\"kind\":\"dev\",\"methods\":{\"tokenURI(uint256)\":{\"details\":\"Stubbed - badge image/metadata generation is follow-up work.\"}},\"title\":\"BadgesFacet\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"badgeCount(address)\":{\"notice\":\"How many badges `owner` holds. Named badgeCount, not balanceOf(address) - that selector is already EssenceFacet's ERC20 balanceOf.\"},\"cupboardOf(uint256)\":{\"notice\":\"Which Site+Age+Material cupboard this badge represents - matches the cupboardKey computed off-chain (shared/constants' getCupboardKey) and passed to CollectionFacet.completeCupboard.\"},\"locked(uint256)\":{\"notice\":\"EIP-5192's one required function. Every badge is permanently locked - there is no unlock path.\"},\"ownerOf(uint256)\":{\"notice\":\"ERC721-shaped - free selector, no collision on this diamond.\"}},\"notice\":\"Read-only view surface for Collection badges, implementing EIP-5192's actual required interface (locked()) plus a small custom read API. Never mints or burns anything itself - CollectionFacet writes badge state directly into the same AppStorage this facet reads from (see its header comment for why).\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"project/contracts/diamond/facets/BadgesFacet.sol\":\"BadgesFacet\"},\"evmVersion\":\"prague\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\"project/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@5.6.1/\"]},\"sources\":{\"project/contracts/diamond/facets/BadgesFacet.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.30;\\n\\nimport { LibAppStorage, AppStorage } from \\\"../libraries/LibAppStorage.sol\\\";\\nimport { IBadges } from \\\"../interfaces/IBadges.sol\\\";\\n\\n/// @title BadgesFacet\\n/// @notice Read-only view surface for Collection badges, implementing\\n/// EIP-5192's actual required interface (locked()) plus a small custom read\\n/// API. Never mints or burns anything itself - CollectionFacet writes badge\\n/// state directly into the same AppStorage this facet reads from (see its\\n/// header comment for why).\\n/// @dev Deliberately NOT a full ERC721 selector surface, and deliberately\\n/// has no transfer or approval functions of any kind - not even ones that\\n/// revert. Two reasons:\\n///   1. This diamond already hosts EssenceFacet (ERC20) and\\n///      JaccardERC1155Facet (ERC1155) at the same address. ERC721's\\n///      balanceOf(address), transferFrom(address,address,uint256),\\n///      approve(address,uint256), setApprovalForAll(address,bool) and\\n///      isApprovedForAll(address,address) all share exact selectors with\\n///      functions those facets already register - a diamond cut adding any\\n///      of them would fail outright (\\\"Can't add function that already\\n///      exists\\\"), and had one somehow landed on a different facet by\\n///      accident, a generic ERC721 client calling e.g. approve() on this\\n///      address would silently hit Essence's ERC20 approve instead.\\n///   2. Soulbound is strongest when the capability plainly doesn't exist,\\n///      not when it exists and reverts - there is no code path anywhere\\n///      that can ever move a badge out of its owner's address.\\n/// balanceOf/ownerOf below are therefore renamed/kept only where their\\n/// selector is actually free; supportsInterface isn't implemented here at\\n/// all (ERC721/IERC5192 support is instead registered globally via\\n/// DiamondInit.init()'s ds.supportedInterfaces, the same workaround\\n/// JaccardERC1155Facet's own supportsInterface already needed).\\ncontract BadgesFacet is IBadges {\\n    /// @notice How many badges `owner` holds. Named badgeCount, not\\n    /// balanceOf(address) - that selector is already EssenceFacet's ERC20\\n    /// balanceOf.\\n    function badgeCount(address owner) external view returns (uint256) {\\n        require(owner != address(0), \\\"Badges: zero address\\\");\\n        AppStorage storage s = LibAppStorage.diamondStorage();\\n        return s.ownerBadgeCount[owner];\\n    }\\n\\n    /// @notice ERC721-shaped - free selector, no collision on this diamond.\\n    function ownerOf(uint256 tokenId) public view returns (address owner) {\\n        AppStorage storage s = LibAppStorage.diamondStorage();\\n        owner = s.badgeOwner[tokenId];\\n        require(owner != address(0), \\\"Badges: nonexistent badge\\\");\\n    }\\n\\n    /// @notice EIP-5192's one required function. Every badge is\\n    /// permanently locked - there is no unlock path.\\n    function locked(uint256 tokenId) external view returns (bool) {\\n        ownerOf(tokenId); // reverts if the badge doesn't exist\\n        return true;\\n    }\\n\\n    /// @notice Which Site+Age+Material cupboard this badge represents -\\n    /// matches the cupboardKey computed off-chain (shared/constants'\\n    /// getCupboardKey) and passed to CollectionFacet.completeCupboard.\\n    function cupboardOf(uint256 tokenId) external view returns (bytes32) {\\n        ownerOf(tokenId); // reverts if the badge doesn't exist\\n        AppStorage storage s = LibAppStorage.diamondStorage();\\n        return s.badgeCupboard[tokenId];\\n    }\\n\\n    /// @dev Stubbed - badge image/metadata generation is follow-up work.\\n    function tokenURI(uint256 tokenId) external view returns (string memory) {\\n        ownerOf(tokenId); // reverts if the badge doesn't exist\\n        return \\\"\\\";\\n    }\\n}\\n\",\"keccak256\":\"0x8b6b2f49c05232d9a5eb69d3172f7b619e87270a13e8d3f4385fa0ca39b53745\",\"license\":\"MIT\"},\"project/contracts/diamond/interfaces/IBadges.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.30;\\n\\n/// @title IBadges\\n/// @notice Event declarations shared between CollectionFacet (which mints\\n/// badges by writing AppStorage directly - a separate facet can't call into\\n/// another facet's internal mint logic, same reasoning as\\n/// JaccardERC1155Facet's _mintEssenceERC20) and BadgesFacet (which exposes\\n/// the read-only view surface over that same storage). Declaring events\\n/// once here, imported by both, keeps their signatures - and therefore\\n/// their log topic hashes - in exactly one place.\\n///\\n/// No Approval/ApprovalForAll events: badges have no transfer or approval\\n/// surface at all (see BadgesFacet's header comment for why), so nothing\\n/// would ever emit them.\\ninterface IBadges {\\n    // ERC721-shaped (shares its topic0 hash with Essence's ERC20 Transfer -\\n    // that's normal for multi-standard diamonds; indexers distinguish by\\n    // topics.length, ERC721's tokenId is indexed, ERC20's value is not).\\n    event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);\\n\\n    // EIP-5192: https://eips.ethereum.org/EIPS/eip-5192\\n    event Locked(uint256 tokenId);\\n    event Unlocked(uint256 tokenId);\\n}\\n\",\"keccak256\":\"0xb65b2f7b7c76e3122f83f4b2c7a65ecdd9237ba2e0040f6eb43ad3720f09a8ee\",\"license\":\"MIT\"},\"project/contracts/diamond/libraries/LibAppStorage.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity 0.8.30;\\n\\n// ============ Structs ============\\n\\nstruct ERC20PermitData {\\n    address owner;\\n    address spender;\\n    uint256 value;\\n    uint256 deadline;\\n    uint8 v;\\n    bytes32 r;\\n    bytes32 s;\\n}\\n\\nstruct JaccardERC1155Permit {\\n    address owner;\\n    address spender;\\n    uint256 tokenId;\\n    uint256 amount;\\n    uint256 deadline;\\n    bytes4 salt;\\n}\\n\\n// MinHash fingerprint: 20 independent hash functions, 8 bytes (64-bit) each.\\n// bytes8[20] tight-packs to exactly 5 storage slots (4 elements/slot, zero\\n// padding) -- the previous bytes32[5] layout used 5 slots for only 5 hash\\n// functions. 64 bits/hash is already far past the birthday-bound needed to\\n// avoid spurious collisions at any realistic collection size, so widening to\\n// bytes16/bytes32 buys no extra accuracy, only wasted slots; accuracy instead\\n// comes from the *count* of hash functions (lower-variance Jaccard estimate).\\n//\\n// A further gas-golfed layout (not done here -- optimizing for readability\\n// over squeezing out the last bit of gas) would concatenate 4 bytes8 hashes\\n// by hand into each bytes32 word (mapping(uint256 => bytes32[5])) and extract\\n// lanes via (word >> (i*64)) & type(uint64).max when comparing. Storage cost\\n// is identical (5 slots either way, since bytes8[20] already packs for free)\\n// but hand-packing avoids two costs the compiler doesn't optimize away for\\n// arrays of sub-word elements:\\n//   1. copying bytes8[20] storage->memory unpacks every element into its own\\n//      32-byte memory word (20 MSTOREs + a shift/mask per element) instead of\\n//      a straight 5-word copy.\\n//   2. ABI encoding of bytes8[20] in calldata (faucet(), Bid.targetMinHash)\\n//      pads every element to a full 32-byte word -- 640 bytes on the wire vs.\\n//      160 bytes if pre-packed into bytes32[5]. Fixed-size arrays of value\\n//      types are never tightly packed in calldata/memory, only in storage.\\nstruct Bid {\\n    bytes4 salt;\\n    uint256 deadline;\\n    bytes8[20] targetMinHash;\\n    uint8 minMatches;\\n    ERC20PermitData permit;\\n}\\n\\nstruct Auction {\\n    bytes4 salt;\\n    uint256 deadline;\\n    address nft;\\n    address token;\\n    uint256 reservePrice;\\n    JaccardERC1155Permit nftPermit;\\n    bytes nftPermitSignature;\\n    Bid[] bids;\\n    bytes[] bidSignatures;\\n}\\n\\n// ============ App Storage ============\\n\\nstruct AppStorage {\\n    // ---- ERC1155 State (OZ compatible layout) ----\\n    mapping(uint256 id => mapping(address account => uint256)) _erc1155balances;\\n    mapping(address account => mapping(address operator => bool)) _operatorApprovals;\\n    string _uri;\\n\\n    // ---- JaccardERC1155 State ----\\n    // See gas-optimization note on Bid.targetMinHash above.\\n    mapping(uint256 => bytes8[20]) minHashes;\\n    mapping(bytes32 => bool) usedJaccardERC1155Permits;\\n    uint232 faucetIdCounter;\\n\\n    // ---- JaccardSwap State ----\\n    mapping(bytes32 => bool) usedBids;\\n    mapping(bytes32 => bool) usedAuctions;\\n\\n    // ---- Essence ERC20 State ----\\n    mapping(address account => uint256) _erc20balances;\\n    mapping(address account => mapping(address spender => uint256)) _erc20allowances;\\n    uint256 _erc20totalSupply;\\n    string _erc20name;\\n    string _erc20symbol;\\n    mapping(address account => uint256) _erc20nonces; // for permit\\n\\n    // ---- Badges / Collections State ----\\n    // cupboardKey = keccak256(site, age, material), computed off-chain (see\\n    // shared/constants getCupboardKey) - a cupboard is complete once its\\n    // owner holds one fully-upgraded artifact per Form value sharing that\\n    // Site+Age+Material combination.\\n    mapping(uint256 => address) badgeOwner;\\n    mapping(uint256 => bool) badgeLocked;\\n    mapping(uint256 => bytes32) badgeCupboard;\\n    mapping(address => uint256) ownerBadgeCount;\\n    uint256 nextBadgeId;\\n    mapping(address => mapping(bytes32 => bool)) cupboardCompleted;\\n    // Cupboard completions are already fully on-chain events (burn + badge\\n    // mint), so the leaderboard total lives here too rather than only in a\\n    // Postgres SUM - the chain stays the source of truth for it, same as\\n    // every other on-chain balance. Read via JaccardERC1155Facet's\\n    // leaderboardPoints(address), written by CollectionFacet.completeCupboard.\\n    mapping(address => uint256) leaderboardPoints;\\n}\\n\\n// ============ Library ============\\n\\nlibrary LibAppStorage {\\n    bytes32 constant DIAMOND_APP_STORAGE_POSITION = keccak256(\\\"jaccard.app.storage\\\");\\n\\n    function diamondStorage() internal pure returns (AppStorage storage ds) {\\n        bytes32 position = DIAMOND_APP_STORAGE_POSITION;\\n        assembly {\\n            ds.slot := position\\n        }\\n    }\\n}\\n\\n\",\"keccak256\":\"0x25436317e3f6ca29e2d635ac919ad690532b27c75e4c467979d940b9fbe790a1\",\"license\":\"MIT\"}},\"version\":1}",
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "badgeCount(address)": {
+        "notice": "How many badges `owner` holds. Named badgeCount, not balanceOf(address) - that selector is already EssenceFacet's ERC20 balanceOf."
+      },
+      "cupboardOf(uint256)": {
+        "notice": "Which Site+Age+Material cupboard this badge represents - matches the cupboardKey computed off-chain (shared/constants' getCupboardKey) and passed to CollectionFacet.completeCupboard."
+      },
+      "locked(uint256)": {
+        "notice": "EIP-5192's one required function. Every badge is permanently locked - there is no unlock path."
+      },
+      "ownerOf(uint256)": {
+        "notice": "ERC721-shaped - free selector, no collision on this diamond."
+      }
+    },
+    "notice": "Read-only view surface for Collection badges, implementing EIP-5192's actual required interface (locked()) plus a small custom read API. Never mints or burns anything itself - CollectionFacet writes badge state directly into the same AppStorage this facet reads from (see its header comment for why).",
+    "version": 1
+  },
+  "argsData": "0x",
+  "libraries": {
+    "LibEIP712": "0x9012d89612db23f593bb0bf2777c64217ce1135f"
+  },
+  "transaction": {
+    "hash": "0x4ff6daf6a79c0ffa6a3e486ceef5e2b0d2a34c1e01cf5475e03c16692754a6cc",
+    "nonce": "0x145",
+    "origin": "0x788ced731764cf1bdbf0da8acedaca7cae4c9997"
+  },
+  "receipt": {
+    "blockHash": "0xa78641e4a4510fd2851423035e90b806c0be98f10bef4d588d1736972584b01c",
+    "blockNumber": "0xad69a9",
+    "transactionIndex": "0x66"
+  }
+}
