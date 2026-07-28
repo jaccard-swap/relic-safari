@@ -42,8 +42,8 @@ describe('getResonanceTier', () => {
 
 describe('computePolymerizationResult essence scaling', () => {
   // Four non-upgradeable traits (age, material, form, site) always contribute
-  // BASE_ESSENCE_VALUE (5) each regardless of match/mismatch, so this pair
-  // yields a base essenceYield of exactly 20 before any tier scaling -
+  // BASE_ESSENCE_VALUE (50) each regardless of match/mismatch, so this pair
+  // yields a base essenceYield of exactly 200 before any tier scaling -
   // clean, deterministic, and independent of the upgradeable-trait branch.
   const target = { name: 'Target', age: 'bronze age', material: 'bronze', form: 'tablet', site: 'sunken-temple' }
   const consumed = { name: 'Consumed', age: 'iron age', material: 'gold', form: 'idol', site: 'desert-tomb' }
@@ -58,27 +58,27 @@ describe('computePolymerizationResult essence scaling', () => {
     const atFloor = computePolymerizationResult(target, consumed, 4)
     const atCeiling = computePolymerizationResult(target, consumed, 7)
     assert.equal(atFloor.tier, 'low')
-    assert.equal(atFloor.essenceYield, 20)
+    assert.equal(atFloor.essenceYield, 200)
     assert.equal(atCeiling.tier, 'low')
-    assert.equal(atCeiling.essenceYield, 20)
+    assert.equal(atCeiling.essenceYield, 200)
   })
 
   test('medium tier (8-11 matches) applies a 1.5x multiplier', () => {
     const result = computePolymerizationResult(target, consumed, 8)
     assert.equal(result.tier, 'medium')
-    assert.equal(result.essenceYield, 30) // 20 * 1.5
+    assert.equal(result.essenceYield, 300) // 200 * 1.5
   })
 
   test('high tier (12-15 matches) applies a 2x multiplier', () => {
     const result = computePolymerizationResult(target, consumed, 12)
     assert.equal(result.tier, 'high')
-    assert.equal(result.essenceYield, 40) // 20 * 2
+    assert.equal(result.essenceYield, 400) // 200 * 2
   })
 
   test('super tier (16-20 matches) applies a 2.5x multiplier', () => {
     const result = computePolymerizationResult(target, consumed, 20)
     assert.equal(result.tier, 'super')
-    assert.equal(result.essenceYield, 50) // 20 * 2.5
+    assert.equal(result.essenceYield, 500) // 200 * 2.5
   })
 
   test('the minimum essence floor is applied before tier scaling, not after', () => {
@@ -96,16 +96,26 @@ describe('computePolymerizationResult essence scaling', () => {
     assert.equal(superTier.essenceYield, Math.round(MIN_POLYMERIZATION_ESSENCE * 2.5))
   })
 
-  test('a non-integer scaled result rounds rather than truncating', () => {
+  test('a mismatched upgradeable trait contributes its levelUpCost as essence', () => {
     // Adds a mismatched upgradeable trait (quality: fragmented -> worn,
-    // levelUpCost 5) on top of the 20 base essence, for 25 total.
-    // 25 * 1.5 (medium) = 37.5, which must round up to 38, not down to 37.
+    // levelUpCost 50) on top of the 200 base essence, for 250 total, scaled
+    // 1.5x (medium) = 375.
+    //
+    // This used to be the "rounds rather than truncates" case (old
+    // BASE_ESSENCE_VALUE of 5 made the pre-scale sum odd, so 1.5x produced a
+    // genuine 37.5 -> 38 rounding). Every value in TRAIT_POOLS is now a
+    // multiple of 10, so any real essence sum is even and 1.5x/2.5x always
+    // lands on an integer - Math.round in computePolymerizationResult is
+    // currently unreachable-as-meaningfully-different-from-truncation via
+    // real trait data. Left as a plain value-composition check; if a future
+    // trait introduces an odd levelUpCost, prefer a dedicated case that
+    // asserts the exact .5 rounds up.
     const targetWithQuality = { ...target, quality: 'fragmented' }
     const consumedWithQuality = { ...consumed, quality: 'worn' }
 
     const result = computePolymerizationResult(targetWithQuality, consumedWithQuality, 8)
     assert.equal(result.tier, 'medium')
-    assert.equal(result.essenceYield, 38)
+    assert.equal(result.essenceYield, 375)
   })
 })
 
