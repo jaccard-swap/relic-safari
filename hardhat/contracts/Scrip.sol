@@ -14,12 +14,20 @@ contract Scrip is ERC20Permit {
   error FaucetCooldown(uint256 availableAt);
 
   constructor() ERC20("Scrip", "SCRIP") ERC20Permit("Scrip") {
-    // Unconditional on every chain (including real deploys) - this is the
-    // deployer's only fast source of Scrip to seed the Scrip/Essence
-    // Uniswap pool with (see scripts/create-uniswap-pool.ts), since the
+    // Local hardhat only - this is the deployer's only fast source of Scrip
+    // to seed the Scrip/Essence Uniswap pool with (see
+    // scripts/create-uniswap-pool.ts) for local dev/testing, since the
     // faucet's per-account cap and 12h cooldown make reaching a meaningful
-    // seed amount that way impractical.
-    _mint(msg.sender, 1000000000000000000000000);
+    // seed amount that way impractical. Sepolia and any real deploy skip
+    // this: no free premine for the deployer there. create-uniswap-pool.ts
+    // already degrades safely in that case - its own scripBalance <
+    // SEED_SCRIP check skips seeding (and, since it's gated behind that
+    // same check, skips the Essence owner-mint too) rather than failing, so
+    // non-hardhat chains just need actual liquidity provided some other way
+    // before that script can seed a pool.
+    if (block.chainid == HARDHAT_CHAIN_ID) {
+      _mint(msg.sender, 1000000000000000000000000);
+    }
   }
 
   function faucet() external {
