@@ -1,4 +1,5 @@
-import { pgTable, text, timestamp, boolean, integer, jsonb, index } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, boolean, integer, jsonb, index, uniqueIndex } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 
 // Users table
 export const users = pgTable('users', {
@@ -87,6 +88,36 @@ export const traitUpgrades = pgTable('trait_upgrades', {
 }, (table) => [
   index('trait_upgrades_nft_idx').on(table.nftId),
   index('trait_upgrades_owner_idx').on(table.owner),
+]);
+
+// Museum cupboard completions - freezing a completed cupboard (7
+// fully-upgraded artifacts, one per Form value, sharing one
+// Site+Age+Material combination) burns those artifacts and mints a
+// soulbound Badge. Each owner+cupboard pair can only ever complete
+// successfully once - see the partial unique index below.
+export const cupboardCompletions = pgTable('cupboard_completions', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  owner: text('owner').notNull(),
+  chainId: integer('chain_id').notNull(),
+  site: text('site').notNull(),
+  age: text('age').notNull(),
+  material: text('material').notNull(),
+  cupboardKey: text('cupboard_key').notNull(), // hex bytes32, matches the on-chain arg
+  nftIds: jsonb('nft_ids').notNull(), // the 7 burned nfts.id rows, for history
+  points: integer('points').notNull(),
+  badgeId: text('badge_id'), // on-chain badge tokenId, filled in once confirmed
+  txHash: text('tx_hash'),
+  status: text('status').notNull().default('pending'), // 'pending', 'success', 'failed'
+  errorMessage: text('error_message'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('cupboard_completions_owner_idx').on(table.owner),
+  index('cupboard_completions_cupboard_idx').on(table.cupboardKey),
+  // Only success rows are unique per owner+cupboard - a failed or still-
+  // pending attempt must never block a later real completion.
+  uniqueIndex('cupboard_completions_owner_cupboard_unique')
+    .on(table.owner, table.cupboardKey)
+    .where(sql`status = 'success'`),
 ]);
 
 // Sponsorship requests for rate limiting
@@ -202,6 +233,16 @@ export const bids = pgTable('bids', {
   index('bids_bidder_idx').on(table.bidder),
   index('bids_amount_idx').on(table.amount),
 ]);
+
+// SIWE login nonces - issued by GET /auth/nonce, consumed (deleted) by the
+// matching POST /auth/login. Their only job is single-use replay protection:
+// a signed SIWE message is only redeemable for a JWT once, and only within
+// the short window before expiresAt.
+export const siweNonces = pgTable('siwe_nonces', {
+  nonce: text('nonce').primaryKey(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
 
 // ERC20 faucet claims (SCRIP token)
 export const erc20Claims = pgTable('erc20_claims', {

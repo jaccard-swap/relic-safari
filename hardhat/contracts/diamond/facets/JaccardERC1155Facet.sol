@@ -86,6 +86,15 @@ contract JaccardERC1155Facet is ERC1155 {
         return s.minHashes[tokenId];
     }
 
+    /// @notice Total leaderboard points from every Museum cupboard `owner`
+    /// has completed. Written by CollectionFacet.completeCupboard (cross-facet
+    /// storage write - same reasoning as _mintEssenceERC20 below), exposed
+    /// here since this is the artifact-facing/read side of the diamond.
+    function leaderboardPoints(address owner) external view returns (uint256) {
+        AppStorage storage s = LibAppStorage.diamondStorage();
+        return s.leaderboardPoints[owner];
+    }
+
     function nextFaucetId() public returns (uint256) {
         AppStorage storage s = LibAppStorage.diamondStorage();
         return uint256(bytes32(abi.encodePacked(FAUCET_PREFIX, ++s.faucetIdCounter)));

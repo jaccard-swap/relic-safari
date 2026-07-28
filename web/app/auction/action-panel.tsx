@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
+import { useAuthGate } from "../auth/use-auth-gate";
 import { getExplorerTxUrl } from "../lib/explorer";
 import { formatTimeLeft, type Auction } from "../lib/auctions";
 import { useConsumeAuction } from "../lib/use-consume-auction";
@@ -20,6 +21,7 @@ interface ActionPanelProps {
 
 export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
   const { address, isConnected } = useAccount();
+  const authenticated = useAuthGate();
   const createBid = useCreateBid(auction.id, auction.endTime);
   const { consume, status: consumeStatus, error: consumeError, hash: consumeHash, result: consumeResult } = useConsumeAuction(auction.id);
   const [consumeModalOpen, setConsumeModalOpen] = useState(false);
@@ -52,6 +54,10 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
       setBidError("Artifact data not loaded yet");
       return;
     }
+    if (!authenticated) {
+      setBidError("Sign in to bid");
+      return;
+    }
     try {
       await createBid.mutateAsync({ amount: bidAmount, nftMinHash: nft.minHash as `0x${string}`[] });
       setBidAmount("");
@@ -60,7 +66,14 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
     }
   }
 
+  const [settleAuthError, setSettleAuthError] = useState(false);
+
   function handleConsume() {
+    if (!authenticated) {
+      setSettleAuthError(true);
+      return;
+    }
+    setSettleAuthError(false);
     setConsumeModalOpen(true);
     void consume();
   }
@@ -113,11 +126,15 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
           <button
             type="button"
             onClick={handleConsume}
-            disabled={busy}
-            className="w-full rounded bg-gradient-to-r from-amber-600 to-yellow-700 py-3 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
+            disabled={authenticated && busy}
+            title={!authenticated ? "Sign in to settle" : undefined}
+            className={`w-full rounded py-3 text-xs font-semibold transition-opacity disabled:opacity-50 ${
+              authenticated ? "bg-gradient-to-r from-amber-600 to-yellow-700 text-white" : "bg-stone-800 text-stone-500 opacity-60 hover:opacity-80"
+            }`}
           >
-            {busy ? "Settling…" : ended ? "🏆 Settle & Transfer" : "🏆 End Auction Now"}
+            {busy ? "Settling…" : !authenticated ? "🔒 Sign in to settle" : ended ? "🏆 Settle & Transfer" : "🏆 End Auction Now"}
           </button>
+          {settleAuthError && <p className="mt-1.5 text-xs text-red-400">Sign in to settle</p>}
           {consumeError && consumeStatus === "error" && !consumeModalOpen && <p className="mt-1.5 text-xs text-red-400">{consumeError}</p>}
         </div>
       );
@@ -140,10 +157,13 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
           />
           <button
             type="submit"
-            disabled={!isConnected || createBid.isPending || !bidAmount}
-            className="rounded bg-gradient-to-r from-amber-600 to-yellow-700 px-4 py-2 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
+            disabled={!isConnected || (authenticated && (createBid.isPending || !bidAmount))}
+            title={isConnected && !authenticated ? "Sign in to bid" : undefined}
+            className={`rounded px-4 py-2 text-xs font-semibold transition-opacity disabled:opacity-50 ${
+              !isConnected || authenticated ? "bg-gradient-to-r from-amber-600 to-yellow-700 text-white" : "bg-stone-800 text-stone-500 opacity-60 hover:opacity-80"
+            }`}
           >
-            {createBid.isPending ? "Signing…" : "Bid"}
+            {createBid.isPending ? "Signing…" : isConnected && !authenticated ? "🔒 Sign in" : "Bid"}
           </button>
         </div>
         {!isConnected && <p className="mt-1.5 text-xs text-stone-500">Connect a wallet to bid</p>}

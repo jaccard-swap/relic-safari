@@ -89,6 +89,24 @@ struct AppStorage {
     string _erc20name;
     string _erc20symbol;
     mapping(address account => uint256) _erc20nonces; // for permit
+
+    // ---- Badges / Collections State ----
+    // cupboardKey = keccak256(site, age, material), computed off-chain (see
+    // shared/constants getCupboardKey) - a cupboard is complete once its
+    // owner holds one fully-upgraded artifact per Form value sharing that
+    // Site+Age+Material combination.
+    mapping(uint256 => address) badgeOwner;
+    mapping(uint256 => bool) badgeLocked;
+    mapping(uint256 => bytes32) badgeCupboard;
+    mapping(address => uint256) ownerBadgeCount;
+    uint256 nextBadgeId;
+    mapping(address => mapping(bytes32 => bool)) cupboardCompleted;
+    // Cupboard completions are already fully on-chain events (burn + badge
+    // mint), so the leaderboard total lives here too rather than only in a
+    // Postgres SUM - the chain stays the source of truth for it, same as
+    // every other on-chain balance. Read via JaccardERC1155Facet's
+    // leaderboardPoints(address), written by CollectionFacet.completeCupboard.
+    mapping(address => uint256) leaderboardPoints;
 }
 
 // ============ Library ============

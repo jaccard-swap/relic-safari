@@ -7,9 +7,10 @@ interface StandingBidCardProps {
   bid: StandingBid;
   onCancel: () => void;
   isCancelling?: boolean;
+  authenticated?: boolean;
 }
 
-export function StandingBidCard({ bid, onCancel, isCancelling }: StandingBidCardProps) {
+export function StandingBidCard({ bid, onCancel, isCancelling, authenticated = true }: StandingBidCardProps) {
   const amount = parseFloat(formatEther(BigInt(bid.amount))).toFixed(1);
 
   return (
@@ -26,8 +27,14 @@ export function StandingBidCard({ bid, onCancel, isCancelling }: StandingBidCard
           {bid.minMatches}/{MINHASH_BANDS} bands · {amount} SCRIP
         </div>
       </div>
-      <button type="button" onClick={onCancel} disabled={isCancelling} className="shrink-0 text-xs text-stone-500 hover:text-red-400 disabled:opacity-50">
-        ✕
+      <button
+        type="button"
+        onClick={onCancel}
+        disabled={isCancelling}
+        title={!authenticated ? "Sign in to cancel" : undefined}
+        className={`shrink-0 text-xs disabled:opacity-50 ${authenticated ? "text-stone-500 hover:text-red-400" : "text-stone-600 opacity-60 hover:opacity-80"}`}
+      >
+        {authenticated ? "✕" : "🔒"}
       </button>
     </div>
   );

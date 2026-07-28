@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { ArtifactPanel } from "../auction/artifact-panel";
+import { useAuthGate } from "../auth/use-auth-gate";
+import { Toast } from "../components/toast";
 import { useCreateAuction } from "../lib/use-create-auction";
 import { useNfts } from "../lib/use-nfts";
 
@@ -22,6 +24,7 @@ export function CreateAuctionPage() {
   const navigate = useNavigate();
   const { data: nfts, isLoading } = useNfts();
   const { mutateAsync, isPending, error } = useCreateAuction();
+  const authenticated = useAuthGate();
 
   const nft = nfts?.find((n) => n.id === nftId) ?? null;
 
@@ -29,6 +32,7 @@ export function CreateAuctionPage() {
   const [description, setDescription] = useState("");
   const [startingBid, setStartingBid] = useState("1");
   const [durationHours, setDurationHours] = useState(24);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
     if (nft) setTitle(nft.metadata.name || `Artifact #${nft.tokenId.slice(-6)}`);
@@ -54,6 +58,10 @@ export function CreateAuctionPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!nft || !bidValid) return;
+    if (!authenticated) {
+      setToast({ message: "Sign in to list an artifact", type: "error" });
+      return;
+    }
     const result = await mutateAsync({ nft, title: title.trim() || nft.metadata.name || "Untitled artifact", description, startingBid, durationHours });
     void navigate(`/auction/${result.auction.id}`);
   }
@@ -127,13 +135,18 @@ export function CreateAuctionPage() {
 
           <button
             type="submit"
-            disabled={isPending || !bidValid}
-            className="w-full rounded bg-gradient-to-r from-amber-600 to-yellow-700 py-3 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
+            disabled={authenticated && (isPending || !bidValid)}
+            title={!authenticated ? "Sign in to list an artifact" : undefined}
+            className={`w-full rounded py-3 text-xs font-semibold transition-opacity disabled:opacity-50 ${
+              authenticated ? "bg-gradient-to-r from-amber-600 to-yellow-700 text-white" : "bg-stone-800 text-stone-500 opacity-60 hover:opacity-80"
+            }`}
           >
-            {isPending ? "Signing…" : "🏛️ List Artifact"}
+            {isPending ? "Signing…" : authenticated ? "🏛️ List Artifact" : "🔒 Sign in to list"}
           </button>
         </form>
       </div>
+
+      {toast && <Toast message={toast.message} type={toast.type} duration={4000} onClose={() => setToast(null)} />}
     </div>
   );
 }
