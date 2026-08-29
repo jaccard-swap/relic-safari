@@ -286,3 +286,19 @@ export const standingBids = pgTable('standing_bids', {
   index('standing_bids_chain_idx').on(table.chainId),
   index('standing_bids_deadline_idx').on(table.deadline),
 ]);
+
+// Lightweight per-match reaction from a standing-bid buyer after a scan
+// attaches their order to an auction - pure signal collection (do we like
+// trading via MinHash similarity at all), not a moderation/dispute record.
+// One row per reaction; a bidder reacting twice just leaves two rows.
+export const standingBidMatchFeedback = pgTable('standing_bid_match_feedback', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  standingBidId: text('standing_bid_id').notNull().references(() => standingBids.id),
+  auctionId: text('auction_id').notNull().references(() => auctions.id),
+  bidder: text('bidder').notNull(), // wallet address, must match standingBids.bidder
+  reaction: text('reaction').notNull(), // 'good' | 'bad'
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (table) => [
+  index('standing_bid_match_feedback_standing_bid_idx').on(table.standingBidId),
+  index('standing_bid_match_feedback_auction_idx').on(table.auctionId),
+]);

@@ -43,6 +43,33 @@ export function useCancelStandingBid() {
   });
 }
 
+// Standing bids the connected wallet placed that have since been matched to
+// an auction - excluded from useStandingBids() (which only fetches "active")
+// so buyers have somewhere to see them and react.
+export function useMatchedStandingBids() {
+  const { address, chainId } = useAccount();
+  return useQuery({
+    queryKey: ["standingBids", address, chainId, "matched"],
+    queryFn: () => {
+      const params = new URLSearchParams({ bidder: address!, status: "matched" });
+      if (chainId) params.set("chainId", String(chainId));
+      return apiJson<{ bids: StandingBid[] }>(`/bids?${params}`).then((r) => r.bids);
+    },
+    enabled: !!address,
+  });
+}
+
+export type MatchFeedbackReaction = "good" | "bad";
+
+// Pure signal collection - does the buyer think MinHash-based matching found
+// them a good item. See standingBidMatchFeedback in shared/database/src/db/schema.ts.
+export function useSubmitMatchFeedback() {
+  return useMutation({
+    mutationFn: ({ standingBidId, auctionId, reaction }: { standingBidId: string; auctionId: string; reaction: MatchFeedbackReaction }) =>
+      apiJson(`/bids/${standingBidId}/feedback`, { method: "POST", body: JSON.stringify({ auctionId, reaction }) }),
+  });
+}
+
 export interface CreateStandingBidParams {
   amount: string; // decimal SCRIP
   desiredTraits: Record<string, string>;

@@ -3,8 +3,9 @@ import { computeMinHash, MINHASH_BANDS } from "@shared/constants";
 import { useAccount } from "wagmi";
 import { CollapsibleSection } from "../components/collapsible-section";
 import { Toast } from "../components/toast";
-import { useCancelStandingBid, useCreateStandingBid, useStandingBids } from "../lib/standing-bids";
+import { useCancelStandingBid, useCreateStandingBid, useMatchedStandingBids, useStandingBids } from "../lib/standing-bids";
 import { useAuthGate } from "../auth/use-auth-gate";
+import { MatchedStandingBidCard } from "./matched-standing-bid-card";
 import { MinHashPreview } from "./minhash-preview";
 import { StandingBidCard } from "./standing-bid-card";
 import { TraitChip, TraitSelector } from "./trait-selector";
@@ -21,6 +22,7 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
   const { isConnected } = useAccount();
   const authenticated = useAuthGate();
   const { data: standingBids, isLoading } = useStandingBids();
+  const { data: matchedBids } = useMatchedStandingBids();
   const createBid = useCreateStandingBid();
   const cancelBid = useCancelStandingBid();
 
@@ -116,6 +118,10 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
                 onChange={(e) => setMinMatches(Number(e.target.value))}
                 className="w-full accent-amber-600"
               />
+              <p className="mt-1 text-[11px] text-stone-500">
+                Higher = closer overall match required. This compares against the item's entire trait set, not just what you picked — an item with
+                extra traits you didn't ask for still affects the score.
+              </p>
             </div>
 
             <div className="flex items-end gap-3">
@@ -141,6 +147,15 @@ export function StandingBuyOrders({ expanded, onToggle, onHelp }: StandingBuyOrd
                 {createBid.isPending ? "Signing…" : authenticated ? "Place Order" : "🔒 Sign in to place order"}
               </button>
             </div>
+          </div>
+        )}
+
+        {matchedBids && matchedBids.length > 0 && (
+          <div className="space-y-1.5">
+            <div className="text-[11px] font-medium text-emerald-400/80">Recently matched — how'd it go?</div>
+            {matchedBids.map((bid) => (
+              <MatchedStandingBidCard key={bid.id} bid={bid} />
+            ))}
           </div>
         )}
 

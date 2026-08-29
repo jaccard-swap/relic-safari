@@ -3,7 +3,7 @@ import * as dbSchema from '@shared/database'
 import { countMinHashMatches, MINHASH_BANDS } from '@shared/constants'
 import { eq, and, gt, desc } from 'drizzle-orm'
 
-const { standingBids, auctions, nfts } = dbSchema
+const { standingBids, auctions, nfts, standingBidMatchFeedback } = dbSchema
 
 // ============================================================================
 // Types
@@ -253,6 +253,53 @@ const bidRoutes: FastifyPluginAsync = async (fastify): Promise<void> => {
       fastify.log.error({ error, auctionId }, 'Failed to attach standing bids')
       reply.code(500)
       return { error: 'Failed to attach standing bids' }
+    }
+  })
+
+  // POST /:id/feedback - Record a lightweight reaction to a matched standing bid
+  fastify.post('/:id/feedback', { preHandler: [fastify.requireAuth] }, async function (request, reply) {
+    const { id } = request.params as { id: string }
+    const { auctionId, reaction } = request.body as { auctionId?: string; reaction?: string }
+    const sessionAddress = request.session!.address.toLowerCase()
+
+    if (!auctionId || (reaction !== 'good' && reaction !== 'bad')) {
+      reply.code(400)
+      return { error: "auctionId and reaction ('good' | 'bad') are required" }
+    }
+
+    try {
+      const [bid] = await fastify.db
+        .select()
+        .from(standingBids)
+        .where(eq(standingBids.id, id))
+        .limit(1)
+
+      if (!bid) {
+        reply.code(404)
+        return { error: 'Standing bid not found' }
+      }
+
+      if (bid.bidder.toLowerCase() !== sessionAddress) {
+        reply.code(403)
+        return { error: 'Not authorized to react to this standing bid' }
+      }
+
+      const [feedback] = await fastify.db
+        .insert(standingBidMatchFeedback)
+        .values({
+          standingBidId: id,
+          auctionId,
+          bidder: sessionAddress,
+          reaction,
+        })
+        .returning()
+
+      fastify.log.info({ standingBidId: id, auctionId, reaction }, 'Standing bid match feedback recorded')
+      return { feedback }
+    } catch (error) {
+      fastify.log.error({ error, id }, 'Failed to record standing bid match feedback')
+      reply.code(500)
+      return { error: 'Failed to record feedback' }
     }
   })
 

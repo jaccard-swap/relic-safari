@@ -7,6 +7,7 @@ import { formatTimeLeft, type Auction } from "../lib/auctions";
 import { useConsumeAuction } from "../lib/use-consume-auction";
 import { useCreateBid } from "../lib/use-create-bid";
 import { ConsumeModal } from "./consume-modal";
+import { StandingBidScan } from "./standing-bid-scan";
 import type { Nft } from "../lib/use-nfts";
 
 function short(address: string): string {
@@ -110,32 +111,38 @@ export function ActionPanel({ auction, nft, highestBid }: ActionPanelProps) {
   } else if (isAuctioneer) {
     if (!highestBid) {
       content = (
-        <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-4 text-center text-[13px] text-stone-400">
-          Waiting for a bid — you can settle as soon as one comes in
+        <div className="space-y-2">
+          <StandingBidScan auctionId={auction.id} />
+          <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-4 text-center text-[13px] text-stone-400">
+            Waiting for a bid — you can settle as soon as one comes in
+          </div>
         </div>
       );
     } else {
       const busy = consumeStatus === "loading" || consumeStatus === "confirming" || consumeStatus === "recording";
       content = (
-        <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-4">
-          {!ended && (
-            <p className="mb-2 text-[11px] text-stone-500">
-              Ends the auction now and accepts the current highest bid ({parseFloat(formatEther(BigInt(highestBid))).toFixed(2)} SCRIP).
-            </p>
-          )}
-          <button
-            type="button"
-            onClick={handleConsume}
-            disabled={authenticated && busy}
-            title={!authenticated ? "Sign in to settle" : undefined}
-            className={`w-full rounded py-3 text-xs font-semibold transition-opacity disabled:opacity-50 ${
-              authenticated ? "bg-gradient-to-r from-amber-600 to-yellow-700 text-white" : "bg-stone-800 text-stone-500 opacity-60 hover:opacity-80"
-            }`}
-          >
-            {busy ? "Settling…" : !authenticated ? "🔒 Sign in to settle" : ended ? "🏆 Settle & Transfer" : "🏆 End Auction Now"}
-          </button>
-          {settleAuthError && <p className="mt-1.5 text-xs text-red-400">Sign in to settle</p>}
-          {consumeError && consumeStatus === "error" && !consumeModalOpen && <p className="mt-1.5 text-xs text-red-400">{consumeError}</p>}
+        <div className="space-y-2">
+          <StandingBidScan auctionId={auction.id} />
+          <div className="rounded-lg border border-amber-900/30 bg-stone-800/50 p-4">
+            {!ended && (
+              <p className="mb-2 text-[11px] text-stone-500">
+                Ends the auction now and accepts the current highest bid ({parseFloat(formatEther(BigInt(highestBid))).toFixed(2)} SCRIP).
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={handleConsume}
+              disabled={authenticated && busy}
+              title={!authenticated ? "Sign in to settle" : undefined}
+              className={`w-full rounded py-3 text-xs font-semibold transition-opacity disabled:opacity-50 ${
+                authenticated ? "bg-gradient-to-r from-amber-600 to-yellow-700 text-white" : "bg-stone-800 text-stone-500 opacity-60 hover:opacity-80"
+              }`}
+            >
+              {busy ? "Settling…" : !authenticated ? "🔒 Sign in to settle" : ended ? "🏆 Settle & Transfer" : "🏆 End Auction Now"}
+            </button>
+            {settleAuthError && <p className="mt-1.5 text-xs text-red-400">Sign in to settle</p>}
+            {consumeError && consumeStatus === "error" && !consumeModalOpen && <p className="mt-1.5 text-xs text-red-400">{consumeError}</p>}
+          </div>
         </div>
       );
     }

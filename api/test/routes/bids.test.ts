@@ -395,4 +395,87 @@ describe('bids routes (standing buy orders)', () => {
       )
     })
   })
+
+  describe('POST /:id/feedback', () => {
+    async function createMatchedStandingBid() {
+      const traits = { rarity: 'legendary', material: 'gold', age: 'medieval era' }
+      const nftMinHash = computeMinHash(traits)
+      const baseId = 9500000 + Math.floor(Math.random() * 100000)
+      const nft = await seedNft(traits, String(baseId))
+      if (!nft) return null
+
+      const { body: created } = await createStandingBid({
+        targetMinHash: nftMinHash,
+        minMatches: MINHASH_BANDS,
+        amount: '2000000000000000000',
+      })
+      const { body: auctionResult } = await createAuctionFixture(nft.id)
+      return { standingBidId: created.bid.id as string, auctionId: auctionResult.auction.id as string }
+    }
+
+    test('rejects unauthenticated request', async () => {
+      const res = await fetch(`${API_BASE}/bids/00000000-0000-0000-0000-000000000000/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ auctionId: 'x', reaction: 'good' }),
+      })
+      assert.equal(res.status, 401)
+    })
+
+    test('rejects a missing/invalid reaction', async () => {
+      const matched = await createMatchedStandingBid()
+      if (!matched) return
+      const res = await fetch(`${API_BASE}/bids/${matched.standingBidId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...BIDDER_AUTH },
+        body: JSON.stringify({ auctionId: matched.auctionId, reaction: 'great' }),
+      })
+      assert.equal(res.status, 400)
+    })
+
+    test('404s for a standing bid that does not exist', async () => {
+      const res = await fetch(`${API_BASE}/bids/00000000-0000-0000-0000-000000000000/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...BIDDER_AUTH },
+        body: JSON.stringify({ auctionId: 'x', reaction: 'good' }),
+      })
+      assert.equal(res.status, 404)
+    })
+
+    test('rejects feedback from a wallet other than the standing bid owner', async () => {
+      const matched = await createMatchedStandingBid()
+      if (!matched) return
+      const res = await fetch(`${API_BASE}/bids/${matched.standingBidId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...AUCTIONEER_AUTH },
+        body: JSON.stringify({ auctionId: matched.auctionId, reaction: 'good' }),
+      })
+      assert.equal(res.status, 403)
+    })
+
+    test('owner records good/bad reactions on their own matched standing bid', async () => {
+      const matched = await createMatchedStandingBid()
+      if (!matched) return
+
+      const goodRes = await fetch(`${API_BASE}/bids/${matched.standingBidId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...BIDDER_AUTH },
+        body: JSON.stringify({ auctionId: matched.auctionId, reaction: 'good' }),
+      })
+      const goodBody = await goodRes.json() as any
+      assert.equal(goodRes.status, 200)
+      assert.equal(goodBody.feedback.reaction, 'good')
+      assert.equal(goodBody.feedback.standingBidId, matched.standingBidId)
+      assert.equal(goodBody.feedback.bidder, BIDDER.toLowerCase())
+
+      // A second reaction on the same match is allowed - pure signal
+      // collection, not a one-shot vote.
+      const badRes = await fetch(`${API_BASE}/bids/${matched.standingBidId}/feedback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...BIDDER_AUTH },
+        body: JSON.stringify({ auctionId: matched.auctionId, reaction: 'bad' }),
+      })
+      assert.equal(badRes.status, 200)
+    })
+  })
 })
